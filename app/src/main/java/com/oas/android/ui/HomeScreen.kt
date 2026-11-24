@@ -1031,15 +1031,93 @@ private fun ErrorImagePreviewDialog(path: String, onDismiss: () -> Unit) {
 
 @Composable
 fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
+    val listState = rememberLazyListState()
+    val infoLines = remember(controller.logLines, controller.message) {
+        if(controller.logLines.isNotEmpty()) controller.logLines
+        else listOfNotNull(controller.message.takeIf { it.isNotBlank() })
+    }
+    LaunchedEffect(infoLines.size) {
+        if(infoLines.isNotEmpty()) listState.scrollToItem(infoLines.lastIndex)
+    }
+
     Column(Modifier.fillMaxSize().padding(8.dp)) {
         OasCard(Modifier.fillMaxSize()) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                Modifier.fillMaxSize().padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 GamePreview(controller)
-                if(!controller.connected || !controller.environmentReady) {
-                    DeviceReadinessCard(controller, onDevice)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if(controller.active) {
+                        Button(
+                            onClick = controller::stop,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(painterResource(R.drawable.ic_oasx_power), null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("停止 · ${controller.activePreset}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    if(controller.connected && controller.environmentReady) {
+                        OutlinedButton(
+                            onClick = controller::release,
+                            enabled = !controller.active && !controller.busy,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("释放虚拟屏") }
+                    } else if(!controller.active) {
+                        OutlinedButton(
+                            onClick = onDevice,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("设备与游戏") }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "实时日志 · ${controller.activePreset}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        if(controller.active) "运行中" else if(controller.environmentReady) "已就绪" else controller.screenLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if(controller.active) OasDesignTokens.StatusColors.Running else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Surface(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+                ) {
+                    if(infoLines.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("暂无运行日志", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        SelectionContainer {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                items(infoLines) { line ->
+                                    OasxLogLineText(line = line, wrapLines = true)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

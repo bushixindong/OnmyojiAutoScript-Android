@@ -415,6 +415,7 @@ class OasController(private val activity: Activity) {
             if(!environmentReady) { notify("请先在设备与游戏中准备运行环境"); return }
             if(Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
                 activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3)
+            session.update("启动配置：$activePreset")
             activity.startForegroundService(Intent(activity, MonitorService::class.java)
                 .setAction(if(task == null) "engine-schedule" else "engine").putExtra("package", gamePackage).putExtra("engineTask", task))
             message = "正在启动任务…"; active = true
@@ -470,8 +471,7 @@ class OasController(private val activity: Activity) {
         val bridge = session.requireBridge()
         if(mode) bridge.usePrimaryDisplay() else bridge.createDisplay(dpi)
         session.primaryMode = mode
-        bridge.launch(gamePackage)
-        "游戏已打开，运行环境已准备"
+        if(mode) "前台兼容环境已就绪" else "虚拟屏幕已创建"
     }
     fun release() = deviceOperation { try { session.restoreAudio() } finally { session.requireBridge().releaseDisplay() }; "运行屏幕已释放" }
     private fun deviceOperation(operation: () -> String) {

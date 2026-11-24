@@ -67,7 +67,6 @@ try:
     cli('create','160');cli('launch','com.oas.android')
     click('画面')
     first=eventually(lambda: (s if (s:=status())['attached'] and s['ageMs'] in range(2001) else None))
-    eventually(lambda:node('● 实时预览'))
     surface=node('游戏实时画面')
     x,y,r,b=bounds(surface);w=r-x;h=b-y
     scale=min(w/1280,h/720);left=x+(w-1280*scale)/2;top=y+(h-720*scale)/2

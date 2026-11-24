@@ -597,7 +597,7 @@ def delete_error_log(error_id=None):
 def run(name,host=None):
     global _active,_running_task,_last_outcome,_host
     from module.device.device import Device
-    from module.exception import TaskEnd
+    from module.exception import GameNotRunningError,TaskEnd
     if host is not None:_host=host
     if _host is not None and _host.isRunning():
         _stop_event.clear()
@@ -621,7 +621,10 @@ def run(name,host=None):
         cooperation=Cooperation(settings.config_name);cooperation.start();cooperation.publish(name)
         settings.cooperation_runtime=cooperation
         device=Device(settings)
-        device.screenshot()
+        if name not in ('Restart','AutoCheckinBigGod') and not device.app_is_running():
+            raise GameNotRunningError('游戏未运行')
+        if name!='Restart':
+            device.screenshot()
         task=_entry(name)(config=settings,device=device)
         # Preserve task_delay semantics but retain the actual scheduler success for the run report.
         original=settings.task_delay
@@ -644,6 +647,8 @@ def run(name,host=None):
         status='failed' if _last_outcome is False or result is False else 'finished'
         return json.dumps(dict(task=name,status=status,detail='任务流程已结束，真实效果请核对游戏',runtimeOutcome=getattr(settings,'task_runtime_outcome',None)),ensure_ascii=False,default=str)
     except Cancelled as error:return json.dumps(dict(task=name,status='cancelled',detail=str(error)),ensure_ascii=False)
+    except GameNotRunningError as error:
+        return json.dumps(dict(task=name,status='game_not_running',detail=str(error)),ensure_ascii=False)
     except Exception as error:
         tb=traceback.format_exc()
         error_id=_save_error_snapshot(name,str(error),tb,device=device,settings=settings)
@@ -695,8 +700,10 @@ def schedule(host):
                 optimization=config().script.optimization
                 mode=str(getattr(optimization.when_task_queue_empty,'value',optimization.when_task_queue_empty))
                 if not idle_prepared:
-                    result=json.loads(run('GotoMain',host));history.append(result)
-                    if result['status']!='finished':return json.dumps(dict(status=result['status'],detail='空闲前返回庭院失败：'+result['detail'],runs=history),ensure_ascii=False)
+                    if host.isGameForeground():
+                        result=json.loads(run('GotoMain',host));history.append(result)
+                        if result['status'] not in ('finished','game_not_running'):
+                            return json.dumps(dict(status=result['status'],detail='空闲前返回庭院失败：'+result['detail'],runs=history),ensure_ascii=False)
                     idle_prepared=True
                 limit=optimization.close_game_limit_time
                 threshold=limit.hour*3600+limit.minute*60+limit.second
@@ -715,6 +722,11 @@ def schedule(host):
             _guard.record_active(time.monotonic()-started)
             if len(history)>100:history=history[-100:]
             if result['status']=='cancelled':return json.dumps(dict(status='cancelled',detail='计划运行已停止',runs=history),ensure_ascii=False)
+            if result['status']=='game_not_running':
+                logger.warning('检测到游戏未运行，自动触发 Restart 启动登录')
+                with _config_lock:config().task_call('Restart')
+                _notify_state()
+                _wait_schedule(0.2);continue
             if result['status']=='failed':
                 failures[candidate.command]=failures.get(candidate.command,0)+1
                 if failures[candidate.command]>=3:return json.dumps(dict(status='failed',detail=candidate.command+' 连续失败三次，计划已停止',runs=history),ensure_ascii=False)

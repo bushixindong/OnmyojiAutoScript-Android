@@ -182,10 +182,6 @@ fun GamePreview(controller: OasController) {
                 if(!state.live) Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment=Alignment.Center) {
                     Text(state.label,Modifier.padding(20.dp),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if(state.live) Surface(Modifier.align(Alignment.TopEnd).padding(8.dp),shape=MaterialTheme.shapes.extraLarge,
-                    color=MaterialTheme.colorScheme.surface.copy(alpha=.9f)) {
-                    Text("● 实时预览",Modifier.padding(horizontal=10.dp,vertical=5.dp),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
-                }
             }
         }
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {

@@ -227,7 +227,7 @@ fun DeviceSheet(controller: OasController, onDismiss: () -> Unit) {
                 enabled = controller.connected && !controller.active && !controller.busy,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = MaterialTheme.shapes.small
-            ) { Text("保存并打开游戏") }
+            ) { Text(if(primary) "保存并准备前台模式" else "保存并打开虚拟屏幕") }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = { if(controller.saveDevice(packageName, primary, dpi)) onDismiss() }) { Text("仅保存配置") }
                 TextButton(onClick = { controller.release(); onDismiss() }, enabled = controller.connected && !controller.active) { Text("释放运行屏幕") }
