@@ -14,8 +14,10 @@ def run(fixtures):
         except BaseException as error:report.append(dict(test=name,status='failed',detail=str(error),traceback=traceback.format_exc()))
     fixtures=Path(str(fixtures))
     def ocr():
-        from module.ocr.rpc import get_ocr_client
-        system=get_ocr_client();lines=[]
+        from module.ocr.models import get_ocr_model
+        from module.server.setting import State
+        assert State.deploy_config.OcrClientAddress
+        system=get_ocr_model('ch');lines=[]
         for entry in json.loads((fixtures/'expected.json').read_text()):
             image=cv2.cvtColor(cv2.imread(str(fixtures/entry['file'])),cv2.COLOR_BGR2RGB)
             text,score=system.ocr_single_line(image)

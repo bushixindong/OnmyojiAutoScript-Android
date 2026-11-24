@@ -86,6 +86,17 @@ def _install_image():
     parent.rpc=rpc
 
 def _install_ocr():
+    class _AndroidDeployConfig:
+        OcrClientAddress='in-process'
+        ImageClientAddress='in-process'
+        Language='zh-CN'
+        UseUnifiedRunner=False
+        def __getattr__(self,name):return None
+    try:
+        from module.server.setting import State
+        State._deploy_config_=_AndroidDeployConfig()
+    except Exception:
+        pass
     instance=[]
     def get_ocr_client(*args,**kwargs):
         if not instance:
@@ -94,6 +105,7 @@ def _install_ocr():
         return instance[0]
     _module('module.ocr.rpc',get_ocr_client=get_ocr_client,ensure_ocr_server_started=lambda:True,
             ensure_ocr_server_ready=lambda:True,shutdown_ocr_server=lambda **kwargs:False)
+    _module('module.ocr.models',get_ocr_model=lambda lang='ch':get_ocr_client())
 
 def _validate_preset_name(name):
     import re
