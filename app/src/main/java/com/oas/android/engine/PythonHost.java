@@ -12,12 +12,14 @@ public class PythonHost implements AutoCloseable {
     private final com.oas.android.bridge.RawFrameReader rawReader=new com.oas.android.bridge.RawFrameReader();
     protected final DeviceSession session;
     private final String gamePackage;
+    private final int displayDpi;
     private BooleanSupplier running=()->true;
     private long deadline=Long.MAX_VALUE;
     private int touches;
     private boolean portrait;
-    public PythonHost(DeviceSession session,String gamePackage){this.session=session;this.gamePackage=gamePackage;}
-    public void begin(BooleanSupplier running,long timeoutMillis){this.running=running;this.deadline=SystemClock.elapsedRealtime()+timeoutMillis;touches=0;}
+    public PythonHost(DeviceSession session,String gamePackage){this(session,gamePackage,240);}
+    public PythonHost(DeviceSession session,String gamePackage,int displayDpi){this.session=session;this.gamePackage=gamePackage;this.displayDpi=displayDpi>0?displayDpi:240;}
+    public void begin(BooleanSupplier running,long timeoutMillis){this.running=running;this.deadline=timeoutMillis<=0?Long.MAX_VALUE:SystemClock.elapsedRealtime()+timeoutMillis;touches=0;}
     public boolean isRunning(){return running.getAsBoolean()&&SystemClock.elapsedRealtime()<deadline&&!Thread.currentThread().isInterrupted();}
     protected void check(){if(!isRunning())throw new IllegalStateException("任务停止或达到运行时限");}
     private void touching(){check();if(++touches>100000)throw new IllegalStateException("达到触控次数上限");}
@@ -45,6 +47,19 @@ public class PythonHost implements AutoCloseable {
     }
     public void launch(String name)throws Exception{check();session.requireBridge().launch(name);}
     public void stopPackage(String name)throws Exception{check();session.requireBridge().stopPackage(name);}
+    public void releaseDisplay()throws Exception{
+        check();
+        if(!session.primaryMode){session.requireBridge().releaseDisplay();session.notifyStateChanged();}
+    }
+    public void ensureDisplay()throws Exception{
+        check();
+        int id=new JSONObject(session.requireBridge().status()).optInt("displayId",-1);
+        if(id<0){
+            if(session.primaryMode) session.requireBridge().usePrimaryDisplay();
+            else session.requireBridge().createDisplay(displayDpi);
+            session.notifyStateChanged();
+        }
+    }
     public boolean isPortrait(){return portrait;}
     public void setPortrait(boolean value)throws Exception{check();session.requireBridge().resizeDisplay(value?720:1280,value?1280:720);portrait=value;}
     public void restoreOrientation(){

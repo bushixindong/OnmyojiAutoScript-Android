@@ -141,7 +141,7 @@ def _install_image():
     class LocalImageClient(namespace['ImageClient']):
         def __init__(self):
             self.address='in-process'
-            self.client=ImageRuntime(dict(worker_count=2,frame_cache_max_count=4))
+            self.client=ImageRuntime(dict(worker_count=2,frame_cache_max_count=24,frame_cache_expire_seconds=30.0))
     client=LocalImageClient()
     rpc=_module('module.image.rpc',ImageClient=LocalImageClient,get_image_client=lambda *args,**kwargs:client,
             ensure_image_server_started=lambda:True,ensure_image_server_ready=lambda:True,
@@ -408,6 +408,39 @@ def task_config(name):
     # Normalize them with the real validator before presenting an editable form.
     value=type(model).model_validate(model.model_dump()).model_dump(mode='json')
     schema=type(model).model_json_schema()
+    # Respect OAS dynamic_hide (0xABCDEF sentinel) and ui_hidden markers, matching desktop config_model.py.
+    try:
+        visible=model.model_dump(context={'hide':True})
+        defs=schema.get('$defs') or {}
+        top_props=schema.get('properties') or {}
+        for gkey in list(top_props.keys()):
+            gprop=top_props.get(gkey) or {}
+            if visible.get(gkey)==0xABCDEF or gprop.get('ui_hidden') is True:
+                top_props.pop(gkey,None)
+                continue
+            gval=visible.get(gkey)
+            if not isinstance(gval,dict):continue
+            ref=gprop.get('$ref')
+            if isinstance(ref,str) and ref.startswith('#/$defs/'):
+                dname=ref[len('#/$defs/'):]
+                target=defs.get(dname)
+                if isinstance(target,dict) and isinstance(target.get('properties'),dict):
+                    cloned=json.loads(json.dumps(target))
+                    sub_props=cloned['properties']
+                    for fkey in list(sub_props.keys()):
+                        fprop=sub_props.get(fkey) or {}
+                        if gval.get(fkey)==0xABCDEF or fprop.get('ui_hidden') is True:
+                            sub_props.pop(fkey,None)
+                    new_name=f'{dname}__{gkey}'
+                    defs[new_name]=cloned
+                    gprop['$ref']=f'#/$defs/{new_name}'
+            elif isinstance(gprop.get('properties'),dict):
+                sub_props=gprop['properties']
+                for fkey in list(sub_props.keys()):
+                    fprop=sub_props.get(fkey) or {}
+                    if gval.get(fkey)==0xABCDEF or fprop.get('ui_hidden') is True:
+                        sub_props.pop(fkey,None)
+    except Exception:pass
     if name=='CustomTask':
         from tasks.CustomTask.config import TASK_TYPES
         variants=[];definitions=schema.setdefault('$defs',{})
@@ -772,7 +805,7 @@ def schedule(host):
     namespace=dict(datetime=datetime,timedelta=timedelta,copy=copy,logger=logger)
     exec(compile(ast.Module(body=[method],type_ignores=[]),'oas-task-hoarding','exec'),namespace)
     hoarding=types.SimpleNamespace(config=config(),task_hoarding_until=None,task_hoarding_released=False,is_first_task=True)
-    idle_since=None;idle_prepared=False;game_closed=False;wait_message=None
+    idle_since=None;idle_prepared=False;game_closed=False;display_released=False;wait_message=None
     try:
         while host.isRunning() and not _stop_event.is_set():
             pending,waiting=scheduled_plan()
@@ -789,22 +822,30 @@ def schedule(host):
                 if idle_since is None:idle_since=time.monotonic()
                 optimization=config().script.optimization
                 mode=str(getattr(optimization.when_task_queue_empty,'value',optimization.when_task_queue_empty))
-                if not idle_prepared:
+                limit=optimization.close_game_limit_time
+                threshold=limit.hour*3600+limit.minute*60+limit.second
+                should_close=mode in ('close_game','close_emulator_or_close_game') and (threshold<=0 or delay>threshold)
+                if should_close and not game_closed:
+                    host.log('下一任务间隔超过阈值，自动关闭游戏省电')
+                    host.stopPackage(str(host.gamePackage()));game_closed=True;idle_prepared=True
+                    if mode=='close_emulator_or_close_game' and not display_released and hasattr(host,'releaseDisplay'):
+                        host.log('释放后台虚拟屏以进一步省电')
+                        host.releaseDisplay();display_released=True
+                elif not idle_prepared:
                     if host.isGameForeground():
                         result=json.loads(run('GotoMain',host));history.append(result)
                         if result['status'] not in ('finished','game_not_running'):
                             return json.dumps(dict(status=result['status'],detail='空闲前返回庭院失败：'+result['detail'],runs=history),ensure_ascii=False)
                     idle_prepared=True
-                limit=optimization.close_game_limit_time
-                threshold=limit.hour*3600+limit.minute*60+limit.second
-                if mode in ('close_game','close_emulator_or_close_game') and not game_closed and time.monotonic()-idle_since>=threshold:
-                    host.stopPackage(str(host.gamePackage()));game_closed=True
                 message='等待计划任务：'+waiting[0].command
                 if message!=wait_message:host.log(message);wait_message=message
                 _wait_schedule(min(1.0,delay));continue
             candidate=namespace['_hoard_next_task'](hoarding,pending[0],datetime.now())
             if candidate.next_run>datetime.now():_wait_schedule(min(1.0,(candidate.next_run-datetime.now()).total_seconds()));continue
-            if game_closed:host.launch(str(host.gamePackage()));game_closed=False;_wait_schedule(1.0)
+            if display_released and hasattr(host,'ensureDisplay'):
+                host.log('计划任务到点，自动重建后台虚拟屏')
+                host.ensureDisplay();display_released=False;_wait_schedule(0.8)
+            if game_closed:game_closed=False
             if not host.isRunning() or _stop_event.is_set():break
             idle_since=None;idle_prepared=False;wait_message=None;started=time.monotonic()
             result=json.loads(run(candidate.command,host));history.append(result)

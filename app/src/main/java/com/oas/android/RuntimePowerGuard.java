@@ -18,7 +18,8 @@ final class RuntimePowerGuard implements AutoCloseable {
             boolean awake=options.getBoolean("keepAwake",true);
             if(awake) {
                 cpu=((PowerManager)context.getSystemService(Context.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"OASA:task");
-                cpu.setReferenceCounted(false);cpu.acquire(timeout);
+                cpu.setReferenceCounted(false);
+                if(timeout>0) cpu.acquire(timeout); else cpu.acquire();
             }
             session.requireBridge().configureRuntime(true,awake,options.getBoolean("fpsEnabled",true));
             session.requireBridge().configureFrameRates(options.getInt("captureFps",30),options.getInt("previewFps",30));

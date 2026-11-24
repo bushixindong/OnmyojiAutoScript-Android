@@ -70,7 +70,7 @@
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "643a9b9cc2fffbc0674dfa076f284c09cba5547e24a38168be59858971cc5ca0",
+  "archiveSha256": "748d554e7c9abfa5f96edb3fcdf09870b10f6dd833c70888be248514d74f449b",
   "thirdPartyImports": [
     "Crypto",
     "PIL",

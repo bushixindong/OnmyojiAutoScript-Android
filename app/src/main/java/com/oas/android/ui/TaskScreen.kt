@@ -358,7 +358,6 @@ private fun TaskActionButtons(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskDateTimeDialog(
     initial: LocalDateTime,
@@ -366,36 +365,12 @@ private fun TaskDateTimeDialog(
     onDismiss: () -> Unit,
     onConfirm: (LocalDateTime) -> Unit
 ) {
-    var pickTime by remember { mutableStateOf(false) }
-    val zone = ZoneId.systemDefault()
-    val initialMillis = remember(initial) { initial.atZone(zone).toInstant().toEpochMilli() }
-    val dateState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-    val timeState = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
-
-    if(!pickTime) {
-        DatePickerDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = { TextButton(onClick = { pickTime = true }) { Text("下一步") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
-        ) {
-            DatePicker(state = dateState, title = { Text("设置 $title 日期", Modifier.padding(start = 24.dp, top = 16.dp)) })
-        }
-    } else {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("设置 $title 时间") },
-            text = { TimePicker(state = timeState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val date = dateState.selectedDateMillis?.let {
-                        Instant.ofEpochMilli(it).atZone(zone).toLocalDate()
-                    } ?: LocalDate.now()
-                    onConfirm(LocalDateTime.of(date, LocalTime.of(timeState.hour, timeState.minute, 0)))
-                }) { Text("确定") }
-            },
-            dismissButton = { TextButton(onClick = { pickTime = false }) { Text("上一步") } }
-        )
-    }
+    OasxWheelDateTimeSheet(
+        initial = initial,
+        title = "设置 $title 执行时间",
+        onDismiss = onDismiss,
+        onConfirm = onConfirm
+    )
 }
 
 private fun parseOasxDateTime(value: String): LocalDateTime? = try {

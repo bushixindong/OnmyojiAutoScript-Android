@@ -59,7 +59,8 @@ public final class MonitorService extends Service {
     }
     private void execute(String action, String packageName, int rounds, boolean prepare,String engineTask) {
         TaskRuntime task = null;
-        try (RuntimePowerGuard power=new RuntimePowerGuard(this,session,packageName,7800000L);
+        long powerTimeout=action.equals("engine-schedule")?0L:7800000L;
+        try (RuntimePowerGuard power=new RuntimePowerGuard(this,session,packageName,powerTimeout);
              ScreenRecognizer recognizer = new ScreenRecognizer(this)) {
             DungeonConfig dungeon=null;
             if(action.equals("dungeon")||action.equals("dungeon-check")){
@@ -68,8 +69,8 @@ public final class MonitorService extends Service {
                     options.getInt("dungeon_layer",10),options.getInt("dungeon_rounds",1),options.getInt("dungeon_minutes",10),
                     options.getBoolean("dungeon_lock",true),options.getBoolean("dungeon_stop_loss",true),action.equals("dungeon-check"));
             }
-            long timeout=action.startsWith("engine")?7200000:dungeon!=null&&!dungeon.inspect?dungeon.minutes*60000L+600000:action.equals("battle")||action.equals("wait")?600000:180000;
-            task = new TaskRuntime(this, session, recognizer, running::get, timeout);
+            long timeout=action.equals("engine-schedule")?0L:action.equals("engine")?7200000L:dungeon!=null&&!dungeon.inspect?dungeon.minutes*60000L+600000:action.equals("battle")||action.equals("wait")?600000:180000;
+            task = new TaskRuntime(this, session, recognizer, running::get, timeout<=0?Long.MAX_VALUE/2:timeout);
             task.report.put("package", packageName);
             task.check();
             if (session.primaryMode) { session.requireBridge().launch(packageName); task.pause(700); }
@@ -85,7 +86,8 @@ public final class MonitorService extends Service {
                 case "dungeon": case "dungeon-check": detail=new DungeonTask(task,dungeon).run();break;
                 case "ocr-text": detail=readText(task);break;
                 case "engine":case "engine-schedule":
-                    PythonHost host=new PythonHost(session,packageName);host.begin(running::get,timeout);
+                    int dpi=getSharedPreferences("MainActivity",0).getInt("dpi",240);
+                    PythonHost host=new PythonHost(session,packageName,dpi);host.begin(running::get,timeout);
                     org.json.JSONObject result;
                     try{
                         com.chaquo.python.PyObject engine=TaskEngine.initialize(this,host);

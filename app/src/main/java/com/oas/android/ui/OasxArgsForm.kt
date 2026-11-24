@@ -42,7 +42,7 @@ class OasxFormModel(
     initialValue: JSONObject,
     val labels: JSONObject
 ) {
-    private val initialSnapshot = JSONObject(initialValue.toString())
+    private var initialSnapshot = JSONObject(initialValue.toString())
     val working: JSONObject = JSONObject(initialValue.toString())
     var version by mutableIntStateOf(0)
         private set
@@ -63,6 +63,13 @@ class OasxFormModel(
     fun markInvalid(path: String, reason: String) {
         invalidPaths[path] = reason
         dirtyPaths[path] = true
+        version++
+    }
+
+    fun commitSaved() {
+        initialSnapshot = JSONObject(working.toString())
+        dirtyPaths.clear()
+        invalidPaths.clear()
         version++
     }
 
@@ -186,7 +193,7 @@ fun OasxTaskParameterPanel(
             localError = ""
             val payload = currentForm.validatedCopy().toString()
             controller.saveEditor(id, payload, runAfter) {
-                currentForm.dirtyPaths.clear()
+                currentForm.commitSaved()
                 if(runAfter) onBack()
             }
         } catch(problem: Throwable) {
@@ -743,9 +750,15 @@ private fun OasxSchemaField(
         control = {
             when {
                 enumOptions != null -> {
-                    val options = (0 until enumOptions.length()).map { idx ->
-                        val rawOpt = enumOptions.get(idx)
-                        rawOpt.toString() to model.label(rawOpt.toString())
+                    val options = (0 until enumOptions.length()).mapNotNull { idx ->
+                        val rawOpt = enumOptions.get(idx).toString()
+                        if(name == "when_task_queue_empty" && rawOpt == "close_emulator_or_goto_main") return@mapNotNull null
+                        val label = if(name == "when_task_queue_empty" && rawOpt == "close_emulator_or_close_game") {
+                            "关闭游戏并释放虚拟屏"
+                        } else {
+                            model.label(rawOpt)
+                        }
+                        rawOpt to label
                     }
                     val currentStr = liveValue?.toString().orEmpty()
                     val selectedLabel = options.firstOrNull { it.first == currentStr }?.second ?: currentStr
@@ -921,36 +934,17 @@ private fun OasxDateTimeInput(value: String, onUpdate: (Any) -> Unit) {
             try { LocalDateTime.parse(text.trim().replace(' ', 'T')) }
             catch(_: Exception) { LocalDateTime.now() }
         }
-        var stepTime by remember { mutableStateOf(false) }
-        val zone = ZoneId.systemDefault()
-        val dateState = rememberDatePickerState(initialSelectedDateMillis = initial.atZone(zone).toInstant().toEpochMilli())
-        val timeState = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
-        if(!stepTime) {
-            DatePickerDialog(
-                onDismissRequest = { showPicker = false },
-                confirmButton = { TextButton(onClick = { stepTime = true }) { Text("下一步") } },
-                dismissButton = { TextButton(onClick = { showPicker = false }) { Text("取消") } }
-            ) { DatePicker(state = dateState) }
-        } else {
-            AlertDialog(
-                onDismissRequest = { showPicker = false },
-                title = { Text("选择时间") },
-                text = { TimePicker(state = timeState) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        val date = dateState.selectedDateMillis?.let {
-                            Instant.ofEpochMilli(it).atZone(zone).toLocalDate()
-                        } ?: LocalDate.now()
-                        val formatted = LocalDateTime.of(date, LocalTime.of(timeState.hour, timeState.minute, 0))
-                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        text = formatted
-                        onUpdate(formatted)
-                        showPicker = false
-                    }) { Text("确定") }
-                },
-                dismissButton = { TextButton(onClick = { stepTime = false }) { Text("上一步") } }
-            )
-        }
+        OasxWheelDateTimeSheet(
+            initial = initial,
+            title = "选择执行时间",
+            onDismiss = { showPicker = false },
+            onConfirm = { picked ->
+                val formatted = picked.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                text = formatted
+                onUpdate(formatted)
+                showPicker = false
+            }
+        )
     }
 }
 
