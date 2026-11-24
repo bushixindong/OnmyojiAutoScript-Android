@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import pickle
 import sys
+import threading
 import time
 import types
 import traceback
@@ -22,19 +23,45 @@ _running_task=None
 _last_outcome=None
 _sleep=time.sleep
 _guard=None
+_config_lock=threading.RLock()
+_stop_event=threading.Event()
+_wakeup_event=threading.Event()
 _RESERVED_PRESETS={'template','android-audit','Home','home'}
 
 class Cancelled(BaseException):
     pass
 
+def request_stop():
+    _stop_event.set()
+    _wakeup_event.set()
+
+def _notify_state():
+    fn=getattr(_host,'notifyStateChanged',None)
+    if callable(fn):
+        try:fn()
+        except Exception:pass
+
 def check():
-    if _active and not _host.isRunning():
+    if _active and (_stop_event.is_set() or not _host.isRunning()):
         raise Cancelled('任务已停止或达到运行时限')
 
 def sleep(seconds):
-    remaining=max(0,float(seconds))
+    remaining=max(0.0,float(seconds))
     while remaining>0:
-        check();duration=min(.1,remaining);_sleep(duration);remaining-=duration
+        check()
+        duration=min(0.05,remaining)
+        if _active:
+            if _stop_event.wait(duration):check()
+        else:
+            _sleep(duration)
+        remaining-=duration
+
+def _wait_schedule(seconds):
+    duration=max(0.0,float(seconds))
+    if duration<=0:return
+    if _wakeup_event.wait(duration):
+        if not _stop_event.is_set():
+            _wakeup_event.clear()
 
 def _module(name,**values):
     module=types.ModuleType(name);module.__dict__.update(values);sys.modules[name]=module;return module
@@ -282,7 +309,7 @@ def export_preset(name=None):
     return path.read_text(encoding='utf-8-sig')
 
 def import_task_json(name,json_text):
-    if _active:raise RuntimeError('任务运行时请先停止再导入配置')
+    if _active and _running_task==name:raise RuntimeError('当前任务正在运行中，请稍后再导入')
     entry=next(item for item in json.loads(catalog()) if item['id']==name)
     key=entry['configKey']
     if key is None:raise ValueError('该任务没有独立配置')
@@ -381,40 +408,45 @@ def labels():
 
 def dashboard():
     from module.config.config_menu import ConfigMenu
-    settings=config();result=[];translations=json.loads(labels());locations={}
-    # OASX gets this exact menu from /script_menu. Preserve both levels of order.
-    for group_order,(group,names) in enumerate(ConfigMenu().menu.items()):
-        for task_order,name in enumerate(names):
-            locations.setdefault(name,dict(groupId=group,groupLabel=translations.get(group,group),
-                menuOrder=group_order*1000+task_order))
-    for entry in json.loads(catalog()):
-        key=entry['configKey'];model=getattr(settings.model,key) if key else None
-        scheduler=getattr(model,'scheduler',None)
-        result.append(dict(entry,**locations.get(entry['id'],dict(groupId='',groupLabel='',menuOrder=1000000)),enabled=bool(scheduler and scheduler.enable),
-            hasScheduler=scheduler is not None,nextRun=str(scheduler.next_run) if scheduler else None,
-            running=(_active and _running_task==entry['id'])))
-    return json.dumps(sorted(result,key=lambda entry:entry['menuOrder']),ensure_ascii=False)
+    with _config_lock:
+        settings=config();result=[];translations=json.loads(labels());locations={}
+        # OASX gets this exact menu from /script_menu. Preserve both levels of order.
+        for group_order,(group,names) in enumerate(ConfigMenu().menu.items()):
+            for task_order,name in enumerate(names):
+                locations.setdefault(name,dict(groupId=group,groupLabel=translations.get(group,group),
+                    menuOrder=group_order*1000+task_order))
+        for entry in json.loads(catalog()):
+            key=entry['configKey'];model=getattr(settings.model,key) if key else None
+            scheduler=getattr(model,'scheduler',None)
+            result.append(dict(entry,**locations.get(entry['id'],dict(groupId='',groupLabel='',menuOrder=1000000)),enabled=bool(scheduler and scheduler.enable),
+                hasScheduler=scheduler is not None,nextRun=str(scheduler.next_run) if scheduler else None,
+                running=(_active and _running_task==entry['id'])))
+        return json.dumps(sorted(result,key=lambda entry:entry['menuOrder']),ensure_ascii=False)
 
 def set_task_enabled(name,enabled):
-    if _active:raise RuntimeError('任务运行时请先停止再修改计划')
-    entry=next(item for item in json.loads(catalog()) if item['id']==name)
-    if not entry['runnable']:raise ValueError('该入口不能加入任务计划')
-    model=getattr(config().model,entry['configKey']) if entry['configKey'] else None
-    if model is None or not hasattr(model,'scheduler'):raise ValueError('该任务只能单独运行')
-    model.scheduler.enable=bool(enabled);config().save()
-    return dashboard()
+    if _active and _running_task==name:raise RuntimeError('当前任务正在运行中，暂不可修改其启用状态')
+    with _config_lock:
+        entry=next(item for item in json.loads(catalog()) if item['id']==name)
+        if not entry['runnable']:raise ValueError('该入口不能加入任务计划')
+        model=getattr(config().model,entry['configKey']) if entry['configKey'] else None
+        if model is None or not hasattr(model,'scheduler'):raise ValueError('该任务只能单独运行')
+        model.scheduler.enable=bool(enabled);config().save()
+        _wakeup_event.set();_notify_state()
+        return dashboard()
 
 def set_task_next_run(name,next_run,enable=None):
-    if _active:raise RuntimeError('任务运行时请先停止再修改计划')
+    if _active and _running_task==name:raise RuntimeError('当前任务正在运行中，暂不可调整调度时间')
     from datetime import datetime
-    entry=next(item for item in json.loads(catalog()) if item['id']==name)
-    if not entry['runnable']:raise ValueError('该入口不能加入任务计划')
-    model=getattr(config().model,entry['configKey']) if entry['configKey'] else None
-    if model is None or not hasattr(model,'scheduler'):raise ValueError('该任务没有调度计划')
-    model.scheduler.next_run=datetime.fromisoformat(str(next_run).strip().replace(' ','T'))
-    if enable is not None:model.scheduler.enable=bool(enable)
-    config().save()
-    return dashboard()
+    with _config_lock:
+        entry=next(item for item in json.loads(catalog()) if item['id']==name)
+        if not entry['runnable']:raise ValueError('该入口不能加入任务计划')
+        model=getattr(config().model,entry['configKey']) if entry['configKey'] else None
+        if model is None or not hasattr(model,'scheduler'):raise ValueError('该任务没有调度计划')
+        model.scheduler.next_run=datetime.fromisoformat(str(next_run).strip().replace(' ','T'))
+        if enable is not None:model.scheduler.enable=bool(enable)
+        config().save()
+        _wakeup_event.set();_notify_state()
+        return dashboard()
 
 def quick_run_task(name):
     from datetime import datetime,timedelta
@@ -427,48 +459,57 @@ def quick_wait_task(name):
     return set_task_next_run(name,target,enable=True)
 
 def bulk_quick_schedule(run_now):
-    if _active:raise RuntimeError('任务运行时请先停止再修改计划')
     from datetime import datetime,timedelta
     target=datetime.now().replace(microsecond=0)+(timedelta(days=-1) if run_now else timedelta(days=1))
-    settings=config();changed=False
-    for entry in json.loads(catalog()):
-        if not entry['runnable'] or not entry['configKey']:continue
-        model=getattr(settings.model,entry['configKey'])
-        scheduler=getattr(model,'scheduler',None)
-        if scheduler is not None and scheduler.enable:
-            scheduler.next_run=target;changed=True
-    if changed:settings.save()
-    return dashboard()
+    with _config_lock:
+        settings=config();changed=False
+        for entry in json.loads(catalog()):
+            if not entry['runnable'] or not entry['configKey']:continue
+            if _active and _running_task==entry['id']:continue
+            model=getattr(settings.model,entry['configKey'])
+            scheduler=getattr(model,'scheduler',None)
+            if scheduler is not None and scheduler.enable:
+                scheduler.next_run=target;changed=True
+        if changed:
+            settings.save()
+            _wakeup_event.set();_notify_state()
+        return dashboard()
 
 def save_task_config(name,data):
-    entry=next(item for item in json.loads(catalog()) if item['id']==name)
-    if entry['configKey'] is None:
-        if json.loads(str(data)):raise ValueError('该任务没有独立配置')
+    with _config_lock:
+        entry=next(item for item in json.loads(catalog()) if item['id']==name)
+        if entry['configKey'] is None:
+            if json.loads(str(data)):raise ValueError('该任务没有独立配置')
+            return task_config(name)
+        settings=config();old=getattr(settings.model,entry['configKey'])
+        replacement=type(old).model_validate(json.loads(str(data)))
+        if name=='AutoCheckinBigGod' and not replacement.checkin_config.manual_claim:
+            raise ValueError('手机版大神签到使用无需 Root 的界面领取模式，请保持“手动领取”开启')
+        setattr(settings.model,entry['configKey'],replacement);settings.save()
+        _wakeup_event.set();_notify_state()
         return task_config(name)
-    settings=config();old=getattr(settings.model,entry['configKey'])
-    replacement=type(old).model_validate(json.loads(str(data)))
-    if name=='AutoCheckinBigGod' and not replacement.checkin_config.manual_claim:
-        raise ValueError('手机版大神签到使用无需 Root 的界面领取模式，请保持“手动领取”开启')
-    setattr(settings.model,entry['configKey'],replacement);settings.save()
-    return task_config(name)
 
 def run(name,host=None):
     global _active,_running_task,_last_outcome,_host
     from module.device.device import Device
     from module.exception import TaskEnd
     if host is not None:_host=host
+    if _host is not None and _host.isRunning():
+        _stop_event.clear()
     _active=True;_running_task=name;_last_outcome=None
+    _notify_state()
     cooperation=None
     trace_count=0
     def trace(frame,event,arg):
         nonlocal trace_count
         trace_count+=1
-        if trace_count%128==0:check()
+        if trace_count%32==0:check()
         return trace
     try:
-        settings=config();settings.task=types.SimpleNamespace(command=name)
-        settings.model.script.device.package_name=str(_host.gamePackage())
-        settings.save()
+        with _config_lock:
+            settings=config();settings.task=types.SimpleNamespace(command=name)
+            settings.model.script.device.package_name=str(_host.gamePackage())
+            settings.save()
         from module.cooperation import Cooperation
         cooperation=Cooperation(settings.config_name);cooperation.start();cooperation.publish(name)
         settings.cooperation_runtime=cooperation
@@ -480,7 +521,10 @@ def run(name,host=None):
         def record_delay(*args,**kwargs):
             global _last_outcome
             _last_outcome=kwargs.get('success')
-            return original(*args,**kwargs)
+            with _config_lock:
+                ret=original(*args,**kwargs)
+            _notify_state()
+            return ret
         settings.task_delay=record_delay
         sys.settrace(trace)
         try:
@@ -497,15 +541,16 @@ def run(name,host=None):
         return json.dumps(dict(task=name,status='failed',detail=str(error),traceback=traceback.format_exc()),ensure_ascii=False)
     finally:
         sys.settrace(None);_active=False;_running_task=None
+        _notify_state()
         if cooperation is not None:cooperation.close()
 
 def scheduled_plan():
-    from datetime import datetime
-    settings=config();settings.reload();settings.update_scheduler()
-    allowed={entry['id'] for entry in json.loads(catalog()) if entry['runnable']}
-    pending=[task for task in settings.pending_task if task.command in allowed]
-    waiting=[task for task in settings.waiting_task if task.command in allowed]
-    return pending,waiting
+    with _config_lock:
+        settings=config();settings.reload();settings.update_scheduler()
+        allowed={entry['id'] for entry in json.loads(catalog()) if entry['runnable']}
+        pending=[task for task in settings.pending_task if task.command in allowed]
+        waiting=[task for task in settings.waiting_task if task.command in allowed]
+        return pending,waiting
 
 def schedule(host):
     global _host,_guard
@@ -515,6 +560,8 @@ def schedule(host):
     from module.config.anti_ban import AntiBanGuard
     if _guard is None:_guard=AntiBanGuard()
     _host=host;history=[];failures={}
+    if host.isRunning():
+        _stop_event.clear();_wakeup_event.clear()
     source=ast.parse((_root/'script.py').read_text(encoding='utf-8-sig'))
     script=next(node for node in source.body if isinstance(node,ast.ClassDef) and node.name=='Script')
     method=next(node for node in script.body if isinstance(node,ast.FunctionDef) and node.name=='_hoard_next_task')
@@ -523,18 +570,18 @@ def schedule(host):
     hoarding=types.SimpleNamespace(config=config(),task_hoarding_until=None,task_hoarding_released=False,is_first_task=True)
     idle_since=None;idle_prepared=False;game_closed=False;wait_message=None
     try:
-        while host.isRunning():
+        while host.isRunning() and not _stop_event.is_set():
             pending,waiting=scheduled_plan()
             if not pending and not waiting:return json.dumps(dict(status='finished',detail='没有启用的待运行任务',runs=history),ensure_ascii=False)
             wake=_guard.wake_time(datetime.now(),config().script.anti_ban)
             if wake is not None:
                 message='按作息配置休息至 '+str(wake)
                 if message!=wait_message:host.log(message);wait_message=message
-                _sleep(min(1,max(0,(wake-datetime.now()).total_seconds())));continue
+                _wait_schedule(min(1.0,max(0.0,(wake-datetime.now()).total_seconds())));continue
             if not pending:
                 hoarding.task_hoarding_until=None;hoarding.task_hoarding_released=False
                 from datetime import datetime
-                delay=max(0,(waiting[0].next_run-datetime.now()).total_seconds())
+                delay=max(0.0,(waiting[0].next_run-datetime.now()).total_seconds())
                 if idle_since is None:idle_since=time.monotonic()
                 optimization=config().script.optimization
                 mode=str(getattr(optimization.when_task_queue_empty,'value',optimization.when_task_queue_empty))
@@ -548,10 +595,11 @@ def schedule(host):
                     host.stopPackage(str(host.gamePackage()));game_closed=True
                 message='等待计划任务：'+waiting[0].command
                 if message!=wait_message:host.log(message);wait_message=message
-                _sleep(min(1,delay));continue
+                _wait_schedule(min(1.0,delay));continue
             candidate=namespace['_hoard_next_task'](hoarding,pending[0],datetime.now())
-            if candidate.next_run>datetime.now():_sleep(min(1,(candidate.next_run-datetime.now()).total_seconds()));continue
-            if game_closed:host.launch(str(host.gamePackage()));game_closed=False;_sleep(1)
+            if candidate.next_run>datetime.now():_wait_schedule(min(1.0,(candidate.next_run-datetime.now()).total_seconds()));continue
+            if game_closed:host.launch(str(host.gamePackage()));game_closed=False;_wait_schedule(1.0)
+            if not host.isRunning() or _stop_event.is_set():break
             idle_since=None;idle_prepared=False;wait_message=None;started=time.monotonic()
             result=json.loads(run(candidate.command,host));history.append(result)
             hoarding.is_first_task=False
@@ -561,14 +609,16 @@ def schedule(host):
             if result['status']=='failed':
                 failures[candidate.command]=failures.get(candidate.command,0)+1
                 if failures[candidate.command]>=3:return json.dumps(dict(status='failed',detail=candidate.command+' 连续失败三次，计划已停止',runs=history),ensure_ascii=False)
-                config().task_delay(candidate.command,success=False,server=False)
+                with _config_lock:config().task_delay(candidate.command,success=False,server=False)
+                _notify_state()
             else:failures[candidate.command]=0
             # Some immediate tools intentionally have no next-run update. Do not hot-loop them.
             pending_after,_=scheduled_plan()
             if any(task.command==candidate.command and task.next_run<=candidate.next_run for task in pending_after):
                 from datetime import datetime,timedelta
-                config().task_delay(candidate.command,target=datetime.now()+timedelta(minutes=1),server=False)
-            _sleep(.1)
+                with _config_lock:config().task_delay(candidate.command,target=datetime.now()+timedelta(minutes=1),server=False)
+                _notify_state()
+            _wait_schedule(0.1)
         return json.dumps(dict(status='cancelled',detail='计划运行已停止或达到时限',runs=history),ensure_ascii=False)
     except Exception as error:return json.dumps(dict(status='failed',detail=str(error),traceback=traceback.format_exc(),runs=history),ensure_ascii=False)
 

@@ -64,5 +64,6 @@ public class PythonHost implements AutoCloseable {
     public void inputText(String text)throws Exception{touching();session.requireBridge().inputText(text);}
     public void replaceText(String text)throws Exception{touching();session.requireBridge().selectAllText();session.requireBridge().inputText(text);}
     public void log(String text){session.update(text);android.util.Log.i("OAS_ENGINE",text);}
+    public void notifyStateChanged(){session.notifyStateChanged();}
     public int touches(){return touches;}
 }

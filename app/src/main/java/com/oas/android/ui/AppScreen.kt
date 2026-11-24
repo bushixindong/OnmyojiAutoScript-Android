@@ -31,7 +31,15 @@ fun OasAppScreen(controller: OasController) {
     OasTheme(controller.appearance) {
         val dark = controller.appearance == "dark" || controller.appearance == "system" && isSystemInDarkTheme()
         SideEffect { controller.updateSystemBars(dark) }
-        LaunchedEffect(controller) { while(true) { controller.sync(); delay(800) } }
+        LaunchedEffect(controller) {
+            var tick = 0
+            while(true) {
+                controller.sync()
+                if(controller.active && tick % 4 == 0) controller.refresh()
+                tick++
+                delay(500)
+            }
+        }
         BackHandler(enabled = editing != null || workspaceTask != null || destination != 0) {
             when {
                 editing != null -> editing = null

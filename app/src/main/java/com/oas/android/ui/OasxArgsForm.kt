@@ -218,26 +218,26 @@ fun OasxTaskParameterPanel(
                 modifier = Modifier.weight(1f)
             )
             if(id != "GlobalGame" && id != "Script") {
-                IconButton(onClick = { showImportDialog = true }, enabled = !controller.active && !controller.busy, modifier = Modifier.size(34.dp)) {
+                IconButton(onClick = { showImportDialog = true }, enabled = !controller.editorBusy, modifier = Modifier.size(34.dp)) {
                     Icon(painterResource(R.drawable.ic_oasx_download), "导入任务 JSON", modifier = Modifier.size(18.dp))
                 }
-                IconButton(onClick = { controller.exportTaskJson(id, copyOnly = false) }, enabled = !controller.busy, modifier = Modifier.size(34.dp)) {
+                IconButton(onClick = { controller.exportTaskJson(id, copyOnly = false) }, enabled = !controller.editorBusy, modifier = Modifier.size(34.dp)) {
                     Icon(painterResource(R.drawable.ic_oasx_upload), "导出任务 JSON", modifier = Modifier.size(18.dp))
                 }
-                IconButton(onClick = { controller.exportTaskJson(id, copyOnly = true) }, enabled = !controller.busy, modifier = Modifier.size(34.dp)) {
+                IconButton(onClick = { controller.exportTaskJson(id, copyOnly = true) }, enabled = !controller.editorBusy, modifier = Modifier.size(34.dp)) {
                     Icon(painterResource(R.drawable.ic_oasx_copy), "复制任务 JSON", modifier = Modifier.size(18.dp))
                 }
             }
             if(dirtyCount > 0) {
                 TextButton(
                     onClick = { save(false) },
-                    enabled = form != null && !controller.active && !controller.busy
+                    enabled = form != null && !controller.editorBusy
                 ) { Text("保存") }
             }
             if(task?.runnable == true) {
                 FilledTonalButton(
                     onClick = { save(true) },
-                    enabled = form != null && !controller.active && !controller.busy && controller.connected && controller.environmentReady,
+                    enabled = form != null && !controller.active && !controller.busy && !controller.editorBusy && controller.connected && controller.environmentReady,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
@@ -324,7 +324,7 @@ fun OasxTaskParameterPanel(
                     Spacer(Modifier.width(8.dp))
                     Button(
                         onClick = { save(false) },
-                        enabled = !controller.active && !controller.busy,
+                        enabled = !controller.editorBusy,
                         shape = RoundedCornerShape(10.dp)
                     ) { Text("保存配置") }
                 }

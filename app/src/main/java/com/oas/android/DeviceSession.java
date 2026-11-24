@@ -28,6 +28,7 @@ public final class DeviceSession {
     public volatile String message = "请先启动 Shizuku，再授权 OAS";
     public volatile boolean primaryMode;
     public final java.util.concurrent.atomic.AtomicBoolean taskActive = new java.util.concurrent.atomic.AtomicBoolean();
+    public final java.util.concurrent.atomic.AtomicInteger stateVersion = new java.util.concurrent.atomic.AtomicInteger();
     public volatile boolean binding;
     public static final String SHIZUKU_PACKAGE = "moe.shizuku.privileged.api";
     private final ServiceConnection connection = new ServiceConnection() {
@@ -192,6 +193,11 @@ public final class DeviceSession {
             }catch(Exception error){failure=error;}
             if(failure!=null)throw failure;
         }
+    }
+
+    public void notifyStateChanged() {
+        stateVersion.incrementAndGet();
+        main.post(() -> { for (Runnable listener : listeners) listener.run(); });
     }
 
     public Bitmap screenshot() throws Exception {

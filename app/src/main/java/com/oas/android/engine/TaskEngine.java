@@ -42,5 +42,11 @@ public final class TaskEngine {
         if(module==null)module=Python.getInstance().getModule("android_oas.bootstrap");
         module.callAttr("initialize",root.getAbsolutePath(),host);return module;
     }
+    public static void requestStop(){
+        PyObject current=module;
+        if(current!=null){
+            try{current.callAttr("request_stop");}catch(Throwable ignored){}
+        }
+    }
     private static String read(InputStream input)throws IOException{ByteArrayOutputStream output=new ByteArrayOutputStream();byte[] bytes=new byte[16384];int n;while((n=input.read(bytes))!=-1)output.write(bytes,0,n);return output.toString("UTF-8");}
 }

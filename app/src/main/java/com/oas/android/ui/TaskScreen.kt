@@ -73,7 +73,7 @@ fun TaskStatusPanel(controller: OasController, onEdit: (String) -> Unit, onDevic
                 items(enabled, key = { it.id }) { task ->
                     TaskStatusRow(
                         task = task,
-                        locked = controller.active || task.id in controller.pending || controller.bulkMode != "none",
+                        locked = task.running || task.id in controller.pending || controller.bulkMode != "none",
                         onQuickRun = { controller.quickRun(task) },
                         onQuickWait = { controller.quickWait(task) },
                         onEditTask = { onEdit(task.id) },
@@ -303,7 +303,7 @@ private fun CatalogSectionCard(
 @Composable
 private fun CatalogTaskRow(task: TaskItem, controller: OasController, onEdit: (String) -> Unit) {
     val isPending = task.id in controller.pending
-    val locked = controller.active || isPending || controller.bulkMode != "none"
+    val locked = task.running || isPending || controller.bulkMode != "none"
     val canQuickSchedule = task.runnable && task.schedulable && !task.deferred && !locked
     val scheme = MaterialTheme.colorScheme
 

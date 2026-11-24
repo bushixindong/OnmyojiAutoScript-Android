@@ -44,7 +44,9 @@ class OasController(private val activity: Activity) {
     var environmentReady by mutableStateOf(false); private set
     var screenLabel by mutableStateOf("未创建"); private set
     private var knownBridge: android.os.IBinder? = null
+    private var knownStateVersion = -1
     var busy by mutableStateOf(false); private set
+    var editorBusy by mutableStateOf(false); private set
     var systemBusy by mutableStateOf(false); private set
     var systemInfo by mutableStateOf(JSONObject()); private set
     var keepAwake by mutableStateOf(preferences.getBoolean("keepAwake",true)); private set
@@ -128,11 +130,16 @@ class OasController(private val activity: Activity) {
         val binder = session.bridge?.asBinder()
         if(binder != knownBridge) { knownBridge = binder; deviceEpoch++; refreshDeviceStatus() }
         lastResult = activity.getSharedPreferences("task_records", 0).getString("last", "") ?: ""
+        val ver = session.stateVersion.get()
+        if(ver != knownStateVersion) {
+            knownStateVersion = ver
+            refresh()
+        }
         if(wasActive && !active) { refresh(); refreshDeviceStatus() }
     }
     fun refresh() {
         syncWithoutRefresh()
-        if(loading || active) return
+        if(loading) return
         loading = true; error = ""
         executor.submit {
             try {
@@ -213,19 +220,18 @@ class OasController(private val activity: Activity) {
         }
     }
     fun importTaskJson(taskId: String, jsonText: String) {
-        if(active || busy) return
-        busy = true; editorError = ""
+        if(editorBusy) return
+        editorBusy = true; editorError = ""
         executor.submit {
             try {
-                if(session.taskActive.get()) error("任务运行中，请先停止")
                 val res = JSONObject(engine().callAttr("import_task_json", taskId, jsonText).toString())
                 val defObj = res.getJSONObject("config")
                 val dashRaw = res.getJSONArray("dashboard").toString()
                 val values = parseTasks(dashRaw)
                 val translations = JSONObject(engine().callAttr("labels").toString())
                 preferences.edit().putString("taskSummary", dashRaw).apply()
-                ui { if(editing == taskId) definition = defObj; tasks = values; labels = translations; busy = false; notify("任务配置已导入") }
-            } catch(problem: Throwable) { ui { busy = false; notify(problem.message ?: "导入失败") } }
+                ui { if(editing == taskId) definition = defObj; tasks = values; labels = translations; editorBusy = false; notify("任务配置已导入") }
+            } catch(problem: Throwable) { ui { editorBusy = false; notify(problem.message ?: "导入失败") } }
         }
     }
     fun exportTaskJson(taskId: String, copyOnly: Boolean) {
@@ -267,11 +273,10 @@ class OasController(private val activity: Activity) {
         }
     }
     fun setEnabled(task: TaskItem, enabled: Boolean) {
-        if(active || task.id in pending) return
+        if(task.running || task.id in pending) return
         pending = pending + task.id
         executor.submit {
             try {
-                if(session.taskActive.get()) error("任务运行中，请先停止")
                 val raw = engine().callAttr("set_task_enabled", task.id, enabled).toString()
                 val values = parseTasks(raw); preferences.edit().putString("taskSummary", raw).apply()
                 ui { tasks = values; pending = pending - task.id }
@@ -288,11 +293,10 @@ class OasController(private val activity: Activity) {
         engine().callAttr("set_task_next_run", task.id, nextRun).toString()
     }
     fun bulkQuickSchedule(runNow: Boolean) {
-        if(active || bulkMode != "none") return
+        if(bulkMode != "none") return
         bulkMode = if(runNow) "runNow" else "waitNow"
         executor.submit {
             try {
-                if(session.taskActive.get()) error("任务运行中，请先停止")
                 val raw = engine().callAttr("bulk_quick_schedule", runNow).toString()
                 val values = parseTasks(raw); preferences.edit().putString("taskSummary", raw).apply()
                 ui { tasks = values; bulkMode = "none"; notify(if(runNow) "已将启用任务全部设为立即运行" else "已将启用任务全部设为等待") }
@@ -300,11 +304,10 @@ class OasController(private val activity: Activity) {
         }
     }
     private fun mutateSchedule(id: String, doneText: String, call: () -> String) {
-        if(active || id in pending || bulkMode != "none") return
+        if(id in pending || bulkMode != "none") return
         pending = pending + id
         executor.submit {
             try {
-                if(session.taskActive.get()) error("任务运行中，请先停止")
                 val raw = call()
                 val values = parseTasks(raw); preferences.edit().putString("taskSummary", raw).apply()
                 ui { tasks = values; pending = pending - id; notify(doneText) }
@@ -314,7 +317,6 @@ class OasController(private val activity: Activity) {
     fun clearLogs() { logLines = emptyList() }
     fun loadEditor(id: String) {
         editing = id; definition = null; editorError = ""
-        if(session.taskActive.get()) { editorError = "任务正在运行，停止后即可编辑配置。"; return }
         executor.submit {
             try {
                 val module = engine(); val value = JSONObject(module.callAttr("task_config", id).toString())
@@ -324,14 +326,13 @@ class OasController(private val activity: Activity) {
         }
     }
     fun saveEditor(id: String, value: String, run: Boolean, onSaved: () -> Unit) {
-        if(active || busy) return
-        busy = true; editorError = ""
+        if(editorBusy) return
+        editorBusy = true; editorError = ""
         executor.submit {
             try {
-                if(session.taskActive.get()) error("任务运行中，请先停止")
                 engine().callAttr("save_task_config", id, value)
-                ui { busy = false; notify("配置已保存"); refresh(); onSaved(); if(run) start(id) }
-            } catch(problem: Throwable) { ui { busy = false; editorError = problem.message ?: "配置校验失败" } }
+                ui { editorBusy = false; notify("配置已保存"); refresh(); onSaved(); if(run && !active) start(id) }
+            } catch(problem: Throwable) { ui { editorBusy = false; editorError = problem.message ?: "配置校验失败" } }
         }
     }
     fun start(task: String? = null) {
@@ -347,7 +348,11 @@ class OasController(private val activity: Activity) {
             message = "正在启动任务…"; active = true
         } catch(problem: Throwable) { notify(problem.message ?: "启动失败") }
     }
-    fun stop() { activity.stopService(Intent(activity, MonitorService::class.java)); message = "正在停止任务…" }
+    fun stop() {
+        TaskEngine.requestStop()
+        activity.stopService(Intent(activity, MonitorService::class.java))
+        message = "正在停止任务…"
+    }
     fun connect() { session.connect(); sync() }
     fun refreshShizuku(autoConnect: Boolean = true) {
         syncWithoutRefresh()

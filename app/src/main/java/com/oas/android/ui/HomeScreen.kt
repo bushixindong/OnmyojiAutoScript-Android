@@ -509,14 +509,14 @@ private fun ActiveConfigPanel(
                     iconRes = R.drawable.ic_oasx_flash_on,
                     tooltip = "全部立即运行",
                     loading = controller.bulkMode == "runNow",
-                    enabled = bulkIdle && hasBulkTasks && !controller.active,
+                    enabled = bulkIdle && hasBulkTasks,
                     onClick = { controller.bulkQuickSchedule(true) }
                 )
                 BulkQuickButton(
                     iconRes = R.drawable.ic_oasx_schedule,
                     tooltip = "全部置为等待",
                     loading = controller.bulkMode == "waitNow",
-                    enabled = bulkIdle && hasBulkTasks && !controller.active,
+                    enabled = bulkIdle && hasBulkTasks,
                     onClick = { controller.bulkQuickSchedule(false) }
                 )
                 Spacer(Modifier.width(6.dp))

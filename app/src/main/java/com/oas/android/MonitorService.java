@@ -38,7 +38,7 @@ public final class MonitorService extends Service {
     }
     @Override public int onStartCommand(Intent intent, int flags, int id) {
         String action = intent == null ? "" : intent.getAction();
-        if ("stop".equals(action)) { running.set(false); stopSelf(); return START_NOT_STICKY; }
+        if ("stop".equals(action)) { running.set(false); TaskEngine.requestStop(); stopSelf(); return START_NOT_STICKY; }
         if (running.get()) { session.update("已有任务运行，请先停止或等待结束"); return START_NOT_STICKY; }
         Intent stop = new Intent(this, MonitorService.class).setAction("stop");
         PendingIntent stopAction = PendingIntent.getService(this, 1, stop, PendingIntent.FLAG_IMMUTABLE);
@@ -113,7 +113,7 @@ public final class MonitorService extends Service {
                 }
             } catch (Exception saving) { session.update(detail + "；记录保存失败：" + saving.getMessage()); }
             if (interrupted) Thread.currentThread().interrupt();
-        } finally { running.set(false); session.taskActive.set(false); stopSelf(); }
+        } finally { running.set(false); session.taskActive.set(false); session.notifyStateChanged(); stopSelf(); }
     }
     private String recognize(ScreenRecognizer recognizer) throws Exception {
         Bitmap frame = session.screenshot();
@@ -151,8 +151,9 @@ public final class MonitorService extends Service {
     }
     @Override public void onDestroy() {
         running.set(false);
+        TaskEngine.requestStop();
         // A stop can arrive before the executor starts; do not leave an abandoned owner lock.
-        if (!worker.shutdownNow().isEmpty()) session.taskActive.set(false);
+        if (!worker.shutdownNow().isEmpty()) { session.taskActive.set(false); session.notifyStateChanged(); }
         stopForeground(STOP_FOREGROUND_REMOVE); super.onDestroy();
     }
     @Override public IBinder onBind(Intent intent) { return null; }
