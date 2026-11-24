@@ -1,0 +1,22 @@
+[
+  {
+    "file": "line-0.png",
+    "expected": "12345",
+    "confidence": 0.9991729855537415
+  },
+  {
+    "file": "line-1.png",
+    "expected": "1.2万",
+    "confidence": 0.9272634387016296
+  },
+  {
+    "file": "line-2.png",
+    "expected": "633/180",
+    "confidence": 0.9954939484596252
+  },
+  {
+    "file": "line-3.png",
+    "expected": "准备",
+    "confidence": 0.9805907011032104
+  }
+]

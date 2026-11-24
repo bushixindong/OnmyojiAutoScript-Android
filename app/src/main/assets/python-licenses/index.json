@@ -1,0 +1,518 @@
+[
+  {
+    "name": "annotated-types",
+    "version": "0.8.0",
+    "license": "MIT",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "anyio",
+    "version": "3.7.1",
+    "license": "MIT",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "anytree",
+    "version": "2.8.0",
+    "license": "Apache 2.0",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "cached-property",
+    "version": "1.5.2",
+    "license": "BSD",
+    "files": [
+      "AUTHORS.rst",
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "certifi",
+    "version": "2026.11.20",
+    "license": "MPL-2.0",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "cffi",
+    "version": "1.17.1",
+    "license": "MIT",
+    "files": [
+      "LICENSE",
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "chaquopy-freetype",
+    "version": "2.9.1",
+    "license": null,
+    "files": []
+  },
+  {
+    "name": "chaquopy-geos",
+    "version": "3.8.1",
+    "license": null,
+    "files": [
+      "COPYING"
+    ]
+  },
+  {
+    "name": "chaquopy-libcxx",
+    "version": "180000",
+    "license": null,
+    "files": [
+      "LICENSE.TXT"
+    ]
+  },
+  {
+    "name": "chaquopy-libffi",
+    "version": "3.3",
+    "license": null,
+    "files": [
+      "LICENSE",
+      "LICENSE-BUILDTOOLS"
+    ]
+  },
+  {
+    "name": "chaquopy-libgfortran",
+    "version": "4.9",
+    "license": null,
+    "files": [
+      "LICENSE.txt"
+    ]
+  },
+  {
+    "name": "chaquopy-libjpeg",
+    "version": "1.5.3",
+    "license": null,
+    "files": [
+      "LICENSE.md"
+    ]
+  },
+  {
+    "name": "chaquopy-libpng",
+    "version": "1.6.34",
+    "license": null,
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "chaquopy-libxml2",
+    "version": "2.9.8",
+    "license": null,
+    "files": [
+      "COPYING"
+    ]
+  },
+  {
+    "name": "chaquopy-libxslt",
+    "version": "1.1.32",
+    "license": null,
+    "files": [
+      "COPYING"
+    ]
+  },
+  {
+    "name": "chaquopy-libyaml",
+    "version": "0.2.5",
+    "license": null,
+    "files": [
+      "License"
+    ]
+  },
+  {
+    "name": "chaquopy-openblas",
+    "version": "0.2.20",
+    "license": null,
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "charset-normalizer",
+    "version": "3.5.3",
+    "license": "MIT",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "cn2an",
+    "version": "0.5.23",
+    "license": "MIT License",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "cryptography",
+    "version": "42.0.8",
+    "license": "Apache-2.0 OR BSD-3-Clause",
+    "files": [
+      "LICENSE",
+      "LICENSE.APACHE",
+      "LICENSE.BSD"
+    ]
+  },
+  {
+    "name": "decorator",
+    "version": "5.3.2",
+    "license": "BSD-2-Clause",
+    "files": [
+      "licenses/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "dnspython",
+    "version": "2.8.0",
+    "license": "ISC",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "exceptiongroup",
+    "version": "1.3.2",
+    "license": null,
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "fastapi",
+    "version": "0.104.1",
+    "license": "MIT",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "filelock",
+    "version": "3.16.1",
+    "license": "Unlicense",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "future",
+    "version": "1.0.0",
+    "license": "MIT",
+    "files": [
+      "LICENSE.txt"
+    ]
+  },
+  {
+    "name": "idna",
+    "version": "3.20",
+    "license": "BSD-3-Clause",
+    "files": [
+      "licenses/LICENSE.md"
+    ]
+  },
+  {
+    "name": "inflection",
+    "version": "0.5.1",
+    "license": "MIT",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "lxml",
+    "version": "5.3.0",
+    "license": "BSD-3-Clause",
+    "files": [
+      "LICENSE.txt",
+      "LICENSES.txt"
+    ]
+  },
+  {
+    "name": "markdown-it-py",
+    "version": "2.2.0",
+    "license": null,
+    "files": [
+      "LICENSE",
+      "LICENSE.markdown-it"
+    ]
+  },
+  {
+    "name": "mdurl",
+    "version": "0.1.2",
+    "license": null,
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "numpy",
+    "version": "1.23.3",
+    "license": "BSD",
+    "files": [
+      "LICENSE.txt"
+    ]
+  },
+  {
+    "name": "opencv-python",
+    "version": "4.5.1.48",
+    "license": "MIT",
+    "files": [
+      "LICENSE-3RD-PARTY.txt",
+      "LICENSE.txt",
+      "licenses/LICENSE-3RD-PARTY.txt",
+      "licenses/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "pandas",
+    "version": "1.5.0",
+    "license": "BSD-3-Clause",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "pillow",
+    "version": "11.0.0",
+    "license": "MIT-CMU",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "proces",
+    "version": "0.1.7",
+    "license": "MIT License",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "psutil",
+    "version": "7.1.3",
+    "license": "BSD-3-Clause",
+    "files": [
+      "LICENSE",
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "py",
+    "version": "1.11.0",
+    "license": "MIT license",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "pycparser",
+    "version": "3.11",
+    "license": "BSD-3-Clause",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "pycryptodome",
+    "version": "3.21.0",
+    "license": "BSD, Public Domain",
+    "files": [
+      "AUTHORS.rst",
+      "LICENSE.rst"
+    ]
+  },
+  {
+    "name": "pydantic",
+    "version": "2.10.0",
+    "license": "MIT",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "pydantic_core",
+    "version": "2.27.0",
+    "license": "MIT",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "Pygments",
+    "version": "2.21.0",
+    "license": "BSD-2-Clause",
+    "files": [
+      "licenses/AUTHORS",
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "PySocks",
+    "version": "1.7.1",
+    "license": "BSD",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "python-dateutil",
+    "version": "3.0.0",
+    "license": "Dual License",
+    "files": [
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "pytz",
+    "version": "2026.6",
+    "license": "MIT",
+    "files": [
+      "LICENSE.txt"
+    ]
+  },
+  {
+    "name": "PyYAML",
+    "version": "6.0.3",
+    "license": "MIT",
+    "files": [
+      "LICENSE",
+      "licenses/LICENSE"
+    ]
+  },
+  {
+    "name": "requests",
+    "version": "2.32.3",
+    "license": "Apache-2.0",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "retry",
+    "version": "0.9.2",
+    "license": "Apache License 2.0",
+    "files": []
+  },
+  {
+    "name": "rich",
+    "version": "13.3.5",
+    "license": "MIT",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "scipy",
+    "version": "1.8.1",
+    "license": "BSD",
+    "files": [
+      "LICENSE.txt"
+    ]
+  },
+  {
+    "name": "Shapely",
+    "version": "1.8.5",
+    "license": "BSD",
+    "files": [
+      "LICENSE.txt"
+    ]
+  },
+  {
+    "name": "six",
+    "version": "1.17.0",
+    "license": "MIT",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "sniffio",
+    "version": "1.3.1",
+    "license": "MIT OR Apache-2.0",
+    "files": [
+      "LICENSE",
+      "LICENSE.APACHE2",
+      "LICENSE.MIT"
+    ]
+  },
+  {
+    "name": "starlette",
+    "version": "0.27.0",
+    "license": "BSD-3-Clause",
+    "files": [
+      "licenses/LICENSE.md"
+    ]
+  },
+  {
+    "name": "tqdm",
+    "version": "4.65.0",
+    "license": "MPLv2.0, MIT Licences",
+    "files": []
+  },
+  {
+    "name": "typing_extensions",
+    "version": "4.12.2",
+    "license": null,
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "tzdata",
+    "version": "2026.6",
+    "license": "Apache-2.0",
+    "files": [
+      "licenses/LICENSE",
+      "licenses/licenses/LICENSE_APACHE"
+    ]
+  },
+  {
+    "name": "urllib3",
+    "version": "2.8.0",
+    "license": "MIT",
+    "files": [
+      "licenses/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "websockets",
+    "version": "13.1",
+    "license": "BSD-3-Clause",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "ppocr-onnx",
+    "version": "0.0.3.9",
+    "license": "Apache 2.0",
+    "files": [
+      "LICENSE"
+    ]
+  },
+  {
+    "name": "paho-mqtt",
+    "version": "1.6.1",
+    "license": "Eclipse Public License v2.0 / Eclipse Distribution License v1.0",
+    "files": [
+      "LICENSE.txt",
+      "notice.html"
+    ]
+  },
+  {
+    "name": "onepush",
+    "version": "1.3.0",
+    "license": "MIT",
+    "files": [
+      "LICENSE"
+    ]
+  }
+]

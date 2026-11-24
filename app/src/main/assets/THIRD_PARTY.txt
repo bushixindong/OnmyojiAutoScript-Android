@@ -1,0 +1,52 @@
+# 上游来源与许可证
+
+本工程的安卓设备层参考并改编 MaaMeow 的 shell Context、虚拟显示器创建、显示器标志降级及触控事件投递方式；本目录以 AGPL-3.0-only 发布，完整协议见 `LICENSE`。不包含 MaaMeow 的品牌图标或明日方舟任务资源。
+
+| 项目 | 使用内容 | 来源 / 许可证 |
+| --- | --- | --- |
+| MaaMeow | 虚拟屏与权限架构、设备层实现参考 | https://github.com/Aliothmoon/MAA-Meow ，参考 main `df6dd42e1107f400b314b72244848c3b1dcd7635`，AGPL-3.0；其第三方组件保留各自协议 |
+| scrcpy | 经 MaaMeow 使用的 shell Context 和显示器触控技术参考 | https://github.com/Genymobile/scrcpy ，Copyright Genymobile，Apache-2.0 |
+| Shizuku API / Provider 13.1.5 | 用户授权与 shell UserService 绑定 | https://github.com/RikkaApps/Shizuku-API ，Apache-2.0 |
+| OpenCV 4.12.0 | Android RGB 模板匹配 | https://github.com/opencv/opencv ，Apache-2.0 |
+| ONNX Runtime Android 1.20.0 | 手机上运行 OCR 识别模型 | https://github.com/microsoft/onnxruntime ，MIT |
+| ppocr-onnx / PaddleOCR | 中文单行识别模型、字典、预处理与 CTC 解码算法参考 | https://github.com/PaddlePaddle/PaddleOCR ，Apache-2.0；模型及字典 SHA-256 见 catalog.json |
+| Gradle Wrapper 9.6.0 | 构建启动器 | https://github.com/gradle/gradle ，Apache-2.0 |
+| OnmyojiAutoScript | 完整 Python 任务、共享组件、配置、资源，以及原生回放所需的规则 | https://github.com/runhey/OnmyojiAutoScript ，GPL-3.0；具体本地源路径与 SHA-256 保存在 `app/src/main/assets/oas/catalog.json` |
+
+`DeviceBridge.java`、`ShellContext.java` 是针对 OAS 改写的实现；没有嵌入 MaaCore、MaaFramework 或明日方舟任务引擎。0.3.0 已内嵌原 OAS Python 引擎；仅替换 Android 平台边界。原源码资源及逐文件 SHA-256 在 runtime/oas-runtime.zip 与 manifest.json 中。
+
+截图素材中游戏内容的权利属于原权利人。
+
+ONNX Runtime: Copyright (c) Microsoft Corporation. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+PaddleOCR model and algorithm: Copyright (c) 2020 PaddlePaddle Authors. Licensed under the Apache License, Version 2.0, https://www.apache.org/licenses/LICENSE-2.0 . Distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND. Bundled full license: `app/src/main/assets/APACHE-2.0.txt`.
+
+## 嵌入运行时与 Python 依赖
+
+Python 3.10（PSF）、Chaquopy 17.2.0（MIT）、Pydantic 2.10.0 / Pydantic Core 2.27.0（MIT）用于原任务运行和配置验证。Core 是使用 NDK r27d/Rust 1.85.1 为 Android ARM64/x86_64 自编译的原生扩展，编译和打包脚本随工程提供。
+
+NumPy、SciPy、Pandas、Pillow、OpenCV Python、Shapely/GEOS、requests、cryptography、pycryptodome、lxml、FastAPI、Paho、Onepush、ppocr-onnx 及其传递依赖保留各自协议。实际安装版本与复制的原始 LICENSE/COPYING/NOTICE 列表打包于 app/src/main/assets/python-licenses/index.json，原文在相邻目录。GEOS/libgfortran 等组件的协议与运行时例外以这些原文为准。
+
+参考网址：[Chaquopy](https://github.com/chaquo/chaquopy)、[Python](https://www.python.org/psf/license/)、[Pydantic Core](https://github.com/pydantic/pydantic-core)、[Shapely](https://github.com/shapely/shapely)。
+
+百鬼夜行跟踪库和模型按用户要求暂缓，不随本版运行时接入。
+
+## 0.4.0 OASX 风格前端
+
+OASX：本机源码 D:\OnmyojiAutoScript-easy-install\OASX，参考提交 3dd8cdaa2d25303adc27976294400b30939188f2，GPL-3.0。主题种子色、深浅色背景、响应式主导航、脚本工作台、任务分类与参数面板结构均参考其 Dart/Flutter 源码适配。1171 条中文翻译由只读脚本提取；图标来自用户指定的 oasx_v0.3.15_windows 打包目录。对应关系与 SHA-256 见 UI_SOURCE.md、oasx-ui-source.json。完整 GPL-3.0 协议见随包 OASX-LICENSE.txt。
+
+AndroidX Activity / Jetpack Compose / Material 3（Google/Android Open Source Project，Apache-2.0）承载原生界面。Kotlin/Compose 编译器插件（JetBrains，Apache-2.0）。完整 Apache-2.0 原文见随包 APACHE-2.0.txt。
+
+## 0.4.3 实时预览
+
+MaaMeow 同一固定提交的 BackgroundTaskView.kt、BackgroundTaskViewModel.kt、bridge_preview.cpp 用于 Surface 生命周期、GPU 实时画面和虚拟屏触控的实现参考；本工程以 Java SurfaceTexture/EGL 双输出重写，未复制其 C++ 渲染代码。预览与识别共用虚拟屏输入，预览不经过图像编码。相关文件遵循本项目 AGPL-3.0-only。
+
+## 0.5.0 原始帧通道与系统优化
+
+MaaMeow 同一固定提交的 bridge_frame_buffer.cpp、VirtualDisplayManager.kt（CompanionDevice + VirtualDevice 分支）、PowerController / RemoteScreenPowerController.kt、GameAudioMuteController、GameFpsMonitor.kt 及多点触控预览模型用于 raw_frames.cpp、RawFrameStore.java、RawFrameReader.java、VirtualDeviceDisplay.java、ScreenPower.java、GameAudio.java、GameFpsMonitor.java 与 ManualTouchController.java 的实现参考；相关文件遵循本项目 AGPL-3.0-only。

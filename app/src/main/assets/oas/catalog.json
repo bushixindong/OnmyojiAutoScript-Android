@@ -1,0 +1,1901 @@
+{
+  "width": 1280,
+  "height": 720,
+  "method": "TM_CCOEFF_NORMED_RGB",
+  "rules": [
+    {
+      "id": "I_PAPER_DOLL_CLOSE",
+      "label": "关闭纸人",
+      "file": "i_paper_doll_close.png",
+      "roi": [
+        1238,
+        58,
+        40,
+        153
+      ],
+      "reference_roi": [
+        1253,
+        102,
+        25,
+        62
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/additional/additional_paper_doll_close.png",
+      "sha256": "f21437612b70fb09b987c71fec944e07f0aedfa541039ccd2b9d4281cde47706"
+    },
+    {
+      "id": "I_ACT_LIST_EXPAND",
+      "label": "庭院活动入口",
+      "file": "i_act_list_expand.png",
+      "roi": [
+        1162,
+        110,
+        92,
+        103
+      ],
+      "reference_roi": [
+        1186,
+        141,
+        40,
+        41
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/additional/additional_act_list_expand.png",
+      "sha256": "ec5b4158a876b8b5d5913901257aa859c5b90d316dae0b82d18c7006a57bfbb1"
+    },
+    {
+      "id": "I_AD_CLOSE_RED",
+      "label": "关闭广告",
+      "file": "i_ad_close_red.png",
+      "roi": [
+        953,
+        91,
+        215,
+        121
+      ],
+      "reference_roi": [
+        993,
+        130,
+        33,
+        36
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/additional/additional_ad_close_red.png",
+      "sha256": "3c19bfcc38fb404f59c9c9b6fda3792323e8cfdbdd3463f71f56b37862d6ff93"
+    },
+    {
+      "id": "I_CHECK_ACT_LIST",
+      "label": "活动列表",
+      "file": "i_check_act_list.png",
+      "roi": [
+        75,
+        3,
+        205,
+        66
+      ],
+      "reference_roi": [
+        112,
+        13,
+        125,
+        44
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_act_list.png",
+      "sha256": "5eff966dbb4f7fe0aef39965af4393f36219f0152769e5ea455af455972501ac"
+    },
+    {
+      "id": "I_CHECK_EXPLORATION",
+      "label": "探索",
+      "file": "i_check_exploration.png",
+      "roi": [
+        1152,
+        148,
+        21,
+        22
+      ],
+      "reference_roi": [
+        1152,
+        148,
+        21,
+        22
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_exploration.png",
+      "sha256": "1bdfe1266869706529357f16b133487c3b4380fa680390a8686794041823f8c3"
+    },
+    {
+      "id": "I_EXPLORATION_GOTO_AWAKE_ZONE",
+      "label": "进入觉醒",
+      "file": "i_exploration_goto_awake_zone.png",
+      "roi": [
+        33,
+        619,
+        1150,
+        99
+      ],
+      "reference_roi": [
+        161,
+        633,
+        47,
+        44
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_exploration_goto_awake_zone.png",
+      "sha256": "355c77e9b46757f219e41265bcc5f8867008309223deadb205dd9ab8e4cf832d"
+    },
+    {
+      "id": "I_EXPLORATION_GOTO_SOUL_ZONE",
+      "label": "进入御魂",
+      "file": "i_exploration_goto_soul_zone.png",
+      "roi": [
+        33,
+        619,
+        1150,
+        99
+      ],
+      "reference_roi": [
+        69,
+        633,
+        46,
+        39
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_exploration_goto_soul_zone.png",
+      "sha256": "d10ea968c2afa2c512312fe9b0160e0c057829a61657fcffc36f459c1d4ce076"
+    },
+    {
+      "id": "I_EXPLORATION_GOTO_GORYOU_REALM",
+      "label": "进入御灵",
+      "file": "i_exploration_goto_goryou_realm.png",
+      "roi": [
+        33,
+        619,
+        1150,
+        99
+      ],
+      "reference_roi": [
+        353,
+        639,
+        47,
+        45
+      ],
+      "threshold": 0.7,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_exploration_goto_goryou_realm.png",
+      "sha256": "4015ec6b7fde1a691ac1d20830d2d774e96e5814405f685a3f299a6996a1f249"
+    },
+    {
+      "id": "I_CHECK_AWAKE",
+      "label": "觉醒入口页",
+      "file": "i_check_awake.png",
+      "roi": [
+        115,
+        521,
+        201,
+        120
+      ],
+      "reference_roi": [
+        165,
+        533,
+        39,
+        45
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_awake.png",
+      "sha256": "dde1b95c95ae141e9049ad8e3d148d16c80a9a27d4b7b3b361a0642d55c37f84"
+    },
+    {
+      "id": "I_CHECK_SOUL_ZONES",
+      "label": "御魂选择",
+      "file": "i_check_soul_zones.png",
+      "roi": [
+        1158,
+        616,
+        103,
+        93
+      ],
+      "reference_roi": [
+        1188,
+        635,
+        48,
+        46
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_soul_zones.png",
+      "sha256": "7f422458350589234764640e0fa01b7e04cc58070456788fc16cfc674bb0ba60"
+    },
+    {
+      "id": "I_CHECK_GORYOU",
+      "label": "御灵入口页",
+      "file": "i_check_goryou.png",
+      "roi": [
+        880,
+        8,
+        30,
+        39
+      ],
+      "reference_roi": [
+        880,
+        8,
+        30,
+        39
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_goryou.png",
+      "sha256": "46ca5e62471bac3e9019b43f0ec9642372b556bc292e3809d1c9ec9a9d1d8f41"
+    },
+    {
+      "id": "I_CHECK_MAIN",
+      "label": "庭院",
+      "file": "i_check_main.png",
+      "roi": [
+        49,
+        98,
+        1033,
+        61
+      ],
+      "reference_roi": [
+        807,
+        108,
+        76,
+        45
+      ],
+      "threshold": 0.9,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_main.png",
+      "sha256": "b904b1cf22848c411d71a86067c00557b4703fbd9fcf0f5ac28319cc0fa0459c"
+    },
+    {
+      "id": "I_MAIN_SCROLL_CLOSE",
+      "label": "庭院卷轴",
+      "file": "i_main_scroll_close.png",
+      "roi": [
+        1162,
+        595,
+        77,
+        112
+      ],
+      "reference_roi": [
+        1181,
+        634,
+        28,
+        39
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_main_scroll_close.png",
+      "sha256": "9e42efa657f2450e8e82ccbe1cd9bcdd257f3d9520b529cd888062d32ca6b874"
+    },
+    {
+      "id": "I_MAIN_GOTO_EXPLORATION",
+      "label": "进入探索",
+      "file": "i_main_goto_exploration.png",
+      "roi": [
+        243,
+        100,
+        933,
+        211
+      ],
+      "reference_roi": [
+        493,
+        116,
+        45,
+        75
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_main_goto_exploration.png",
+      "sha256": "bb02b073e79f2513738004646a699942aab86b0c631822cd44685ce64adbcaa6"
+    },
+    {
+      "id": "I_MAIN_GOTO_MALL",
+      "label": "进入商城",
+      "file": "i_main_goto_mall.png",
+      "roi": [
+        601,
+        613,
+        163,
+        78
+      ],
+      "reference_roi": [
+        664,
+        661,
+        40,
+        18
+      ],
+      "threshold": 0.7,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_main_goto_mall.png",
+      "sha256": "2f1f9012d595bd8e08949897ff9e61d2c2fa3c6fa88889b44390b7d6d2d7a5b4"
+    },
+    {
+      "id": "I_CHECK_MALL",
+      "label": "商城",
+      "file": "i_check_mall.png",
+      "roi": [
+        201,
+        432,
+        185,
+        121
+      ],
+      "reference_roi": [
+        231,
+        455,
+        86,
+        78
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_mall.png",
+      "sha256": "2420a2f45e63a6b2733de069a2abd2f0801265981c51bb59ab797421bc5b9567"
+    },
+    {
+      "id": "I_CHECK_MALL_RECOMMEND",
+      "label": "商城推荐",
+      "file": "i_check_mall_recommend.png",
+      "roi": [
+        905,
+        0,
+        100,
+        100
+      ],
+      "reference_roi": [
+        930,
+        12,
+        42,
+        37
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GameUi/assets.py",
+      "source_image": "tasks/GameUi/page/page_check_mall_recommend.png",
+      "sha256": "3e3c960a5b19465dea45c755ecb65d12a7291687b4c665df98dd77f0fa31a564"
+    },
+    {
+      "id": "I_REWARD",
+      "label": "战斗奖励",
+      "file": "i_reward.png",
+      "roi": [
+        547,
+        518,
+        172,
+        96
+      ],
+      "reference_roi": [
+        547,
+        518,
+        172,
+        96
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_reward.png",
+      "sha256": "5e03854d1d344f4b8232b6e2a4473ea612e26d01d04d8e64c7ebcb66d72645d5"
+    },
+    {
+      "id": "I_PREPARE_HIGHLIGHT",
+      "label": "战斗准备",
+      "file": "i_prepare_highlight.png",
+      "roi": [
+        1110,
+        500,
+        169,
+        200
+      ],
+      "reference_roi": [
+        1128,
+        536,
+        100,
+        100
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_prepare_highlight.png",
+      "sha256": "13f46fd733728c0322f5d87564ea5964a813a940d8e64ee9006cfed8c13ba928"
+    },
+    {
+      "id": "I_WIN",
+      "label": "战斗胜利",
+      "file": "i_win.png",
+      "roi": [
+        296,
+        33,
+        414,
+        224
+      ],
+      "reference_roi": [
+        385,
+        47,
+        100,
+        100
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_win.png",
+      "sha256": "cb1c7c0441ece5dd94877a197564b2b37331e6f988b4ecfa9adc10a99741f6e9"
+    },
+    {
+      "id": "I_PREPARE_DARK",
+      "label": "准备未加载",
+      "file": "i_prepare_dark.png",
+      "roi": [
+        1131,
+        538,
+        100,
+        100
+      ],
+      "reference_roi": [
+        1131,
+        538,
+        100,
+        100
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_prepare_dark.png",
+      "sha256": "33c195bc5f2478e3b038a97ccc2adfdf3531d6c3f3b13295ade9f96169e33e39"
+    },
+    {
+      "id": "I_FALSE",
+      "label": "战斗失败",
+      "file": "i_false.png",
+      "roi": [
+        358,
+        1,
+        214,
+        288
+      ],
+      "reference_roi": [
+        413,
+        124,
+        100,
+        100
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_false.png",
+      "sha256": "8017922f9fe1d99d389f9e8abdf0895320a3cf15f69881c1274812924a0e953e"
+    },
+    {
+      "id": "I_REWARD_GOLD",
+      "label": "金币奖励",
+      "file": "i_reward_gold.png",
+      "roi": [
+        254,
+        163,
+        797,
+        261
+      ],
+      "reference_roi": [
+        268,
+        178,
+        97,
+        69
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_reward_gold.png",
+      "sha256": "943e000d3e2aa8811ab6ad346fcc1e1e1ad04098ef1390bf44424498788cb5f8"
+    },
+    {
+      "id": "I_DE_WIN",
+      "label": "逢魔胜利",
+      "file": "i_de_win.png",
+      "roi": [
+        239,
+        36,
+        399,
+        133
+      ],
+      "reference_roi": [
+        472,
+        49,
+        100,
+        100
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_de_win.png",
+      "sha256": "20a479ec533a50d14ad43cd561e319ee85e3c613a6bc1da1918d3ed7875b8c7f"
+    },
+    {
+      "id": "I_BATTLE_INFO",
+      "label": "战斗中",
+      "file": "i_battle_info.png",
+      "roi": [
+        210,
+        1,
+        147,
+        72
+      ],
+      "reference_roi": [
+        230,
+        12,
+        37,
+        39
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_battle_info.png",
+      "sha256": "55d36e1938b961ffd01ee639ff9cd9fc8471b9b5ae71c9c927325ea78a5512f7"
+    },
+    {
+      "id": "I_GB_SKIN_CONFIRM",
+      "label": "皮肤碎片确认",
+      "file": "i_gb_skin_confirm.png",
+      "roi": [
+        594,
+        447,
+        90,
+        55
+      ],
+      "reference_roi": [
+        594,
+        447,
+        90,
+        55
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_gb_skin_confirm.png",
+      "sha256": "61922541502e1de9876219074b7ae1b6045bc4a30b3e94aff478c4ef4938a740"
+    },
+    {
+      "id": "I_OVER_GHOST",
+      "label": "御魂溢出",
+      "file": "i_over_ghost.png",
+      "roi": [
+        697,
+        409,
+        89,
+        32
+      ],
+      "reference_roi": [
+        697,
+        409,
+        89,
+        32
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Component/GeneralBattle/assets.py",
+      "source_image": "tasks/Component/GeneralBattle/gb/gb_over_ghost.png",
+      "sha256": "e87b3f54f00419c92a479858d031e99d37e716528618bc726bb1d29363bff9e4"
+    },
+    {
+      "id": "I_UI_REWARD",
+      "label": "获得奖励",
+      "file": "i_ui_reward.png",
+      "roi": [
+        484,
+        152,
+        350,
+        145
+      ],
+      "reference_roi": [
+        526,
+        242,
+        228,
+        36
+      ],
+      "threshold": 0.73,
+      "source": "tasks/GlobalGame/assets.py",
+      "source_image": "tasks/GlobalGame/ui/ui_ui_reward.png",
+      "sha256": "10d3f82a147376e709776ee6ab4dbb7423637cb6cb45511275dea2d9f2006385"
+    },
+    {
+      "id": "I_UI_BACK_RED",
+      "label": "关闭窗口",
+      "file": "i_ui_back_red.png",
+      "roi": [
+        680,
+        15,
+        579,
+        374
+      ],
+      "reference_roi": [
+        1041,
+        111,
+        34,
+        38
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GlobalGame/assets.py",
+      "source_image": "tasks/GlobalGame/ui/ui_ui_back_red.png",
+      "sha256": "34d620166aced49a5539a7940e0efaf6f8bdca8d84e79371921cffdcf22551ef"
+    },
+    {
+      "id": "I_UI_BACK_YELLOW",
+      "label": "黄色返回",
+      "file": "i_ui_back_yellow.png",
+      "roi": [
+        0,
+        0,
+        100,
+        100
+      ],
+      "reference_roi": [
+        26,
+        17,
+        47,
+        46
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GlobalGame/assets.py",
+      "source_image": "tasks/GlobalGame/ui/ui_ui_back_yellow.png",
+      "sha256": "0e29601d15be581a312ed5a88349119ed30eacc59a0beac1e78751423d9a4018"
+    },
+    {
+      "id": "I_UI_BACK_BLUE",
+      "label": "蓝色返回",
+      "file": "i_ui_back_blue.png",
+      "roi": [
+        2,
+        1,
+        133,
+        119
+      ],
+      "reference_roi": [
+        32,
+        37,
+        51,
+        45
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GlobalGame/assets.py",
+      "source_image": "tasks/GlobalGame/ui/ui_ui_back_blue.png",
+      "sha256": "6f593381931e9cc6eba7dda17d3a407b648f1c9e4e976d736d97cfaca42e36d5"
+    },
+    {
+      "id": "I_UI_CANCEL_SAMLL",
+      "label": "取消弹窗",
+      "file": "i_ui_cancel_samll.png",
+      "roi": [
+        266,
+        353,
+        347,
+        208
+      ],
+      "reference_roi": [
+        472,
+        389,
+        128,
+        62
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GlobalGame/assets.py",
+      "source_image": "tasks/GlobalGame/ui/ui_ui_cancel_samll.png",
+      "sha256": "09e7ef0daf7859b162bc082fcaefb316851e6f0c25f2075a4a32adaebb6b8c6a"
+    },
+    {
+      "id": "I_HARVEST_MAIL",
+      "label": "纸人邮件",
+      "file": "i_harvest_mail.png",
+      "roi": [
+        38,
+        396,
+        1128,
+        157
+      ],
+      "reference_roi": [
+        337,
+        505,
+        37,
+        25
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_harvest_mail.png",
+      "sha256": "466b6d1deb72772de5cd79d80245b0f338734e065469f755fdd7fb00d2be9fe2"
+    },
+    {
+      "id": "I_HARVEST_MAIL_COPY",
+      "label": "纸人邮件备用",
+      "file": "i_harvest_mail_copy.png",
+      "roi": [
+        192,
+        382,
+        928,
+        190
+      ],
+      "reference_roi": [
+        257,
+        509,
+        29,
+        21
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_harvest_mail_copy.png",
+      "sha256": "2da00b65652aef3bafe8f6a90df4175cb4a2e8e137895d414ae3dbaf7a4e7ccb"
+    },
+    {
+      "id": "I_HARVEST_MAIL_ALL",
+      "label": "全部收取邮件",
+      "file": "i_harvest_mail_all.png",
+      "roi": [
+        28,
+        551,
+        142,
+        144
+      ],
+      "reference_roi": [
+        69,
+        579,
+        80,
+        67
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_harvest_mail_all.png",
+      "sha256": "fb19624b85add6a37178f2ef3e8bb9b2b15432b3947fdcbcbb8b1e2f7cb61112"
+    },
+    {
+      "id": "I_READ_ALL_MAIL",
+      "label": "一键已读",
+      "file": "i_read_all_mail.png",
+      "roi": [
+        149,
+        588,
+        182,
+        72
+      ],
+      "reference_roi": [
+        180,
+        605,
+        130,
+        35
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_read_all_mail.png",
+      "sha256": "e638a24eea78df1a64575c47175c717833756473ceb77fa060b94584f73a973b"
+    },
+    {
+      "id": "I_HARVEST_MAIL_CONFIRM",
+      "label": "邮件确认",
+      "file": "i_harvest_mail_confirm.png",
+      "roi": [
+        687,
+        543,
+        168,
+        64
+      ],
+      "reference_roi": [
+        687,
+        543,
+        168,
+        64
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_harvest_mail_confirm.png",
+      "sha256": "32c62f88c6e3f51f5e2bf6eea2770cc15c422212d20e99fb21566aa68bf80ed2"
+    },
+    {
+      "id": "I_DT_HARVEST_MAIL_COPY2",
+      "label": "庭院邮件入口",
+      "file": "i_dt_harvest_mail_copy2.png",
+      "roi": [
+        1127,
+        0,
+        61,
+        56
+      ],
+      "reference_roi": [
+        1158,
+        18,
+        22,
+        20
+      ],
+      "threshold": 0.9,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_harvest_mail_copy2.png",
+      "sha256": "88d7831791963bc1cc5ef18b652a707307139536c782b55ab12cfb7b6a016a36"
+    },
+    {
+      "id": "I_ENTER_COURTYARD_AFFAIRS",
+      "label": "进入庭院事务",
+      "file": "i_enter_courtyard_affairs.png",
+      "roi": [
+        696,
+        349,
+        343,
+        231
+      ],
+      "reference_roi": [
+        990,
+        372,
+        25,
+        30
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_enter_courtyard_affairs.png",
+      "sha256": "a7e7bebde94046ce8493b49d59505b387065211f4786aa92e50825d21a80ea18"
+    },
+    {
+      "id": "I_CHECK_COURTYARD_AFFAIRS",
+      "label": "庭院事务",
+      "file": "i_check_courtyard_affairs.png",
+      "roi": [
+        134,
+        0,
+        415,
+        180
+      ],
+      "reference_roi": [
+        254,
+        40,
+        196,
+        57
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_check_courtyard_affairs.png",
+      "sha256": "1e1a19261a1a710cce15988541f18ad41c57968984babec3f673b8d5e5b0dbbe"
+    },
+    {
+      "id": "I_ONE_COMPLETE",
+      "label": "一键完成",
+      "file": "i_one_complete.png",
+      "roi": [
+        1083,
+        562,
+        163,
+        139
+      ],
+      "reference_roi": [
+        1114,
+        589,
+        93,
+        93
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_one_complete.png",
+      "sha256": "f7a5ca8ae35eb498fb5be70b3205c4c0ec586a8099a868c89afff3fafa2e68f8"
+    },
+    {
+      "id": "I_ENTER_DAILY",
+      "label": "日常页签",
+      "file": "i_enter_daily.png",
+      "roi": [
+        1117,
+        98,
+        136,
+        226
+      ],
+      "reference_roi": [
+        1131,
+        122,
+        84,
+        76
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_enter_daily.png",
+      "sha256": "80d0b9a56d164df83fe79181b5986d1863d0b9798eee35eb0c9e178cd8d9a838"
+    },
+    {
+      "id": "I_CHECK_IN_DAILY",
+      "label": "日常页签已选择",
+      "file": "i_check_in_daily.png",
+      "roi": [
+        1128,
+        94,
+        151,
+        281
+      ],
+      "reference_roi": [
+        1131,
+        115,
+        106,
+        88
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/dt/dt_check_in_daily.png",
+      "sha256": "01ca75b43b1e53df6e224cb0d1bd2c292cc0519b7c01512b5f4a71ef8048ddf4"
+    },
+    {
+      "id": "I_ROOM_GIFT",
+      "label": "礼包屋入口",
+      "file": "i_room_gift.png",
+      "roi": [
+        1119,
+        621,
+        103,
+        94
+      ],
+      "reference_roi": [
+        1138,
+        658,
+        52,
+        40
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/store/store_room_gift.png",
+      "sha256": "8d270122119a9e2117cf2f42395a8f5d704808017ca516b52c10a20f22372d64"
+    },
+    {
+      "id": "I_GIFT_RECOMMEND",
+      "label": "礼包推荐",
+      "file": "i_gift_recommend.png",
+      "roi": [
+        1162,
+        77,
+        97,
+        545
+      ],
+      "reference_roi": [
+        1183,
+        454,
+        53,
+        64
+      ],
+      "threshold": 0.7,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/store/store_gift_recommend.png",
+      "sha256": "7bbefc255aadc95d910019ae41ca721b02f04764495993c999be54a75cd9a6e1"
+    },
+    {
+      "id": "I_GIFT_SIGN",
+      "label": "免费签到",
+      "file": "i_gift_sign.png",
+      "roi": [
+        130,
+        129,
+        891,
+        473
+      ],
+      "reference_roi": [
+        186,
+        191,
+        115,
+        83
+      ],
+      "threshold": 0.8,
+      "source": "tasks/DailyTrifles/assets.py",
+      "source_image": "tasks/DailyTrifles/store/store_gift_sign.png",
+      "sha256": "712c7b5e2feb31dc53e96b390cf68c01067bad52907aaea34a09c3ce690a00c7"
+    },
+    {
+      "id": "I_HARVEST_MAIL_TITLE",
+      "label": "邮件页",
+      "file": "i_harvest_mail_title.png",
+      "roi": [
+        520,
+        48,
+        245,
+        41
+      ],
+      "reference_roi": [
+        520,
+        48,
+        245,
+        41
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Restart/assets.py",
+      "source_image": "tasks/Restart/harvest/harvest_harvest_mail_title.png",
+      "sha256": "07be5b041cec324b456bc0168e2891692d82228f2358f6c3fc36105d87a2b1fc"
+    },
+    {
+      "id": "I_LOGIN_SCROOLL_OPEN",
+      "label": "卷轴开启标志",
+      "file": "i_login_scrooll_open.png",
+      "roi": [
+        1208,
+        609,
+        33,
+        83
+      ],
+      "reference_roi": [
+        1208,
+        609,
+        33,
+        83
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Restart/assets.py",
+      "source_image": "tasks/Restart/login/login_login_scrooll_open.png",
+      "sha256": "6d82f0928def783531747c1e0739bb94440370932c915c1795f4e203b363c2f5"
+    },
+    {
+      "id": "I_LOGIN_SCROOLL_CLOSE",
+      "label": "卷轴关闭标志",
+      "file": "i_login_scrooll_close.png",
+      "roi": [
+        1162,
+        595,
+        77,
+        112
+      ],
+      "reference_roi": [
+        1181,
+        634,
+        28,
+        39
+      ],
+      "threshold": 0.7,
+      "source": "tasks/Restart/assets.py",
+      "source_image": "tasks/Restart/login/login_login_scrooll_close.png",
+      "sha256": "9e42efa657f2450e8e82ccbe1cd9bcdd257f3d9520b529cd888062d32ca6b874"
+    },
+    {
+      "id": "I_LOGIN_8",
+      "label": "游戏登录页",
+      "file": "i_login_8.png",
+      "roi": [
+        1,
+        547,
+        241,
+        105
+      ],
+      "reference_roi": [
+        178,
+        572,
+        53,
+        60
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Restart/assets.py",
+      "source_image": "tasks/Restart/login/login_login_8.png",
+      "sha256": "bb5f1fa972eb9c8bcb358516b223754cfa15469a02423ac582db01e859073cbc"
+    },
+    {
+      "id": "I_OROCHI",
+      "label": "进入八岐大蛇",
+      "file": "i_orochi.png",
+      "roi": [
+        57,
+        120,
+        293,
+        403
+      ],
+      "reference_roi": [
+        279,
+        278,
+        47,
+        60
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi.png",
+      "sha256": "4e11b3d17a3afbebf8886274720a8ce94b45650a9c994b3b1acc262ae6667c2e"
+    },
+    {
+      "id": "I_OROCHI_LOCK",
+      "label": "御魂阵容已锁定",
+      "file": "i_orochi_lock.png",
+      "roi": [
+        623,
+        645,
+        270,
+        64
+      ],
+      "reference_roi": [
+        704,
+        658,
+        22,
+        26
+      ],
+      "threshold": 0.6,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_lock.png",
+      "sha256": "19514b91a397db3e7e2ef78fef2ff5ca15e233be66d9f9e120f61d3a378f2b58"
+    },
+    {
+      "id": "I_OROCHI_UNLOCK",
+      "label": "御魂阵容未锁定",
+      "file": "i_orochi_unlock.png",
+      "roi": [
+        623,
+        649,
+        273,
+        59
+      ],
+      "reference_roi": [
+        705,
+        658,
+        19,
+        23
+      ],
+      "threshold": 0.6,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_unlock.png",
+      "sha256": "cf1dd1febd2f314d8d6943ef29ffaa3359206e23a1e3c87b3d6c7daefc58fe4c"
+    },
+    {
+      "id": "I_OROCHI_FIRE",
+      "label": "御魂挑战",
+      "file": "i_orochi_fire.png",
+      "roi": [
+        1123,
+        572,
+        131,
+        124
+      ],
+      "reference_roi": [
+        1145,
+        594,
+        94,
+        49
+      ],
+      "threshold": 0.6,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_fire.png",
+      "sha256": "1e0f87c2648ec3404132a87b8ab9bab1978ac2d1ccb1731d26430f57b76d4d87"
+    },
+    {
+      "id": "I_OROCHI_CHECK_10",
+      "label": "八岐大蛇",
+      "file": "i_orochi_check_10.png",
+      "roi": [
+        896,
+        100,
+        269,
+        84
+      ],
+      "reference_roi": [
+        929,
+        123,
+        203,
+        39
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_check_10.png",
+      "sha256": "1530b073063d0acc1e2d2f6c01334b16986d940d33aaaec0dee1aa2fcdb16581"
+    },
+    {
+      "id": "I_OROCHI_CHECK_11",
+      "label": "巫女大蛇",
+      "file": "i_orochi_check_11.png",
+      "roi": [
+        896,
+        100,
+        269,
+        84
+      ],
+      "reference_roi": [
+        929,
+        123,
+        203,
+        39
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_check_11.png",
+      "sha256": "9ff7022e8c0547c4b9419a6d277c35c76af3a4081848a36261ee1d98333db5ca"
+    },
+    {
+      "id": "I_OROCHI_CHECK_12",
+      "label": "神罚",
+      "file": "i_orochi_check_12.png",
+      "roi": [
+        896,
+        100,
+        269,
+        84
+      ],
+      "reference_roi": [
+        929,
+        116,
+        100,
+        46
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_check_12.png",
+      "sha256": "14ef200d2ddc4c26da01fe5b1256d81c7ef8c5d4f1b12eaf5e280dbf9ea0e891"
+    },
+    {
+      "id": "I_OROCHI_CHECK_13",
+      "label": "虚无大蛇",
+      "file": "i_orochi_check_13.png",
+      "roi": [
+        896,
+        100,
+        269,
+        84
+      ],
+      "reference_roi": [
+        929,
+        121,
+        211,
+        41
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Orochi/assets.py",
+      "source_image": "tasks/Orochi/o/o_orochi_check_13.png",
+      "sha256": "fa4f6675f8e0d20e6f8e4c3066ef764810ffd5ec57733c04fe661f68aaa17619"
+    },
+    {
+      "id": "I_FIRE_KIRIN",
+      "label": "火麒麟",
+      "file": "i_fire_kirin.png",
+      "roi": [
+        106,
+        121,
+        217,
+        406
+      ],
+      "reference_roi": [
+        127,
+        176,
+        139,
+        252
+      ],
+      "threshold": 0.8,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_fire_kirin.png",
+      "sha256": "4f8a0c15207e63ac223ae9c5b70280f082f048a9edd72c0d8a23ab7d7121339a"
+    },
+    {
+      "id": "I_EVOZONE_LOCK",
+      "label": "觉醒阵容已锁定",
+      "file": "i_evozone_lock.png",
+      "roi": [
+        683,
+        646,
+        63,
+        64
+      ],
+      "reference_roi": [
+        703,
+        656,
+        24,
+        32
+      ],
+      "threshold": 0.8,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_evozone_lock.png",
+      "sha256": "f7cde06a0c972e1bef903ce2991e6b15122b54012059f24c5a85cf2e726ff8b0"
+    },
+    {
+      "id": "I_EVOZONE_UNLOCK",
+      "label": "觉醒阵容未锁定",
+      "file": "i_evozone_unlock.png",
+      "roi": [
+        680,
+        643,
+        67,
+        67
+      ],
+      "reference_roi": [
+        704,
+        658,
+        21,
+        27
+      ],
+      "threshold": 0.8,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_evozone_unlock.png",
+      "sha256": "e6976188318b9880f6b24c10b58a11cf5052250a0fcc6df8a87d53a6b82a3760"
+    },
+    {
+      "id": "I_EVOZONE_FIRE",
+      "label": "觉醒挑战",
+      "file": "i_evozone_fire.png",
+      "roi": [
+        1125,
+        570,
+        131,
+        124
+      ],
+      "reference_roi": [
+        1146,
+        595,
+        93,
+        50
+      ],
+      "threshold": 0.6,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_evozone_fire.png",
+      "sha256": "3e98c2680a6ee679c1d4cb3642ad7e37325aff01ef87b0cd80a909963ed04995"
+    },
+    {
+      "id": "I_WIND_KIRIN",
+      "label": "风麒麟",
+      "file": "i_wind_kirin.png",
+      "roi": [
+        411,
+        77,
+        217,
+        406
+      ],
+      "reference_roi": [
+        445,
+        114,
+        139,
+        252
+      ],
+      "threshold": 0.8,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_wind_kirin.png",
+      "sha256": "8fef977f18abee2a9d846a27728b52b6b2e311782536b6a2ca28426368322d93"
+    },
+    {
+      "id": "I_WATER_KIRIN",
+      "label": "水麒麟",
+      "file": "i_water_kirin.png",
+      "roi": [
+        710,
+        121,
+        217,
+        406
+      ],
+      "reference_roi": [
+        743,
+        182,
+        139,
+        252
+      ],
+      "threshold": 0.8,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_water_kirin.png",
+      "sha256": "3abecef87bb054210948ac73b0a47ba519f0021137bf74f81f4b56018952f9a2"
+    },
+    {
+      "id": "I_LIGHTNING_KIRIN",
+      "label": "雷麒麟",
+      "file": "i_lightning_kirin.png",
+      "roi": [
+        1013,
+        85,
+        217,
+        406
+      ],
+      "reference_roi": [
+        1051,
+        111,
+        139,
+        252
+      ],
+      "threshold": 0.8,
+      "source": "tasks/EvoZone/assets.py",
+      "source_image": "tasks/EvoZone/o/o_lightning_kirin.png",
+      "sha256": "e03626f876fe44fcdce66c0a7a31ad28acab1673d2d5261e8f9d29566f4bbf62"
+    },
+    {
+      "id": "I_GR_FIRE",
+      "label": "御灵挑战",
+      "file": "i_gr_fire.png",
+      "roi": [
+        1012,
+        557,
+        183,
+        148
+      ],
+      "reference_roi": [
+        1057,
+        584,
+        88,
+        89
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GoryouRealm/assets.py",
+      "source_image": "tasks/GoryouRealm/gr/gr_gr_fire.png",
+      "sha256": "080be707c99f2d985257023b53bf660f4072442d1331099f02c89c240dbe4c51"
+    },
+    {
+      "id": "I_GR_LOCK",
+      "label": "御灵阵容已锁定",
+      "file": "i_gr_lock.png",
+      "roi": [
+        665,
+        629,
+        99,
+        91
+      ],
+      "reference_roi": [
+        701,
+        657,
+        27,
+        32
+      ],
+      "threshold": 0.5,
+      "source": "tasks/GoryouRealm/assets.py",
+      "source_image": "tasks/GoryouRealm/gr/gr_gr_lock.png",
+      "sha256": "755a42da6ac712da94b978bffd20d926b322fc611610d1fb66b6efd8f201d666"
+    },
+    {
+      "id": "I_GR_UNLOCK",
+      "label": "御灵阵容未锁定",
+      "file": "i_gr_unlock.png",
+      "roi": [
+        671,
+        636,
+        84,
+        73
+      ],
+      "reference_roi": [
+        705,
+        656,
+        20,
+        30
+      ],
+      "threshold": 0.8,
+      "source": "tasks/GoryouRealm/assets.py",
+      "source_image": "tasks/GoryouRealm/gr/gr_gr_unlock.png",
+      "sha256": "53fbab1f50853df1ea448832d97b0933a72e8b74249e74dc595dcc5c844064b9"
+    },
+    {
+      "id": "I_S_SOUGENBI",
+      "label": "进入业原火",
+      "file": "i_s_sougenbi.png",
+      "roi": [
+        435,
+        55,
+        188,
+        213
+      ],
+      "reference_roi": [
+        567,
+        147,
+        48,
+        51
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_sougenbi.png",
+      "sha256": "f6114eb2ed6dc604e8cc709e8df8f400ea67b4f09bca43158b850e6a7c125bbd"
+    },
+    {
+      "id": "I_S_TEAM_LOCK",
+      "label": "业原火阵容已锁定",
+      "file": "i_s_team_lock.png",
+      "roi": [
+        688,
+        648,
+        52,
+        54
+      ],
+      "reference_roi": [
+        703,
+        657,
+        23,
+        28
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_team_lock.png",
+      "sha256": "ec182ecd9237c9c7bd0f75fc0b6cf9bc63134223d6a9a88f7bc483b5985a2186"
+    },
+    {
+      "id": "I_S_TEAM_UNLOCK",
+      "label": "业原火阵容未锁定",
+      "file": "i_s_team_unlock.png",
+      "roi": [
+        688,
+        648,
+        55,
+        60
+      ],
+      "reference_roi": [
+        704,
+        658,
+        22,
+        26
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_team_unlock.png",
+      "sha256": "e9aa319d62e1eb8ebdf54d79ed7ebb515f0f925704c48ab7e81891e517d7a0c7"
+    },
+    {
+      "id": "I_S_FIRE",
+      "label": "业原火挑战",
+      "file": "i_s_fire.png",
+      "roi": [
+        1044,
+        577,
+        115,
+        109
+      ],
+      "reference_roi": [
+        1054,
+        597,
+        95,
+        47
+      ],
+      "threshold": 0.7,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_fire.png",
+      "sha256": "a85df7af09ac5e911c23646db0967b6de9c7c1bc3762ef54238f809a160c4faa"
+    },
+    {
+      "id": "I_S_CHECK_SOUGENBI",
+      "label": "业原火",
+      "file": "i_s_check_sougenbi.png",
+      "roi": [
+        894,
+        70,
+        235,
+        140
+      ],
+      "reference_roi": [
+        940,
+        106,
+        163,
+        63
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_check_sougenbi.png",
+      "sha256": "620104b9abf2e9539a6c0285e247996241b2c4c1a6890a65b33ffe1c4ba0843b"
+    },
+    {
+      "id": "I_S_FIRE_GREED",
+      "label": "贪挑战票",
+      "file": "i_s_fire_greed.png",
+      "roi": [
+        1039,
+        635,
+        124,
+        47
+      ],
+      "reference_roi": [
+        1071,
+        642,
+        21,
+        33
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_fire_greed.png",
+      "sha256": "d9e075b5cc894f9fb11098ceb5fc298bb36993fbacfd987319d43c79d22ad487"
+    },
+    {
+      "id": "I_S_FIRE_ANGER",
+      "label": "嗔挑战票",
+      "file": "i_s_fire_anger.png",
+      "roi": [
+        1039,
+        635,
+        124,
+        47
+      ],
+      "reference_roi": [
+        1071,
+        642,
+        21,
+        33
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_fire_anger.png",
+      "sha256": "3b61602fe650497199bc80501a38862b82e86fd44600b48cffae2b67c0080cc4"
+    },
+    {
+      "id": "I_S_FIRE_FOOLERY",
+      "label": "痴挑战票",
+      "file": "i_s_fire_foolery.png",
+      "roi": [
+        1039,
+        635,
+        124,
+        47
+      ],
+      "reference_roi": [
+        1071,
+        642,
+        21,
+        33
+      ],
+      "threshold": 0.8,
+      "source": "tasks/Sougenbi/assets.py",
+      "source_image": "tasks/Sougenbi/s/s_s_fire_foolery.png",
+      "sha256": "446d370d0717de70cd66d9fad22118289eeb92ef99cb63abc2c5ffb0eb865d58"
+    }
+  ],
+  "ocr": [
+    {
+      "id": "O_BATTLE_PREPARE",
+      "label": "准备文字",
+      "roi": [
+        1122,
+        546,
+        92,
+        51
+      ],
+      "mode": "Single",
+      "keyword": "准备",
+      "source": "tasks/Component/GeneralBattle/assets.py"
+    },
+    {
+      "id": "O_INCOME_GOLD",
+      "label": "金币",
+      "roi": [
+        524,
+        17,
+        102,
+        30
+      ],
+      "mode": "Quantity",
+      "keyword": "",
+      "source": "tasks/DailyTrifles/assets.py"
+    },
+    {
+      "id": "O_INCOME_JADE",
+      "label": "勾玉",
+      "roi": [
+        698,
+        18,
+        104,
+        29
+      ],
+      "mode": "Quantity",
+      "keyword": "",
+      "source": "tasks/DailyTrifles/assets.py"
+    },
+    {
+      "id": "O_INCOME_AP",
+      "label": "体力",
+      "roi": [
+        880,
+        18,
+        101,
+        30
+      ],
+      "mode": "Single",
+      "keyword": "",
+      "source": "tasks/DailyTrifles/assets.py"
+    },
+    {
+      "id": "O_GR_TICKET",
+      "label": "御灵票数",
+      "roi": [
+        935,
+        13,
+        95,
+        32
+      ],
+      "mode": "Digit",
+      "keyword": "",
+      "source": "tasks/GoryouRealm/assets.py"
+    },
+    {
+      "id": "O_S_GREED",
+      "label": "贪票数",
+      "roi": [
+        589,
+        13,
+        84,
+        34
+      ],
+      "mode": "Digit",
+      "keyword": "",
+      "source": "tasks/Sougenbi/assets.py"
+    },
+    {
+      "id": "O_S_ANGER",
+      "label": "嗔票数",
+      "roi": [
+        770,
+        12,
+        84,
+        36
+      ],
+      "mode": "Digit",
+      "keyword": "",
+      "source": "tasks/Sougenbi/assets.py"
+    },
+    {
+      "id": "O_S_FOOLERY",
+      "label": "痴票数",
+      "roi": [
+        951,
+        12,
+        86,
+        34
+      ],
+      "mode": "Digit",
+      "keyword": "",
+      "source": "tasks/Sougenbi/assets.py"
+    }
+  ],
+  "clicks": [
+    {
+      "id": "C_RANDOM_BOTTOM",
+      "label": "结算点击区域",
+      "roi": [
+        462,
+        599,
+        492,
+        78
+      ],
+      "source": "tasks/Component/GeneralBattle/assets.py"
+    },
+    {
+      "id": "C_LOGIN_SCROLL_CLOSE_AREA",
+      "label": "庭院卷轴点击区域",
+      "roi": [
+        1181,
+        634,
+        28,
+        39
+      ],
+      "source": "tasks/Restart/assets.py"
+    },
+    {
+      "id": "C_SA_LOGIN_FORM_ENTER_GAME_BTN",
+      "label": "进入当前游戏",
+      "roi": [
+        570,
+        580,
+        130,
+        35
+      ],
+      "source": "tasks/Component/SwitchAccount/assets.py"
+    },
+    {
+      "id": "C_GR_C_1",
+      "label": "暗神龙",
+      "roi": [
+        111,
+        77,
+        206,
+        431
+      ],
+      "source": "tasks/GoryouRealm/assets.py"
+    },
+    {
+      "id": "C_GR_C_2",
+      "label": "暗白藏主",
+      "roi": [
+        413,
+        76,
+        209,
+        342
+      ],
+      "source": "tasks/GoryouRealm/assets.py"
+    },
+    {
+      "id": "C_GR_C_3",
+      "label": "暗黑豹",
+      "roi": [
+        725,
+        97,
+        195,
+        401
+      ],
+      "source": "tasks/GoryouRealm/assets.py"
+    },
+    {
+      "id": "C_GR_C_4",
+      "label": "暗孔雀",
+      "roi": [
+        1026,
+        82,
+        206,
+        334
+      ],
+      "source": "tasks/GoryouRealm/assets.py"
+    },
+    {
+      "id": "C_C_GREED",
+      "label": "选择贪",
+      "roi": [
+        96,
+        110,
+        121,
+        37
+      ],
+      "source": "tasks/Sougenbi/assets.py"
+    },
+    {
+      "id": "C_C_ANGER",
+      "label": "选择嗔",
+      "roi": [
+        93,
+        213,
+        121,
+        37
+      ],
+      "source": "tasks/Sougenbi/assets.py"
+    },
+    {
+      "id": "C_C_FOOLERY",
+      "label": "选择痴",
+      "roi": [
+        95,
+        316,
+        121,
+        37
+      ],
+      "source": "tasks/Sougenbi/assets.py"
+    }
+  ],
+  "lists": [
+    {
+      "id": "Orochi.L_LAYER_LIST",
+      "label": "御魂层数",
+      "roi": [
+        127,
+        95,
+        106,
+        603
+      ],
+      "size": [
+        106,
+        101
+      ],
+      "direction": "vertical",
+      "mode": "ocr",
+      "items": [
+        "壹",
+        "贰",
+        "叁",
+        "肆",
+        "伍",
+        "陆",
+        "柒",
+        "捌",
+        "玖",
+        "拾",
+        "悲",
+        "神",
+        "虚"
+      ],
+      "source": "tasks/Orochi/assets.py"
+    },
+    {
+      "id": "EvoZone.L_LAYER_LIST",
+      "label": "觉醒层数",
+      "roi": [
+        130,
+        124,
+        64,
+        581
+      ],
+      "size": [
+        64,
+        98
+      ],
+      "direction": "vertical",
+      "mode": "ocr",
+      "items": [
+        "壹",
+        "贰",
+        "叁",
+        "肆",
+        "伍",
+        "陆",
+        "柒",
+        "捌",
+        "玖",
+        "拾"
+      ],
+      "source": "tasks/EvoZone/assets.py"
+    }
+  ],
+  "models": [
+    {
+      "file": "models/ch_PP-OCRv2_rec_infer.onnx",
+      "sha256": "b40070ace3141612a91f6f7ce1b304780d742e596b02a3af0d56231981c1100e",
+      "source": "ppocr-onnx 0.0.3.9 / PaddleOCR"
+    },
+    {
+      "file": "models/ch_PP-OCRv3_det_infer.onnx",
+      "sha256": "3439588c030faea393a54515f51e983d8e155b19a2e8aba7891934c1cf0de526",
+      "source": "ppocr-onnx 0.0.3.9 / PaddleOCR"
+    },
+    {
+      "file": "models/ppocr_keys_v1.txt",
+      "sha256": "d917d7489d2c20d2e4cee8c17068f8ac54f6ee406a04bf5ac3b1ff5dc38e1e52",
+      "source": "ppocr-onnx 0.0.3.9 / PaddleOCR"
+    }
+  ]
+}

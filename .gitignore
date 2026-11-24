@@ -1,0 +1,27 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+captures/
+*.iml
+*.log
+dist/
+.toolchains/
+.downloads/
+dependency-*.html
+dependency-*.xml
+
+# Generated / compiled binary artifacts (rebuilt by build.ps1 and tools/export-runtime.py)
+app/src/main/assets/runtime/oas-runtime.zip
+app/src/main/jniLibs/
+
+# Local test/audit outputs and internal handoff notes
+engine-audit-*.json
+MIGRATION_HANDOFF.txt
+
+# Python & OS clutter
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

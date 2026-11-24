@@ -1,0 +1,37 @@
+package com.oas.android;
+import android.os.ParcelFileDescriptor;
+import android.view.Surface;
+import android.os.Bundle;
+interface IDeviceBridge {
+    String status();
+    int createDisplay(int densityDpi);
+    void usePrimaryDisplay();
+    void releaseDisplay();
+    String launch(String packageName);
+    ParcelFileDescriptor screenshot();
+    Bundle rawFrameBuffer();
+    void setPreviewSurface(in Surface surface, long owner);
+    void clearPreviewSurface(long owner);
+    String previewStatus();
+    void previewTouch(int action, int x, int y, long owner);
+    void previewPointers(int action, int actionIndex, in int[] ids, in float[] coordinates, long owner);
+    String systemStatus();
+    void configureRuntime(boolean taskActive, boolean keepAwake, boolean fpsEnabled);
+    void configureFrameRates(int captureFps, int previewFps);
+    boolean setDisplayPower(boolean on);
+    String gameAudioState(String packageName);
+    boolean setGameMuted(String packageName, boolean muted, int previousMode);
+    void tap(int x, int y);
+    void swipe(int x1, int y1, int x2, int y2, int durationMs);
+    void pressAndDrag(int x1, int y1, int x2, int y2, int holdMs, int durationMs);
+    void drawPath(in int[] coordinates, int intervalMs);
+    ParcelFileDescriptor readTaskFile(String path);
+    void resizeDisplay(int width, int height);
+    String shell(in String[] arguments);
+    void stopPackage(String packageName);
+    void keyEvent(int keyCode);
+    void inputText(String text);
+    void selectAllText();
+    void spawnShellBridge(String apkPath, String token);
+    void destroy();
+}

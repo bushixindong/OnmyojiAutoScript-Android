@@ -1,0 +1,232 @@
+{
+  "source": "D:\\OnmyojiAutoScript-easy-install\\OASX",
+  "release": "D:\\OnmyojiAutoScript-easy-install\\oasx_v0.3.15_windows",
+  "translationCount": 1171,
+  "logoSha256": "9720ed82c2bdbe6d3db71b4fdd509cfa1229fbf564d7f145f3b5155cffd276d9",
+  "files": [
+    {
+      "path": "lib/translation/cn_parts/cn_abyss_shadows_config.dart",
+      "sha256": "aea8408b064e953de338b21f43b734b07ae68a2430dec1b57aed51cafc24b8a2"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_activation_config.dart",
+      "sha256": "83c08b88e0f9257d64c464fafa6234ca7b4e877204dd8f02803603720e789024"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_area_boss_config.dart",
+      "sha256": "d9c80169a0b1eb6cd4575264b0f3b35d20c6a5b12c4fd48f14dae8c1c1ecd652"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_bondling_config.dart",
+      "sha256": "39f38d9826eeea6f878dd91fbd7380c662243697f07d775f83054d3252f4135f"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_delegation_config.dart",
+      "sha256": "553d3f21eaed5a4925e4be5293a6ee953b0c6fc711f51cd8647d493a0b91329f"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_demon_encounter_config.dart",
+      "sha256": "a14ea340849cb7f6576e27a552fd146bd995208a900f94c800832484fd31baec"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_demon_retreat_config.dart",
+      "sha256": "0d63973cdf09d9dd45a2d2a6fb8046368a9b1349eeba96ee033a92f534914769"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_dragon_spine_config.dart",
+      "sha256": "8db4f97c66e2c64cb07257dbd9ea9a53e10e8d8c2acfd44ff4bdba1637fef6c6"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_duel_config.dart",
+      "sha256": "2088b227e608a7e735161d913b4872430c73f18ceb94e732418f4fcc8cc5bce8"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_dye_trials_config.dart",
+      "sha256": "c1fcf09d319cb175abd591368a2e5f57fe7ca2b0029c7f85eb87999b088d7870"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_eternity_sea_config.dart",
+      "sha256": "7e3d1a0452846cb2946f56c752d48b7448e06766c436a6ddd8b2fa0ddd87902e"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_evo_zone_config.dart",
+      "sha256": "a892b8d239d19d6104bed15ed231a113cfe5a10501b172fef42f950e9f3664ed"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_experience_youkai_config.dart",
+      "sha256": "215e5743441b6414f2921a157aeff3d74d9c992114807b5e5fe6e51a85a1ea69"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_exploration_config.dart",
+      "sha256": "01f2986d5ead0f8ed4b4776aae4ab05328e089a9b71e030e009cefefc4bfbe81"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_fallen_sun_config.dart",
+      "sha256": "42018eb3165f38f4213c817b9aa7df9aa457e565e39d06a454f5f038cf79323a"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_find_jade_config.dart",
+      "sha256": "0924acf6c97ef13ccb87d1b5940dc559dd450331bddd9657c5cf721b6bdbd294"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_float_parade_config.dart",
+      "sha256": "dc38dab4d30152a3f346c0f51b3942c87c0b02d0ca48e2455a265dd4df7bee04"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_frog_boss_config.dart",
+      "sha256": "94005a2aa25a72bd226f1c1834afcd50b65e65ff64cf23e609fcb5aed57acee3"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_general_battle_config.dart",
+      "sha256": "78f3088c1576a77768b80998f9cf3c850ba7ce9248b3dde6786e7feaa4c23585"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_general_climb_config.dart",
+      "sha256": "89d4d633262e023878f34f31d61b467a50b77b7534b8bc294f18e889faf51901"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_global_game.dart",
+      "sha256": "7a6a10f3047e94ac1425abcc38ae72098ef4a4aaedd2f0cc2633572e5d04852d"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_gold_youkai_config.dart",
+      "sha256": "fbfd081a0d7888373af468e438c4bd6a455ef865d06b08f8c948fa8d40352411"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_goryou_config.dart",
+      "sha256": "158f6229a7570bdbfc2e8bcf34a9c8846a820042779d2df9c7d9b41636076574"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_guild_banquet_config.dart",
+      "sha256": "bd66506af2561e8915d804adafbac170a19b6206fd62d43d8aefba2c12b745e4"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_herotest_config.dart",
+      "sha256": "d2b35410d13cc0226dd240e3b8667dba66fd783dd48251403088d56c23601be7"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_hunt_config.dart",
+      "sha256": "8fa3c41da45550df0928deae83a0303f2b5190bffbca31223daf216562474750"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_hyakkiyakou_config.dart",
+      "sha256": "e9976882beed8942f0ba9005e310af8d96072077b9797ae1eac9f42c913dc4d8"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_invite_config.dart",
+      "sha256": "873c87040636623da81c1c18c3c6ae8a05baf29024df57d8ed833dd263289039"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_kitty_shop_config.dart",
+      "sha256": "cab4badd4a6b05d84a4cd0c5e6ce7b743f0b5ded8bd789af835fad09df38c0b9"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_kokan_config.dart",
+      "sha256": "abe97db8efb1138e5cec6b19a9d0c7c49b0e1ae2dab049ed99f7b4241c7bde79"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_memory_scrolls_config.dart",
+      "sha256": "14ca983b40d4c4c297e5b60644bd4de3df92668d734ea6421d520a4fadc497ca"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_menu.dart",
+      "sha256": "05eb290016e1c0b5fc584fff6ca0d3a2dd26943f505b2041f61def0a723fd6f8"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_meta_demon_config.dart",
+      "sha256": "0f230b1c8137c321476f43b8bf130f7af425303443c983e4292024f524383fe7"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_missions_config.dart",
+      "sha256": "dd2b1bc2a1463b92df91bed013dd8eb5c4eb32d3570bc334a1b88c3bdab0ff12"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_nian_config.dart",
+      "sha256": "460479550f5df29345159c432edc2268e47246b2bd0927cccb9992ea26f266ba"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_orochi_config.dart",
+      "sha256": "6d3f8c9d21eb08fc9685f7076f2d531458ab04246e286783914547c3e44afb41"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_pets_config.dart",
+      "sha256": "259805dbf445382378620551aa5f9e69e4701bb6c8cb111256b2119814566e7a"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_quiz_config.dart",
+      "sha256": "70e82b8faf1bf04ca3c55384719ffd621678c886fcfd1d8dbf8b37916d7dc0b3"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_raid_config.dart",
+      "sha256": "10b0ba7a7cf642f81bdfc6d67a62578a72f8ae71b21adfcd7b8e26e49cde1ab8"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_realm_raid_config.dart",
+      "sha256": "7d18042de19559a10b3a42cd4be065119045c775a7d07772c77d00046e857a4f"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_restart.dart",
+      "sha256": "652a4ba83a9588295515ed95129f4a76faad5631f7556571699964b2409eed32"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_rich_man_config.dart",
+      "sha256": "2eec8f29c43d8d3f70ad98a72b4d056f3ae85223ab4456c29eea99e19dc7f33c"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_script.dart",
+      "sha256": "0c13f696b7ba8acb022577d3b37c5b0e6c30b69be734e9b0e1112ae9f38d2342"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_secret_config.dart",
+      "sha256": "d98d009ce26275d416c3205067fcdfa0c4d3b5e47cc3b29a54c9839b07216a22"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_shop_config.dart",
+      "sha256": "67a1ae0668f940e2a2272095cbbe45b76dcbf43385f7f3c86a3e3b55b0952b95"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_simple_tidy_config.dart",
+      "sha256": "fd871bfff46a2707e0a745b4044fc18eaf1c325c4a40f6a86d2d394cdc1b900e"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_six_realms_config.dart",
+      "sha256": "322be46888f78a0dcf6780791d6b69e6647071446787194319732b12bc304918"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_sougenbi_config.dart",
+      "sha256": "cb95d60b8ad612092f94150adeab9151b76551b065f896055e0cce3a1b5d9850"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_switch_soul.dart",
+      "sha256": "661602dac47a8ee172f163245d1d8d139687c03e7844d6859ff54c2fccd9c6ae"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_tako_config.dart",
+      "sha256": "39a9de19c84ba92d2f4389dd041fc697322f79aa9d8e96148edce70ee7a37e9b"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_talisman_config.dart",
+      "sha256": "5b092c0fa2a16b16041f0924c95acf900ca4d8d1b6e011896140b786c405c1c1"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_trifles_config.dart",
+      "sha256": "c733cb099a95ba4c8023dff4e6ed9fc849e63abc5d55b039418f531312281fd2"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_true_orochi_config.dart",
+      "sha256": "7e75413b7ed680b4d61abd4c8a0ef67cdcd58b627bd9d0e80b2a4a93154e4440"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_ui.dart",
+      "sha256": "bbce7f1e154b57a1de5828c265b5d49459860178b846a4bd8419182e94370901"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_utilize_config.dart",
+      "sha256": "7ad1540c54fca354a1cf3d97fd75693f8230f37b485aab45e6260ef09784e18b"
+    },
+    {
+      "path": "lib/translation/cn_parts/cn_wanted_quests_config.dart",
+      "sha256": "506b0b11a44e7c6fa597827bfa476d5f58c2114d00189f6e6622b052b5f38b52"
+    }
+  ]
+}

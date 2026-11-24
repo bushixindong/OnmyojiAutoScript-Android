@@ -1,0 +1,23 @@
+"""Mobile fallback labels when the desktop's generated translation cache is absent."""
+TITLES={
+    'AbyssShadows':'狭间暗域','ActivityShikigami':'式神活动','AreaBoss':'地域鬼王',
+    'AutoCheckinBigGod':'大神签到','AutoStory':'剧情助手','BondlingFairyland':'契灵之境',
+    'BorrowShikigami':'借用式神','Chess':'百鬼棋局','CollectiveMissions':'集体任务',
+    'CustomTask':'自定义任务','DailyTrifles':'日常事务','Delegation':'式神委派',
+    'DemonEncounter':'逢魔之时','DemonRetreat':'妖怪退治','Dokan':'道馆',
+    'DraftDuel':'协同对弈','Duel':'斗技','DyeTrials':'染色试炼','EternitySea':'永生之海',
+    'EvoZone':'觉醒副本','ExperienceYoukai':'经验妖怪','Exploration':'探索',
+    'ExplorationFight':'探索战斗','FallenSun':'日轮之陨','FindJade':'勾玉搜寻',
+    'FloatParade':'花车巡游','FrogBoss':'呱太竞猜','GoldYoukai':'金币妖怪',
+    'GoryouRealm':'御灵之境','GotoMain':'返回庭院','GuguArtStudio':'咕咕画坊',
+    'GuildActivityMonitor':'寮活动监控','GuildBanquet':'阴阳寮宴会','HeroTest':'式神试用',
+    'Hunt':'狩猎战','Hyakkiyakou':'百鬼夜行','KekkaiActivation':'结界卡激活',
+    'KekkaiUtilize':'结界管理','KittyShop':'猫咪商店','MartialTournament':'武道大会',
+    'MemoryScrolls':'追忆绘卷','MetaDemon':'超鬼王','MetaDemonTicket':'超鬼王门票',
+    'MysteryShop':'神秘商店','Nian':'年兽','Orochi':'御魂副本','OtherWorldTwilight':'异界之暮',
+    'Pets':'宠物','Quiz':'答题','RealmRaid':'个人突破','Restart':'重启游戏',
+    'RichMan':'大富翁','RyouToppa':'寮突破','Secret':'秘闻副本','SixRealms':'六道之门',
+    'Sougenbi':'业原火','SoulsTidy':'御魂整理','Tako':'石距','TalismanPass':'花合战',
+    'TrueOrochi':'真·八岐大蛇','WantedQuests':'悬赏封印','WeeklyTrifles':'每周事务',
+    'GlobalGame':'游戏设置','Script':'脚本与调度',
+}
