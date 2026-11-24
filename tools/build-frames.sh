@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-task_ndk="$task_root/.toolchains/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/bin"
+task_ndk_root="${ANDROID_NDK_HOME:-$task_root/.toolchains/android-ndk-r27d}"
+task_ndk="$task_ndk_root/toolchains/llvm/prebuilt/linux-x86_64/bin"
 for task_pair in 'arm64-v8a aarch64-linux-android28' 'x86_64 x86_64-linux-android28'; do
     set -- $task_pair
     task_output="$task_root/app/src/main/jniLibs/$1/liboas_frames.so"

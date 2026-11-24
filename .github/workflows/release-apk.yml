@@ -1,0 +1,166 @@
+name: Build & Release OASA APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      oas_repo:
+        description: 'Upstream OAS repository (owner/repo)'
+        required: true
+        default: 'kongdr418/OnmyojiAutoScript'
+      oas_ref:
+        description: 'Upstream OAS branch or tag'
+        required: true
+        default: 'master'
+      release_tag:
+        description: 'Release tag to publish (leave empty to use v<versionName>)'
+        required: false
+        default: ''
+      runtime_notes:
+        description: 'Release notes'
+        required: false
+        default: 'OASA Android 正式版'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OASA
+        uses: actions/checkout@v4
+
+      - name: Checkout upstream OAS
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.oas_repo || 'kongdr418/OnmyojiAutoScript' }}
+          ref: ${{ github.event.inputs.oas_ref || 'master' }}
+          path: upstream-oas
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Setup Android SDK & NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android SDK components
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018"
+          # Ensure compileSdk 37 is installed if available
+          sdkmanager "platforms;android-37" || true
+
+      - name: Build native raw_frames library
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.2.12479018
+        run: sh tools/build-frames.sh
+
+      - name: Export oas-runtime.zip from upstream OAS
+        run: |
+          mkdir -p upstream-oas/toolkit/Lib/site-packages
+          pip install --no-deps --target upstream-oas/toolkit/Lib/site-packages ppocronnx paho-mqtt onepush
+          python3 tools/export-runtime.py --source upstream-oas
+
+      - name: Decode release signing keystore (if configured)
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p keystore
+            echo "$KEYSTORE_B64" | base64 -d > keystore/oasa-release.jks
+            cat > keystore/keystore.properties << EOF
+          storeFile=oasa-release.jks
+          storePassword=$STORE_PASS
+          keyAlias=${KEY_ALIAS:-oasa}
+          keyPassword=$KEY_PASS
+          EOF
+            echo "Release keystore configured."
+          else
+            echo "WARNING: SIGNING_KEYSTORE_BASE64 secret not set; falling back to debug signing."
+          fi
+
+      - name: Build Release APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease -PpythonExecutable="$(which python3)" --console=plain --no-daemon
+
+      - name: Prepare Release & Hot-Update Artifacts
+        id: meta
+        env:
+          RUNTIME_NOTES: ${{ github.event.inputs.runtime_notes || 'OASA Android 正式版' }}
+          INPUT_TAG: ${{ github.event.inputs.release_tag }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          python3 - << 'PY'
+          import datetime, hashlib, json, os, re, shutil
+          from pathlib import Path
+
+          gradle = Path('app/build.gradle.kts').read_text(encoding='utf-8')
+          app_ver = re.search(r'versionName\s*=\s*"([^"]+)"', gradle).group(1)
+          app_code = int(re.search(r'versionCode\s*=\s*(\d+)', gradle).group(1))
+          tag = os.environ.get('INPUT_TAG', '').strip()
+          if not tag:
+              ref_name = os.environ.get('GITHUB_REF_NAME', '')
+              tag = ref_name if ref_name.startswith('v') else f'v{app_ver}'
+
+          dist = Path('dist')
+          dist.mkdir(parents=True, exist_ok=True)
+          apk_src = Path('app/build/outputs/apk/release/app-release.apk')
+          apk_dst = dist / f'OASA-{app_ver}.apk'
+          shutil.copy2(apk_src, apk_dst)
+          apk_sha = hashlib.sha256(apk_dst.read_bytes()).hexdigest()
+          (dist / f'OASA-{app_ver}.apk.sha256').write_text(f'{apk_sha}  {apk_dst.name}\n', encoding='ascii')
+
+          upd = dist / 'update'
+          upd.mkdir(parents=True, exist_ok=True)
+          zip_src = Path('app/src/main/assets/runtime/oas-runtime.zip')
+          man_src = Path('app/src/main/assets/runtime/manifest.json')
+          shutil.copy2(zip_src, upd / 'oas-runtime.zip')
+          shutil.copy2(man_src, upd / 'manifest.json')
+          rt_sha = hashlib.sha256(zip_src.read_bytes()).hexdigest()
+          repo = os.environ['REPO_NAME']
+          base = f'https://github.com/{repo}/releases/latest/download'
+          payload = {
+              'runtimeVersion': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y.%m.%d.%H%M'),
+              'runtimeArchiveUrl': f'{base}/oas-runtime.zip',
+              'runtimeSha256': rt_sha,
+              'runtimeManifestUrl': f'{base}/manifest.json',
+              'runtimeNotes': os.environ.get('RUNTIME_NOTES', ''),
+              'appVersion': app_ver,
+              'appVersionCode': app_code,
+              'appDownloadUrl': f'https://github.com/{repo}/releases/latest',
+              'appNotes': '',
+          }
+          (upd / 'update.json').write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write(f'tag={tag}\n')
+              out.write(f'apk={apk_dst.as_posix()}\n')
+              out.write(f'apk_sha={apk_dst.as_posix()}.sha256\n')
+          print('Prepared release:', tag, apk_dst.name)
+          PY
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: OASA ${{ steps.meta.outputs.tag }}
+          files: |
+            ${{ steps.meta.outputs.apk }}
+            ${{ steps.meta.outputs.apk_sha }}
+            dist/update/update.json
+            dist/update/oas-runtime.zip
+            dist/update/manifest.json

@@ -6,7 +6,9 @@ captures/
 *.iml
 *.log
 dist/
-.toolchains/
+.toolchains/*
+!.toolchains/wheels/
+!.toolchains/wheels/*.whl
 .downloads/
 dependency-*.html
 dependency-*.xml
