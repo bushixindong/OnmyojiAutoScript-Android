@@ -29,6 +29,15 @@ data class ErrorLogItem(val id: String, val timeText: String, val config: String
 
 data class ErrorLogDetail(val item: ErrorLogItem, val logText: String, val imagePaths: List<String>)
 
+data class StatsTaskRun(val startTime: String, val endTime: String, val durationSeconds: Double, val battleCount: Int, val battleAvgDurationSeconds: Double)
+data class StatsTaskSummary(val taskName: String, val runCount: Int, val totalDurationSeconds: Double, val battleCount: Int, val battleAvgDurationSeconds: Double, val runs: List<StatsTaskRun>)
+data class StatsDayData(val scriptName: String, val date: String, val totalRuntimeSeconds: Double, val totalTaskRunCount: Int, val totalBattleCount: Int, val tasks: List<StatsTaskSummary>)
+
+data class IncomeItemData(val name: String, val value: Int, val delta: Int?)
+data class IncomeDayData(val scriptName: String, val date: String, val collectedAt: String, val baselineDate: String, val items: List<IncomeItemData>)
+data class IncomeHistoryRecordData(val date: String, val values: Map<String, Int>)
+data class IncomeHistoryData(val scriptName: String, val days: Int, val start: String, val end: String, val records: List<IncomeHistoryRecordData>)
+
 enum class ShizukuStage { NOT_INSTALLED, NOT_RUNNING, NEED_AUTH, READY, CONNECTED }
 
 /** UI adapter only: settings and task decisions continue to belong to the OAS engine. */
@@ -43,6 +52,7 @@ class OasController(private val activity: Activity) {
     var message by mutableStateOf(session.message); private set
     var logLines by mutableStateOf<List<String>>(emptyList()); private set
     var active by mutableStateOf(session.taskActive.get()); private set
+    var stopping by mutableStateOf(false); private set
     var connected by mutableStateOf(session.bridge != null); private set
     var shizukuStage by mutableStateOf(detectShizukuStage()); private set
     var shizukuBinding by mutableStateOf(session.binding); private set
@@ -79,6 +89,18 @@ class OasController(private val activity: Activity) {
     var errorLogs by mutableStateOf<List<ErrorLogItem>>(emptyList()); private set
     var selectedError by mutableStateOf<ErrorLogDetail?>(null); private set
     var errorLogsLoading by mutableStateOf(false); private set
+    var statsDates by mutableStateOf<List<String>>(emptyList()); private set
+    var statsSelectedDate by mutableStateOf(""); private set
+    var statsDay by mutableStateOf<StatsDayData?>(null); private set
+    var statsLoading by mutableStateOf(false); private set
+    var statsError by mutableStateOf(""); private set
+    var incomeDates by mutableStateOf<List<String>>(emptyList()); private set
+    var incomeSelectedDate by mutableStateOf(""); private set
+    var incomeDay by mutableStateOf<IncomeDayData?>(null); private set
+    var incomeHistory by mutableStateOf<IncomeHistoryData?>(null); private set
+    var incomeHistoryDays by mutableIntStateOf(30); private set
+    var incomeLoading by mutableStateOf(false); private set
+    var incomeError by mutableStateOf(""); private set
     var lastResult by mutableStateOf(activity.getSharedPreferences("task_records", 0).getString("last", "") ?: ""); private set
     var onPickJsonFile: (((String, String) -> Unit) -> Unit)? = null
     var onSaveJsonFile: ((String, ByteArray) -> Unit)? = null
@@ -88,7 +110,18 @@ class OasController(private val activity: Activity) {
         session.addListener(listener)
         val cached = preferences.getString("taskSummary", null)
         if(cached != null) try { tasks = parseTasks(cached) } catch(_: Exception) { }
-        presets = listOf(PresetItem(activePreset, active = true, running = false, previewType = "none", previewId = "", previewTitle = "", previewTime = ""))
+        val cachedPresets = preferences.getString("presetSummary", null)
+        presets = try {
+            if(cachedPresets != null) parsePresets(cachedPresets).map {
+                if(!session.taskActive.get()) it.copy(running = false) else it
+            }.ifEmpty {
+                listOf(PresetItem(activePreset, active = true, running = false, previewType = "none", previewId = "", previewTitle = "", previewTime = ""))
+            } else {
+                listOf(PresetItem(activePreset, active = true, running = false, previewType = "none", previewId = "", previewTitle = "", previewTime = ""))
+            }
+        } catch(_: Exception) {
+            listOf(PresetItem(activePreset, active = true, running = false, previewType = "none", previewId = "", previewTitle = "", previewTime = ""))
+        }
     }
 
     private fun ui(action: () -> Unit) { activity.runOnUiThread { if(!disposed) action() } }
@@ -156,9 +189,10 @@ class OasController(private val activity: Activity) {
         executor.submit {
             try {
                 val module = engine(); val raw = module.callAttr("dashboard").toString()
-                val presetList = parsePresets(module.callAttr("list_presets").toString())
+                val presetsRaw = module.callAttr("list_presets").toString()
+                val presetList = parsePresets(presetsRaw)
                 val values = parseTasks(raw); val translations = JSONObject(module.callAttr("labels").toString())
-                preferences.edit().putString("taskSummary", raw).apply()
+                preferences.edit().putString("taskSummary", raw).putString("presetSummary", presetsRaw).apply()
                 ui { tasks = values; presets = presetList; labels = translations; loading = false }
             } catch(problem: Throwable) { ui { error = problem.message ?: "任务加载失败"; loading = false } }
         }
@@ -172,10 +206,11 @@ class OasController(private val activity: Activity) {
                 if(session.taskActive.get()) error("任务运行中，请先停止再切换预设")
                 val res = JSONObject(engine().callAttr("set_active_config", name).toString())
                 val nextActive = res.getString("active")
-                val presetList = parsePresets(res.getJSONArray("presets").toString())
+                val presetsRaw = res.getJSONArray("presets").toString()
+                val presetList = parsePresets(presetsRaw)
                 val dashRaw = res.getJSONArray("dashboard").toString()
                 val values = parseTasks(dashRaw)
-                preferences.edit().putString("activePreset", nextActive).putString("taskSummary", dashRaw).apply()
+                preferences.edit().putString("activePreset", nextActive).putString("taskSummary", dashRaw).putString("presetSummary", presetsRaw).apply()
                 ui { activePreset = nextActive; presets = presetList; tasks = values; presetBusy = false; onDone() }
             } catch(problem: Throwable) { ui { presetBusy = false; notify(problem.message ?: "切换预设失败") } }
         }
@@ -266,13 +301,14 @@ class OasController(private val activity: Activity) {
     }
     private fun applyPresetBundle(res: JSONObject, after: () -> Unit) {
         val nextActive = res.getString("active")
-        val presetList = parsePresets(res.getJSONArray("presets").toString())
+        val presetsRaw = res.getJSONArray("presets").toString()
+        val presetList = parsePresets(presetsRaw)
         val dashRaw = res.getJSONArray("dashboard").toString()
         val values = parseTasks(dashRaw)
-        preferences.edit().putString("activePreset", nextActive).putString("taskSummary", dashRaw).apply()
+        preferences.edit().putString("activePreset", nextActive).putString("taskSummary", dashRaw).putString("presetSummary", presetsRaw).apply()
         ui { activePreset = nextActive; presets = presetList; tasks = values; after() }
     }
-    private fun syncWithoutRefresh() { message = session.message; active = session.taskActive.get() && !busy; connected = session.bridge != null
+    private fun syncWithoutRefresh() { message = session.message; active = session.taskActive.get() && !busy; if(!active) stopping = false; connected = session.bridge != null
         shizukuStage = detectShizukuStage(); shizukuBinding = session.binding
         val binder = session.bridge?.asBinder(); if(binder != knownBridge) { knownBridge = binder; deviceEpoch++; refreshDeviceStatus() } }
     private fun refreshDeviceStatus() {
@@ -387,6 +423,148 @@ class OasController(private val activity: Activity) {
             } catch(problem: Throwable) { ui { notify(problem.message ?: "删除失败") } }
         }
     }
+    fun loadStats(targetDate: String? = null) {
+        if(statsLoading) return
+        statsLoading = true; statsError = ""
+        val scriptName = activePreset
+        executor.submit {
+            try {
+                val mod = engine()
+                val datesObj = JSONObject(mod.callAttr("stats_dates", scriptName).toString())
+                val datesArr = datesObj.optJSONArray("dates") ?: JSONArray()
+                val dates = (0 until datesArr.length()).map { datesArr.getString(it) }
+                val today = java.time.LocalDate.now().toString()
+                val chosen = when {
+                    !targetDate.isNullOrBlank() -> targetDate
+                    statsSelectedDate.isNotBlank() && statsSelectedDate in dates -> statsSelectedDate
+                    dates.isNotEmpty() -> dates.first()
+                    else -> today
+                }
+                val snap = JSONObject(mod.callAttr("stats_day", chosen, scriptName).toString())
+                val tasksObj = snap.optJSONObject("tasks") ?: JSONObject()
+                val taskList = mutableListOf<StatsTaskSummary>()
+                val keys = tasksObj.keys()
+                while(keys.hasNext()) {
+                    val key = keys.next()
+                    val t = tasksObj.getJSONObject(key)
+                    val tb = t.optJSONObject("battle")
+                    val runsArr = t.optJSONArray("runs") ?: JSONArray()
+                    val runs = (0 until runsArr.length()).map { idx ->
+                        val r = runsArr.getJSONObject(idx)
+                        val rb = r.optJSONObject("battle")
+                        StatsTaskRun(
+                            startTime = r.optString("start_time", ""),
+                            endTime = r.optString("end_time", ""),
+                            durationSeconds = r.optDouble("duration_seconds", 0.0),
+                            battleCount = rb?.optInt("count", 0) ?: 0,
+                            battleAvgDurationSeconds = rb?.optDouble("avg_duration_seconds", 0.0) ?: 0.0
+                        )
+                    }
+                    taskList.add(
+                        StatsTaskSummary(
+                            taskName = key,
+                            runCount = t.optInt("run_count", 0),
+                            totalDurationSeconds = t.optDouble("total_duration_seconds", 0.0),
+                            battleCount = tb?.optInt("count", 0) ?: 0,
+                            battleAvgDurationSeconds = tb?.optDouble("avg_duration_seconds", 0.0) ?: 0.0,
+                            runs = runs
+                        )
+                    )
+                }
+                val dayData = StatsDayData(
+                    scriptName = snap.optString("script_name", scriptName),
+                    date = snap.optString("date", chosen),
+                    totalRuntimeSeconds = snap.optDouble("total_runtime_seconds", 0.0),
+                    totalTaskRunCount = snap.optInt("total_task_run_count", 0),
+                    totalBattleCount = snap.optInt("total_battle_count", 0),
+                    tasks = taskList
+                )
+                ui {
+                    statsDates = if(chosen in dates) dates else (listOf(chosen) + dates).distinct()
+                    statsSelectedDate = chosen
+                    statsDay = dayData
+                    statsLoading = false
+                }
+            } catch(problem: Throwable) {
+                ui { statsError = problem.message ?: "统计加载失败"; statsLoading = false }
+            }
+        }
+    }
+    fun loadIncome(targetDate: String? = null, days: Int = incomeHistoryDays) {
+        if(incomeLoading) return
+        incomeLoading = true; incomeError = ""; incomeHistoryDays = days
+        val scriptName = activePreset
+        executor.submit {
+            try {
+                val mod = engine()
+                val datesObj = JSONObject(mod.callAttr("income_dates", scriptName).toString())
+                val datesArr = datesObj.optJSONArray("dates") ?: JSONArray()
+                val dates = (0 until datesArr.length()).map { datesArr.getString(it) }
+                val chosen = when {
+                    !targetDate.isNullOrBlank() -> targetDate
+                    incomeSelectedDate.isNotBlank() && incomeSelectedDate in dates -> incomeSelectedDate
+                    dates.isNotEmpty() -> dates.first()
+                    else -> ""
+                }
+                val dayData = if(chosen.isNotBlank()) {
+                    val obj = JSONObject(mod.callAttr("income_day", chosen, scriptName).toString())
+                    val arr = obj.optJSONArray("items") ?: JSONArray()
+                    val items = (0 until arr.length()).map { i ->
+                        val item = arr.getJSONObject(i)
+                        val delta = if(item.isNull("delta")) null else item.optInt("delta")
+                        IncomeItemData(item.optString("name"), item.optInt("value", -1), delta)
+                    }
+                    if(items.isEmpty()) null else IncomeDayData(
+                        scriptName = obj.optString("script_name", scriptName),
+                        date = obj.optString("date", chosen),
+                        collectedAt = obj.optString("collected_at", ""),
+                        baselineDate = obj.optString("baseline_date", ""),
+                        items = items
+                    )
+                } else null
+                val histObj = JSONObject(mod.callAttr("income_history", days, scriptName).toString())
+                val recArr = histObj.optJSONArray("records") ?: JSONArray()
+                val recs = (0 until recArr.length()).map { i ->
+                    val r = recArr.getJSONObject(i)
+                    val valsObj = r.optJSONObject("values") ?: JSONObject()
+                    val map = mutableMapOf<String, Int>()
+                    val kIt = valsObj.keys()
+                    while(kIt.hasNext()) { val k = kIt.next(); map[k] = valsObj.optInt(k, -1) }
+                    IncomeHistoryRecordData(r.optString("date", ""), map)
+                }
+                val histData = IncomeHistoryData(
+                    scriptName = histObj.optString("script_name", scriptName),
+                    days = histObj.optInt("days", days),
+                    start = histObj.optString("start", ""),
+                    end = histObj.optString("end", ""),
+                    records = recs
+                )
+                ui {
+                    incomeDates = dates
+                    incomeSelectedDate = chosen
+                    incomeDay = dayData
+                    incomeHistory = histData
+                    incomeLoading = false
+                }
+            } catch(problem: Throwable) {
+                ui { incomeError = problem.message ?: "收益加载失败"; incomeLoading = false }
+            }
+        }
+    }
+    fun deleteIncome(targetDate: String? = null) {
+        if(incomeLoading) return
+        incomeLoading = true
+        val scriptName = activePreset
+        executor.submit {
+            try {
+                val res = JSONObject(engine().callAttr("income_delete", targetDate, scriptName).toString())
+                val count = res.optJSONArray("deleted")?.length() ?: 0
+                ui { incomeLoading = false; incomeSelectedDate = ""; notify("已删除 $count 条收益记录"); loadIncome(null, incomeHistoryDays) }
+            } catch(problem: Throwable) {
+                ui { incomeLoading = false; notify(problem.message ?: "删除失败") }
+            }
+        }
+    }
     fun loadEditor(id: String) {
         editing = id; definition = null; editorError = ""
         executor.submit {
@@ -422,9 +600,11 @@ class OasController(private val activity: Activity) {
         } catch(problem: Throwable) { notify(problem.message ?: "启动失败") }
     }
     fun stop() {
-        TaskEngine.requestStop()
-        activity.stopService(Intent(activity, MonitorService::class.java))
+        if(stopping) return
+        stopping = true
         message = "正在停止任务…"
+        activity.stopService(Intent(activity, MonitorService::class.java))
+        Thread({ TaskEngine.requestStop() }, "oas-stop").start()
     }
     fun connect() { session.connect(); sync() }
     fun refreshShizuku(autoConnect: Boolean = true) {

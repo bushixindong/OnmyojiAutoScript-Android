@@ -170,7 +170,7 @@ fun TaskScreen(controller: OasController, onEdit: (String) -> Unit) {
     var filterMenu by remember { mutableStateOf(false) }
 
     val filters = listOf("全部任务", "已启用", "未启用")
-    val visible = controller.tasks.filter { it.groupId.isNotEmpty() }.filter {
+    val visible = controller.tasks.filter { it.groupId.isNotEmpty() && !it.deferred }.filter {
         (when(filter) { "已启用" -> it.enabled; "未启用" -> !it.enabled; else -> true }) &&
             (query.isBlank() || it.title.contains(query.trim(), true) || it.id.contains(query.trim(), true))
     }

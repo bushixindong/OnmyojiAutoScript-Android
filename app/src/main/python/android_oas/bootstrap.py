@@ -85,20 +85,46 @@ def initialize(root,host):
     _module('oas_checkin_biggod',FRIDA_SERVER_XZ=b'',ADB_PATH='android-shizuku')
     from module.logger import logger
     import re
-    _rich_tag=re.compile(r'\[/?[a-zA-Z_][a-zA-Z0-9_ #]*\]')
+    _rich_tag=re.compile(r'\[(?:/|#[0-9a-fA-F]{3,8}|(?:bold|dim|italic|underline|blink|reverse|strike|black|red|green|yellow|blue|magenta|cyan|white|bright_[a-z]+|dark_[a-z]+|orange[0-9]?|purple|grey[0-9]*|gray[0-9]*|on [a-z_0-9#]+)(?:\s+(?:bold|dim|italic|underline|black|red|green|yellow|blue|magenta|cyan|white|bright_[a-z]+|on [a-z_0-9#]+))*)\]')
+    _log_file_lock=threading.Lock()
+    def _append_daily_log(text):
+        try:
+            day_str=time.strftime('%Y-%m-%d',time.localtime())
+            log_dir=_root/'log'
+            log_dir.mkdir(parents=True,exist_ok=True)
+            log_path=log_dir/f'{day_str}_{_config_name}.txt'
+            with _log_file_lock:
+                with log_path.open('a',encoding='utf-8') as f:
+                    f.write(text)
+        except Exception:pass
     class AndroidLog(logging.Handler):
         def emit(self,record):
             try:
                 raw=record.getMessage()
                 msg=_rich_tag.sub('',raw)
                 now=time.time()
+                lt=time.localtime(now)
                 ms=int((now-int(now))*1000)
-                stamp=f"{time.strftime('%H:%M:%S',time.localtime(now))}.{ms:03d}"
+                stamp=f"{time.strftime('%H:%M:%S',lt)}.{ms:03d}"
                 line=f'{stamp} | {record.levelname} | {msg}'
                 _recent_logs.append(line)
                 host.log(line)
+                day_str=time.strftime('%Y-%m-%d',lt)
+                _append_daily_log(f'{day_str} {stamp} | {record.levelname} | {msg}\n')
             except Exception:pass
     logger.addHandler(AndroidLog())
+    _orig_hr=getattr(logger,'hr',None)
+    if callable(_orig_hr):
+        def _android_hr(title,level=3):
+            text=str(title or '').strip().upper()
+            if level==0:
+                _append_daily_log('═'*80+'\n'+f'{"─"*20} {text} {"─"*20}\n'+'═'*80+'\n')
+            elif level==1:
+                _append_daily_log(f'{"═"*20} {text} {"═"*20}\n')
+            else:
+                _append_daily_log(f'{"─"*20} {text} {"─"*20}\n')
+            return _orig_hr(title,level=level)
+        logger.hr=_android_hr
     _ready=True
 
 def _install_image():
@@ -594,6 +620,65 @@ def delete_error_log(error_id=None):
             shutil.rmtree(err_root/clean,ignore_errors=True)
     return list_error_logs()
 
+def _stats_service():
+    from module.server import log_stats
+    log_stats.LOG_ROOT=(_root/'log').resolve()
+    return log_stats.log_stats_service
+
+def stats_dates(script_name=None):
+    name=str(script_name or _config_name).strip() or _config_name
+    payload=_stats_service().list_available_dates(name)
+    return json.dumps(payload,ensure_ascii=False)
+
+def stats_day(date_text=None,script_name=None):
+    from datetime import date,datetime
+    name=str(script_name or _config_name).strip() or _config_name
+    raw_date=str(date_text or '').strip()
+    target_day=datetime.strptime(raw_date,'%Y-%m-%d').date() if raw_date else date.today()
+    payload=_stats_service().build_stats(name,target_day)
+    payload['date']=target_day.isoformat()
+    return json.dumps(payload,ensure_ascii=False)
+
+def _income_mod():
+    from module import log_income
+    log_income.INCOME_LOG_DIR=(_root/'log').resolve()
+    log_income.INCOME_STORE_DIR=(_root/'log'/'income').resolve()
+    return log_income
+
+def income_dates(script_name=None):
+    name=str(script_name or _config_name).strip() or _config_name
+    dates=[d.isoformat() for d in _income_mod().income_dates(name)]
+    return json.dumps(dict(script_name=name,dates=dates),ensure_ascii=False)
+
+def income_day(date_text=None,script_name=None):
+    from datetime import date,datetime
+    mod=_income_mod()
+    name=str(script_name or _config_name).strip() or _config_name
+    raw_date=str(date_text or '').strip()
+    target_day=datetime.strptime(raw_date,'%Y-%m-%d').date() if raw_date else date.today()
+    report=mod.build_income_report(name,target_day)
+    if report is None:
+        report=dict(script_name=name,date=target_day.isoformat(),collected_at='',baseline_date='',items=[])
+    return json.dumps(report,ensure_ascii=False)
+
+def income_history(days=30,script_name=None):
+    name=str(script_name or _config_name).strip() or _config_name
+    payload=_income_mod().income_history(name,max(1,min(3650,int(days or 30))))
+    return json.dumps(payload,ensure_ascii=False)
+
+def income_delete(date_text=None,script_name=None):
+    from datetime import datetime
+    mod=_income_mod()
+    name=str(script_name or _config_name).strip() or _config_name
+    raw_date=str(date_text or '').strip()
+    if raw_date:
+        days=[datetime.strptime(part.strip(),'%Y-%m-%d').date() for part in raw_date.split(',') if part.strip()]
+    else:
+        days=mod.income_dates(name)
+    deleted=mod.delete_income_days(name,days)
+    remaining=[d.isoformat() for d in mod.income_dates(name)]
+    return json.dumps(dict(script_name=name,deleted=deleted,dates=remaining),ensure_ascii=False)
+
 def run(name,host=None):
     global _active,_running_task,_last_outcome,_host
     from module.device.device import Device
@@ -636,6 +721,9 @@ def run(name,host=None):
             _notify_state()
             return ret
         settings.task_delay=record_delay
+        from module.logger import logger
+        logger.info(f'[Task] {name} (android)')
+        logger.hr(name,level=0)
         sys.settrace(trace)
         try:
             result=task.run()
@@ -643,6 +731,7 @@ def run(name,host=None):
             result=None
         finally:
             settings.task_delay=original
+            logger.info(f'{name} task ended')
         check()
         status='failed' if _last_outcome is False or result is False else 'finished'
         return json.dumps(dict(task=name,status=status,detail='任务流程已结束，真实效果请核对游戏',runtimeOutcome=getattr(settings,'task_runtime_outcome',None)),ensure_ascii=False,default=str)
@@ -663,6 +752,7 @@ def scheduled_plan():
         settings=config();settings.reload();settings.update_scheduler()
         allowed={entry['id'] for entry in json.loads(catalog()) if entry['runnable']}
         pending=[task for task in settings.pending_task if task.command in allowed]
+        pending.sort(key=lambda t:(0 if t.command=='Restart' else 1,t.next_run))
         waiting=[task for task in settings.waiting_task if task.command in allowed]
         return pending,waiting
 
@@ -725,6 +815,17 @@ def schedule(host):
             if result['status']=='game_not_running':
                 logger.warning('检测到游戏未运行，自动触发 Restart 启动登录')
                 with _config_lock:config().task_call('Restart')
+                _notify_state()
+                if not host.isRunning() or _stop_event.is_set():break
+                restart_res=json.loads(run('Restart',host));history.append(restart_res)
+                if restart_res['status']=='cancelled':
+                    return json.dumps(dict(status='cancelled',detail='计划运行已停止',runs=history),ensure_ascii=False)
+                if restart_res['status']=='failed':
+                    failures['Restart']=failures.get('Restart',0)+1
+                    if failures['Restart']>=3:
+                        return json.dumps(dict(status='failed',detail='Restart 启动游戏连续失败三次，计划已停止',runs=history),ensure_ascii=False)
+                else:
+                    failures['Restart']=0
                 _notify_state()
                 _wait_schedule(0.2);continue
             if result['status']=='failed':

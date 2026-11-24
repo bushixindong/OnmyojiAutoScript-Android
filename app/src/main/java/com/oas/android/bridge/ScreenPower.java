@@ -71,10 +71,14 @@ final class ScreenPower implements AutoCloseable {
         }
         poweredOff=!on;
         if(!registered) {
-            IntentFilter filter=new IntentFilter();filter.addAction(Intent.ACTION_SCREEN_ON);filter.addAction(Intent.ACTION_SCREEN_OFF);
-            if(Build.VERSION.SDK_INT>=33)context.registerReceiver(receiver,filter,null,handler,Context.RECEIVER_NOT_EXPORTED);
-            else context.registerReceiver(receiver,filter,null,handler);
-            registered=true;
+            try {
+                IntentFilter filter=new IntentFilter();filter.addAction(Intent.ACTION_SCREEN_ON);filter.addAction(Intent.ACTION_SCREEN_OFF);
+                if(Build.VERSION.SDK_INT>=33)context.registerReceiver(receiver,filter,null,handler,Context.RECEIVER_NOT_EXPORTED);
+                else context.registerReceiver(receiver,filter,null,handler);
+                registered=true;
+            } catch(Throwable ignored) {
+                // Shizuku app_process is not a registered AMS app process on Android 13+; panel power mode already applied.
+            }
         }
         return true;
     }

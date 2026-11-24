@@ -135,7 +135,14 @@ def install(root,host,check):
         def keyevent(self,key):check();host.keyEvent(str(key))
         def send_text(self,text):check();host.inputText(str(text))
         input_text=send_text
-        def sleep(self,seconds):time.sleep(utils.ensure_time(seconds))
+        def sleep(self,seconds):
+            remaining=float(utils.ensure_time(seconds))
+            deadline=time.monotonic()+max(0.0,remaining)
+            while True:
+                check()
+                left=deadline-time.monotonic()
+                if left<=0:break
+                time.sleep(min(0.1,left))
         def release_during_wait(self):check()
         def screenshot_interval_set(self,interval=None):
             if interval is None:interval=max(.1,min(.3,self.config.script.optimization.screenshot_interval))

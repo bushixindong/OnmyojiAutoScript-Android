@@ -194,6 +194,5 @@ fun GamePreview(controller: OasController) {
                 modifier=Modifier.semantics{contentDescription="手动控制开关"})
         }
         if(state.live && state.fps>=0)Text("${state.fpsSource} · ${"%.1f".format(state.fps)} FPS",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        if(state.advice.isNotBlank())Text(state.advice,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
     }
 }

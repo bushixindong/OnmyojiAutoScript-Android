@@ -43,7 +43,7 @@ public final class MonitorService extends Service {
         Intent stop = new Intent(this, MonitorService.class).setAction("stop");
         PendingIntent stopAction = PendingIntent.getService(this, 1, stop, PendingIntent.FLAG_IMMUTABLE);
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
-        startForeground(1, new Notification.Builder(this, "oas_tasks").setSmallIcon(R.drawable.ic_oas)
+        startForeground(1, new Notification.Builder(this, "oas_tasks").setSmallIcon(R.drawable.ic_stat_oasa)
             .setContentTitle("OASA · 任务运行中").setContentText("点击 OASA 查看进度，随时可以停止")
             .setContentIntent(open).addAction(new Notification.Action.Builder(null, "停止", stopAction).build()).build());
         if (!ACTIONS.contains(action) || !session.taskActive.compareAndSet(false, true)) {

@@ -260,8 +260,10 @@ fun OasxTaskParameterPanel(
             Box(Modifier.weight(1f).fillMaxWidth()) { LoadingPanel("正在载入配置…") }
         } else if(form != null) {
             val props = form.rootSchema.optJSONObject("properties")
+            val hiddenTopKeys = if(id == "Script") setOf("device") else emptySet()
+            val hiddenSubKeys = if(id == "Script") mapOf("optimization" to setOf("close_emulator_limit_time", "emulator_startup_lead_time")) else emptyMap()
             val topKeys = remember(id, definition) {
-                props?.keys()?.asSequence()?.toList().orEmpty()
+                props?.keys()?.asSequence()?.filter { it !in hiddenTopKeys }?.toList().orEmpty()
             }
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -276,7 +278,8 @@ fun OasxTaskParameterPanel(
                             model = form,
                             groupKey = key,
                             groupSchema = resolved,
-                            data = getOrCreateObject(form.working, key, form, propSchema)
+                            data = getOrCreateObject(form.working, key, form, propSchema),
+                            hiddenFields = hiddenSubKeys[key].orEmpty()
                         )
                     } else {
                         Surface(
@@ -391,13 +394,16 @@ private fun OasxGroupCard(
     model: OasxFormModel,
     groupKey: String,
     groupSchema: JSONObject,
-    data: JSONObject
+    data: JSONObject,
+    hiddenFields: Set<String> = emptySet()
 ) {
     // OASX ExpansionTile defaults initiallyExpanded = true with secondaryContainer 0.24 alpha & Divider.
     var expanded by remember(groupKey) { mutableStateOf(true) }
     val version = model.version
     val properties = groupSchema.optJSONObject("properties") ?: return
-    val memberKeys = remember(groupSchema.toString()) { properties.keys().asSequence().toList() }
+    val memberKeys = remember(groupSchema.toString(), hiddenFields) {
+        properties.keys().asSequence().filter { it !in hiddenFields }.toList()
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),

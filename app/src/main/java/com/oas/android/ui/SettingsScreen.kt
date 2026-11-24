@@ -12,14 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.oas.android.BuildConfig
 
 @Composable
 fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (String) -> Unit, onInfo: (String, String) -> Unit) {
-    val context = LocalContext.current
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(12.dp),
@@ -91,14 +89,6 @@ fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (Str
                         )
                     }
                 }
-                SettingItemRow(
-                    title = "开源声明",
-                    subtitle = "MaaMeow、OAS 与第三方组件",
-                    trailing = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = {
-                        onInfo("开源声明", context.assets.open("THIRD_PARTY.txt").bufferedReader().use { it.readText() })
-                    }
-                )
                 SettingItemRow(
                     title = "当前版本",
                     subtitle = "Onmyoji AutoScript Android",

@@ -57,8 +57,9 @@ final class GameFpsMonitor implements AutoCloseable {
         idle=0;samples[sampleIndex++%samples.length]=value;sampleCount=Math.min(samples.length,sampleCount+1);
         if(sampleCount<samples.length)return;
         int low=0,degraded=0;for(float sample:samples){if(sample<30)low++;if(sample<50)degraded++;}
-        if(low>=12&&!lowWarned){lowWarned=true;advice="游戏帧率持续低于 30，可降低游戏画质或检查温度";}
-        else if(low<12&&degraded>=12&&!degradedWarned){degradedWarned=true;advice="游戏帧率偏低，可检查游戏帧率设置和省电模式";}
+        if(low>=12){lowWarned=true;advice="游戏帧率持续低于 30，可降低游戏画质或检查温度";}
+        else if(degraded>=12){degradedWarned=true;advice="游戏帧率偏低，可检查游戏帧率设置和省电模式";}
+        else if(degraded<=3){lowWarned=false;degradedWarned=false;advice="";}
     }
     float fps() {return fps;}
     String source() {return source;}

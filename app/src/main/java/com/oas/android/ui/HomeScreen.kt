@@ -132,8 +132,11 @@ private fun ConfigCollectionPanel(
     var renamingTarget by remember { mutableStateOf<String?>(null) }
     var deletingTarget by remember { mutableStateOf<String?>(null) }
 
+    fun isPresetRunning(preset: PresetItem): Boolean =
+        preset.running || (controller.active && preset.name == controller.activePreset)
+
     fun presetState(preset: PresetItem): ScriptStateFilter = when {
-        preset.running -> ScriptStateFilter.RUNNING
+        isPresetRunning(preset) -> ScriptStateFilter.RUNNING
         preset.active && !controller.connected -> ScriptStateFilter.ABNORMAL
         else -> ScriptStateFilter.STOPPED
     }
@@ -279,18 +282,19 @@ private fun ConfigCollectionPanel(
                                     }
                                 }
                                 Spacer(Modifier.width(8.dp))
+                                val runningNow = isPresetRunning(preset)
                                 IconButton(
                                     onClick = {
-                                        if(preset.running) controller.stop()
+                                        if(runningNow) controller.stop()
                                         else controller.selectPreset(preset.name) { toggleScriptPower(controller, onDevice) }
                                     },
                                     modifier = Modifier.size(34.dp)
                                 ) {
                                     Icon(
                                         painterResource(R.drawable.ic_oasx_power),
-                                        if(preset.running) "停止脚本" else "启动脚本",
+                                        if(runningNow) "停止脚本" else "启动脚本",
                                         modifier = Modifier.size(22.dp),
-                                        tint = if(preset.running) OasDesignTokens.StatusColors.Running else LocalContentColor.current
+                                        tint = if(runningNow) OasDesignTokens.StatusColors.Running else LocalContentColor.current
                                     )
                                 }
                                 Box {
@@ -544,8 +548,8 @@ private fun ActiveConfigPanel(
             }
             Spacer(Modifier.height(10.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val safeTab = tab.coerceIn(0, 2)
-                listOf("总览", "任务", "日志").forEachIndexed { index, label ->
+                val safeTab = tab.coerceIn(0, 4)
+                listOf("总览", "任务", "日志", "统计", "收益").forEachIndexed { index, label ->
                     FilterChip(
                         selected = safeTab == index,
                         onClick = { onTab(index) },
@@ -564,10 +568,12 @@ private fun ActiveConfigPanel(
                         showTopTitleBar = false
                     )
                 } else {
-                    when(tab.coerceIn(0, 2)) {
+                    when(tab.coerceIn(0, 4)) {
                         0 -> TaskStatusPanel(controller, onEdit, onDevice)
                         1 -> TaskScreen(controller, onEdit)
-                        else -> LogCenterPanel(controller)
+                        2 -> LogCenterPanel(controller)
+                        3 -> StatisticsPanel(controller)
+                        else -> IncomePanel(controller)
                     }
                 }
             }
@@ -1055,13 +1061,18 @@ fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
                     if(controller.active) {
                         Button(
                             onClick = controller::stop,
+                            enabled = !controller.stopping,
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(painterResource(R.drawable.ic_oasx_power), null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("停止 · ${controller.activePreset}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if(controller.stopping) "正在停止…" else "停止 · ${controller.activePreset}",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                     if(controller.connected && controller.environmentReady) {

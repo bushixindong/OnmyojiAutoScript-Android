@@ -47,11 +47,11 @@ fun SystemSettings(controller: OasController) {
                 if(info.optBoolean("rawFrames")) Text("原始帧加速已启用", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 val fps = info.optDouble("fps", -1.0)
                 if(controller.fpsEnabled && fps >= 0) Text("${info.optString("fpsSource")}：${"%.1f".format(fps)} FPS", style = MaterialTheme.typography.bodySmall)
-                val warning = listOf(info.optString("powerError"), info.optString("fpsAdvice")).filter { it.isNotBlank() }.joinToString("\n")
+                val warning = info.optString("powerError").trim()
                 if(warning.isNotBlank()) Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { controller.panelPower(!info.optBoolean("panelOff")) }, enabled = !controller.systemBusy && info.optInt("displayId", -1) > 0) {
-                        Text(if(info.optBoolean("panelOff")) "点亮实体屏幕" else "熄灭实体屏幕")
+                    OutlinedButton(onClick = { controller.panelPower(false) }, enabled = !controller.systemBusy && info.optInt("displayId", -1) > 0) {
+                        Text("熄灭实体屏幕")
                     }
                     OutlinedButton(onClick = controller::toggleGameAudio, enabled = !controller.systemBusy) {
                         Text(if(controller.gameMuted) "恢复游戏声音" else "静音游戏")
