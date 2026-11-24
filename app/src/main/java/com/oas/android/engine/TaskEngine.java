@@ -17,14 +17,26 @@ public final class TaskEngine {
         JSONObject manifest;
         try(InputStream input=context.getAssets().open("runtime/manifest.json")){manifest=new JSONObject(read(input));}
         String digest=manifest.getString("archiveSha256");File marker=new File(root,".source-sha256");
+        File hotMarker=new File(root,".hot-update.json");
         boolean installed=false;
-        if(marker.isFile())try(InputStream input=new FileInputStream(marker)){installed=read(input).trim().equals(digest);}
+        if(hotMarker.isFile())try{
+            JSONObject hot=new JSONObject(read(new FileInputStream(hotMarker)));
+            int baseCode=hot.optInt("baseApkVersionCode",-1);
+            String hotSha=hot.optString("archiveSha256","");
+            if(baseCode==com.oas.android.BuildConfig.VERSION_CODE && !hotSha.isEmpty() && marker.isFile() && read(new FileInputStream(marker)).trim().equals(hotSha)){
+                installed=true;
+            }
+        }catch(Exception ignored){}
+        if(!installed && marker.isFile())try(InputStream input=new FileInputStream(marker)){installed=read(input).trim().equals(digest);}
         if(!installed){
+            if(hotMarker.isFile())hotMarker.delete();
             root.mkdirs();
             try(InputStream raw=context.getAssets().open("runtime/oas-runtime.zip");java.security.DigestInputStream checked=new java.security.DigestInputStream(raw,MessageDigest.getInstance("SHA-256"));ZipInputStream archive=new ZipInputStream(checked)){
                 ZipEntry entry;String prefix=root.getCanonicalPath()+File.separator;
                 while((entry=archive.getNextEntry())!=null){
-                    File target=new File(root,entry.getName());if(!target.getCanonicalPath().startsWith(prefix))throw new SecurityException("Source archive path escaped app storage");
+                    String name=entry.getName();
+                    if(name.startsWith("config/")||name.startsWith("log/"))continue;
+                    File target=new File(root,name);if(!target.getCanonicalPath().startsWith(prefix))throw new SecurityException("Source archive path escaped app storage");
                     if(entry.isDirectory())target.mkdirs();else{
                         target.getParentFile().mkdirs();try(OutputStream output=new FileOutputStream(target)){byte[] bytes=new byte[16384];int n;while((n=archive.read(bytes))!=-1)output.write(bytes,0,n);}
                     }

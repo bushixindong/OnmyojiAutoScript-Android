@@ -1,4 +1,4 @@
-﻿param([string]$JavaHome, [string]$SdkPath, [switch]$Install, [string]$Serial,[string]$PythonExecutable)
+﻿param([string]$JavaHome, [string]$SdkPath, [switch]$Install, [string]$Serial, [string]$PythonExecutable, [switch]$Release)
 $ErrorActionPreference = 'Stop'
 $taskRoot = $PSScriptRoot
 if (-not $JavaHome) { $JavaHome = $env:JAVA_HOME }
@@ -25,18 +25,20 @@ foreach ($taskModel in $taskCatalog.models) {
     $taskAsset = Join-Path $taskRoot ('app\src\main\assets\oas\' + $taskModel.file)
     if ((Get-FileHash -LiteralPath $taskAsset -Algorithm SHA256).Hash -ne $taskModel.sha256) { throw "OCR 模型校验失败: $($taskModel.file)" }
 }
-$taskGradleArgs=@('-p',$taskRoot,':app:assembleDebug',':app:testDebugUnitTest',':app:lintDebug','--console=plain','--no-daemon')
+$taskVariant = if ($Release) { 'release' } else { 'debug' }
+$taskAssemble = if ($Release) { ':app:assembleRelease' } else { ':app:assembleDebug' }
+$taskGradleArgs=@('-p',$taskRoot,$taskAssemble,':app:testDebugUnitTest',':app:lintDebug','--console=plain','--no-daemon')
 if($PythonExecutable){$taskGradleArgs+="-PpythonExecutable=$PythonExecutable"}
 & (Join-Path $taskRoot 'gradlew.bat') @taskGradleArgs
 if ($LASTEXITCODE -ne 0) { throw 'Android 构建或检查失败' }
-$taskApk = Join-Path $taskRoot 'app\build\outputs\apk\debug\app-debug.apk'
+$taskApk = Join-Path $taskRoot "app\build\outputs\apk\$taskVariant\app-$taskVariant.apk"
 Write-Host "APK: $taskApk"
-$taskMetadata = Get-Content -LiteralPath (Join-Path $taskRoot 'app\build\outputs\apk\debug\output-metadata.json') -Raw -Encoding utf8 | ConvertFrom-Json
+$taskMetadata = Get-Content -LiteralPath (Join-Path $taskRoot "app\build\outputs\apk\$taskVariant\output-metadata.json") -Raw -Encoding utf8 | ConvertFrom-Json
 $taskVersion = $taskMetadata.elements[0].versionName
 if ($taskVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:[-A-Za-z0-9.]*)$') { throw 'APK 版本号格式无效，未生成分发文件' }
 $taskDist = Join-Path $taskRoot 'dist'
 New-Item -ItemType Directory -Path $taskDist -Force | Out-Null
-$taskDistribution = Join-Path $taskDist "OASA-$taskVersion-debug.apk"
+$taskDistribution = if ($Release) { Join-Path $taskDist "OASA-$taskVersion.apk" } else { Join-Path $taskDist "OASA-$taskVersion-debug.apk" }
 Copy-Item -LiteralPath $taskApk -Destination $taskDistribution -Force
 $taskDigest = (Get-FileHash -LiteralPath $taskDistribution -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "$taskDistribution.sha256" -Value "$taskDigest  $(Split-Path -Leaf $taskDistribution)" -Encoding ascii

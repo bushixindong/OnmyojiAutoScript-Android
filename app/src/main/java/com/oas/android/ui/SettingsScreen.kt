@@ -18,6 +18,7 @@ import com.oas.android.BuildConfig
 
 @Composable
 fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (String) -> Unit, onInfo: (String, String) -> Unit) {
+    var showUpdateDialog by remember { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(12.dp),
@@ -90,6 +91,18 @@ fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (Str
                     }
                 }
                 SettingItemRow(
+                    title = "检查更新",
+                    subtitle = "脚本热更新与版本检查 · ${controller.localRuntimeVersion}",
+                    trailing = {
+                        if(controller.remoteUpdate?.let { it.hasRuntimeUpdate || it.hasAppUpdate } == true) {
+                            Text("有新版", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    onClick = { showUpdateDialog = true }
+                )
+                SettingItemRow(
                     title = "当前版本",
                     subtitle = "Onmyoji AutoScript Android",
                     trailing = {
@@ -101,6 +114,89 @@ fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (Str
         }
         item { SystemSettings(controller) }
     }
+
+    if(showUpdateDialog) {
+        UpdateDialog(controller = controller, onDismiss = { showUpdateDialog = false })
+    }
+}
+
+@Composable
+private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
+    var showSourceConfig by remember { mutableStateOf(false) }
+    var manifestInput by remember(controller.updateManifestUrl) { mutableStateOf(controller.updateManifestUrl) }
+    var mirrorInput by remember(controller.updateMirrorPrefix) { mutableStateOf(controller.updateMirrorPrefix) }
+    val info = controller.remoteUpdate
+
+    AlertDialog(
+        onDismissRequest = { if(!controller.updateBusy) onDismiss() },
+        title = { Text("脚本与版本更新") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("客户端版本：OASA ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
+                Text("当前脚本包：${controller.localRuntimeVersion}", style = MaterialTheme.typography.bodyMedium)
+                if(controller.updateStatus.isNotBlank()) {
+                    Text(
+                        controller.updateStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if(controller.updateNeedsRestart || info?.hasRuntimeUpdate == true) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if(controller.updateBusy && controller.updateProgress > 0f) {
+                    LinearProgressIndicator(progress = { controller.updateProgress }, modifier = Modifier.fillMaxWidth())
+                }
+                if(info != null && info.runtimeNotes.isNotBlank()) {
+                    Text("脚本更新说明：${info.runtimeNotes}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if(info != null && info.hasAppUpdate) {
+                    OutlinedButton(
+                        onClick = { controller.openExternalUrl(info.appDownloadUrl) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("前往下载新版 APK (${info.appVersion})") }
+                }
+                TextButton(
+                    onClick = { showSourceConfig = !showSourceConfig },
+                    contentPadding = PaddingValues(0.dp)
+                ) { Text(if(showSourceConfig) "收起更新源设置" else "配置更新源 / 镜像加速") }
+                if(showSourceConfig) {
+                    OutlinedTextField(
+                        value = manifestInput,
+                        onValueChange = { manifestInput = it },
+                        label = { Text("update.json 地址") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = mirrorInput,
+                        onValueChange = { mirrorInput = it },
+                        label = { Text("GitHub 镜像前缀（可选，如 https://ghfast.top/）") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    TextButton(
+                        onClick = { controller.saveUpdateSource(manifestInput, mirrorInput) },
+                        enabled = !controller.updateBusy
+                    ) { Text("保存更新源") }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                controller.updateNeedsRestart -> Button(onClick = controller::restartApp) { Text("立即重启生效") }
+                info?.hasRuntimeUpdate == true -> Button(
+                    onClick = controller::applyRuntimeUpdate,
+                    enabled = !controller.updateBusy && !controller.active
+                ) { Text("更新脚本") }
+                else -> Button(
+                    onClick = controller::checkUpdates,
+                    enabled = !controller.updateBusy
+                ) { Text("检查更新") }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !controller.updateBusy) { Text("关闭") }
+        }
+    )
 }
 
 @Composable

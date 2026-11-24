@@ -101,6 +101,14 @@ class OasController(private val activity: Activity) {
     var incomeHistoryDays by mutableIntStateOf(30); private set
     var incomeLoading by mutableStateOf(false); private set
     var incomeError by mutableStateOf(""); private set
+    var localRuntimeVersion by mutableStateOf(RuntimeUpdater.localRuntimeInfo(activity).version); private set
+    var updateManifestUrl by mutableStateOf(preferences.getString("updateManifestUrl", RuntimeUpdater.DEFAULT_MANIFEST_URL) ?: RuntimeUpdater.DEFAULT_MANIFEST_URL); private set
+    var updateMirrorPrefix by mutableStateOf(preferences.getString("updateMirrorPrefix", "") ?: ""); private set
+    var remoteUpdate by mutableStateOf<RemoteUpdateInfo?>(null); private set
+    var updateBusy by mutableStateOf(false); private set
+    var updateProgress by mutableFloatStateOf(0f); private set
+    var updateStatus by mutableStateOf(""); private set
+    var updateNeedsRestart by mutableStateOf(false); private set
     var lastResult by mutableStateOf(activity.getSharedPreferences("task_records", 0).getString("last", "") ?: ""); private set
     var onPickJsonFile: (((String, String) -> Unit) -> Unit)? = null
     var onSaveJsonFile: ((String, ByteArray) -> Unit)? = null
@@ -703,6 +711,71 @@ class OasController(private val activity: Activity) {
         insets.isAppearanceLightStatusBars = !dark; insets.isAppearanceLightNavigationBars = !dark
     }
     fun openTools() { activity.startActivity(Intent(activity, ToolsActivity::class.java)) }
+    fun saveUpdateSource(manifestUrl: String, mirrorPrefix: String) {
+        updateManifestUrl = manifestUrl.trim().ifBlank { RuntimeUpdater.DEFAULT_MANIFEST_URL }
+        updateMirrorPrefix = mirrorPrefix.trim()
+        preferences.edit()
+            .putString("updateManifestUrl", updateManifestUrl)
+            .putString("updateMirrorPrefix", updateMirrorPrefix)
+            .apply()
+        notify("更新源已保存")
+    }
+    fun checkUpdates() {
+        if(updateBusy) return
+        updateBusy = true; updateProgress = 0f; updateStatus = "正在检查更新…"
+        val url = updateManifestUrl; val mirror = updateMirrorPrefix
+        Thread({
+            try {
+                val info = RuntimeUpdater.checkUpdate(activity, url, mirror)
+                val status = when {
+                    info.hasRuntimeUpdate && info.hasAppUpdate -> "发现新脚本 (${info.runtimeVersion}) 与新版 APK (${info.appVersion})"
+                    info.hasRuntimeUpdate -> "发现新脚本版本：${info.runtimeVersion}"
+                    info.hasAppUpdate -> "发现新版 APK：${info.appVersion}"
+                    else -> "当前脚本与客户端均为最新版本"
+                }
+                ui { remoteUpdate = info; updateStatus = status; updateBusy = false }
+            } catch(problem: Throwable) {
+                ui { updateStatus = problem.message ?: "检查更新失败"; updateBusy = false }
+            }
+        }, "oas-update-check").start()
+    }
+    fun applyRuntimeUpdate() {
+        val info = remoteUpdate ?: return
+        if(updateBusy) return
+        if(active) { notify("请先停止正在运行的脚本再更新"); return }
+        updateBusy = true; updateProgress = 0f; updateStatus = "准备下载…"
+        val mirror = updateMirrorPrefix
+        Thread({
+            try {
+                RuntimeUpdater.applyRuntimeUpdate(activity, info, mirror) { pct, text ->
+                    ui { updateProgress = pct; updateStatus = text }
+                }
+                val refreshed = RuntimeUpdater.localRuntimeInfo(activity).version
+                ui {
+                    localRuntimeVersion = refreshed
+                    remoteUpdate = info.copy(hasRuntimeUpdate = false)
+                    updateNeedsRestart = true
+                    updateBusy = false
+                }
+            } catch(problem: Throwable) {
+                ui { updateStatus = problem.message ?: "更新失败"; updateBusy = false }
+            }
+        }, "oas-update-apply").start()
+    }
+    fun restartApp() {
+        val launch = activity.packageManager.getLaunchIntentForPackage(activity.packageName) ?: return
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        activity.startActivity(launch)
+        activity.finishAffinity()
+        Runtime.getRuntime().exit(0)
+    }
+    fun openExternalUrl(url: String) {
+        try {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch(problem: Throwable) {
+            notify(problem.message ?: "无法打开链接")
+        }
+    }
     fun notify(text: String) { Toast.makeText(activity, text, Toast.LENGTH_LONG).show() }
     fun installedGames(): List<Pair<String,String>> = candidates.mapNotNull { pkg ->
         try { val info = activity.packageManager.getApplicationInfo(pkg, 0); pkg to activity.packageManager.getApplicationLabel(info).toString() }

@@ -19,6 +19,11 @@ app/src/main/jniLibs/
 engine-audit-*.json
 MIGRATION_HANDOFF.txt
 
+# Local release signing secrets (NEVER commit)
+keystore/
+*.jks
+*.keystore
+
 # Python & OS clutter
 __pycache__/
 *.pyc

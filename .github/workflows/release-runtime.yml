@@ -1,0 +1,91 @@
+name: Publish OAS Script Hot-Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      oas_repo:
+        description: 'Upstream OAS repository (owner/repo)'
+        required: true
+        default: 'kongdr418/OnmyojiAutoScript'
+      oas_ref:
+        description: 'Upstream OAS branch or tag'
+        required: true
+        default: 'master'
+      release_tag:
+        description: 'Release tag to update or create'
+        required: true
+        default: 'v1.0.0'
+      runtime_notes:
+        description: 'Release notes shown inside OASA updater'
+        required: false
+        default: '同步上游 OAS 任务与资源更新'
+
+permissions:
+  contents: write
+
+jobs:
+  pack-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OASA
+        uses: actions/checkout@v4
+
+      - name: Checkout upstream OAS
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.oas_repo }}
+          ref: ${{ github.event.inputs.oas_ref }}
+          path: upstream-oas
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install pure-python runtime packages for export
+        run: |
+          mkdir -p upstream-oas/toolkit/Lib/site-packages
+          pip install --no-deps --target upstream-oas/toolkit/Lib/site-packages ppocronnx paho-mqtt onepush
+
+      - name: Export oas-runtime.zip and update.json
+        env:
+          RUNTIME_NOTES: ${{ github.event.inputs.runtime_notes }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          python tools/export-runtime.py --source upstream-oas
+          mkdir -p dist/update
+          cp app/src/main/assets/runtime/oas-runtime.zip dist/update/oas-runtime.zip
+          cp app/src/main/assets/runtime/manifest.json dist/update/manifest.json
+          python - << 'PY'
+          import datetime, hashlib, json, os, re
+          from pathlib import Path
+          gradle = Path('app/build.gradle.kts').read_text(encoding='utf-8')
+          app_ver = re.search(r'versionName\s*=\s*"([^"]+)"', gradle).group(1)
+          app_code = int(re.search(r'versionCode\s*=\s*(\d+)', gradle).group(1))
+          sha = hashlib.sha256(Path('dist/update/oas-runtime.zip').read_bytes()).hexdigest()
+          repo = os.environ['REPO_NAME']
+          base = f'https://github.com/{repo}/releases/latest/download'
+          payload = {
+              'runtimeVersion': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y.%m.%d.%H%M'),
+              'runtimeArchiveUrl': f'{base}/oas-runtime.zip',
+              'runtimeSha256': sha,
+              'runtimeManifestUrl': f'{base}/manifest.json',
+              'runtimeNotes': os.environ.get('RUNTIME_NOTES', ''),
+              'appVersion': app_ver,
+              'appVersionCode': app_code,
+              'appDownloadUrl': f'https://github.com/{repo}/releases/latest',
+              'appNotes': '',
+          }
+          Path('dist/update/update.json').write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(payload, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload hot-update assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: OASA ${{ github.event.inputs.release_tag }}
+          files: |
+            dist/update/update.json
+            dist/update/oas-runtime.zip
+            dist/update/manifest.json

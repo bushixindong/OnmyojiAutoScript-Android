@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins { id("com.android.application"); id("com.chaquo.python"); id("org.jetbrains.kotlin.plugin.compose") }
 android {
     namespace = "com.oas.android"
@@ -7,9 +9,27 @@ android {
         applicationId = "com.oas.android"
         minSdk = 28
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.5.0"
+        versionCode = 10
+        versionName = "1.0.0"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+    }
+    signingConfigs {
+        val propsFile = rootProject.file("keystore/keystore.properties")
+        if (propsFile.isFile) {
+            val props = Properties().apply { propsFile.inputStream().use { load(it) } }
+            create("release") {
+                storeFile = rootProject.file("keystore/" + props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+        }
     }
     buildFeatures { aidl = true; buildConfig = true; compose = true }
     compileOptions {
