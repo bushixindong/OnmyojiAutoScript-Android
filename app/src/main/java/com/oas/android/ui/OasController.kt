@@ -24,6 +24,11 @@ data class TaskItem(val id: String, val title: String, val enabled: Boolean, val
 data class PresetItem(val name: String, val active: Boolean, val running: Boolean,
     val previewType: String, val previewId: String, val previewTitle: String, val previewTime: String)
 
+data class ErrorLogItem(val id: String, val timeText: String, val config: String,
+    val task: String, val taskLabel: String, val summary: String, val imageCount: Int)
+
+data class ErrorLogDetail(val item: ErrorLogItem, val logText: String, val imagePaths: List<String>)
+
 enum class ShizukuStage { NOT_INSTALLED, NOT_RUNNING, NEED_AUTH, READY, CONNECTED }
 
 /** UI adapter only: settings and task decisions continue to belong to the OAS engine. */
@@ -71,6 +76,9 @@ class OasController(private val activity: Activity) {
     var activePreset by mutableStateOf(preferences.getString("activePreset", "android") ?: "android"); private set
     var presets by mutableStateOf<List<PresetItem>>(emptyList()); private set
     var presetBusy by mutableStateOf(false); private set
+    var errorLogs by mutableStateOf<List<ErrorLogItem>>(emptyList()); private set
+    var selectedError by mutableStateOf<ErrorLogDetail?>(null); private set
+    var errorLogsLoading by mutableStateOf(false); private set
     var lastResult by mutableStateOf(activity.getSharedPreferences("task_records", 0).getString("last", "") ?: ""); private set
     var onPickJsonFile: (((String, String) -> Unit) -> Unit)? = null
     var onSaveJsonFile: ((String, ByteArray) -> Unit)? = null
@@ -122,8 +130,12 @@ class OasController(private val activity: Activity) {
     fun sync() {
         val wasActive = active
         if(message != session.message) {
-            val time = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
-            logLines = (logLines + "$time  ${session.message}").takeLast(150)
+            val raw = session.message
+            val formatted = if(raw.length >= 8 && raw[2] == ':' && raw[5] == ':') raw else {
+                val time = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+                "$time | INFO | $raw"
+            }
+            logLines = (logLines + formatted).takeLast(200)
         }
         message = session.message; active = session.taskActive.get() && !busy; connected = session.bridge != null
         shizukuStage = detectShizukuStage(); shizukuBinding = session.binding
@@ -315,6 +327,66 @@ class OasController(private val activity: Activity) {
         }
     }
     fun clearLogs() { logLines = emptyList() }
+    private fun parseErrorLogs(raw: String): List<ErrorLogItem> {
+        val arr = JSONArray(raw)
+        return (0 until arr.length()).map { idx ->
+            val obj = arr.getJSONObject(idx)
+            ErrorLogItem(
+                id = obj.optString("id"),
+                timeText = obj.optString("timeText"),
+                config = obj.optString("config"),
+                task = obj.optString("task"),
+                taskLabel = obj.optString("taskLabel", obj.optString("task")),
+                summary = obj.optString("summary"),
+                imageCount = obj.optInt("imageCount", 0)
+            )
+        }
+    }
+    fun refreshErrorLogs() {
+        if(errorLogsLoading) return
+        errorLogsLoading = true
+        executor.submit {
+            try {
+                val list = parseErrorLogs(engine().callAttr("list_error_logs", 30).toString())
+                ui { errorLogs = list; errorLogsLoading = false }
+            } catch(_: Throwable) { ui { errorLogsLoading = false } }
+        }
+    }
+    fun openErrorLog(id: String) {
+        errorLogsLoading = true
+        executor.submit {
+            try {
+                val res = JSONObject(engine().callAttr("get_error_log", id).toString())
+                val m = res.getJSONObject("meta")
+                val item = ErrorLogItem(
+                    id = m.optString("id", id),
+                    timeText = m.optString("timeText", id),
+                    config = m.optString("config"),
+                    task = m.optString("task"),
+                    taskLabel = m.optString("taskLabel", m.optString("task")),
+                    summary = m.optString("summary"),
+                    imageCount = m.optInt("imageCount", 0)
+                )
+                val pathsArr = res.optJSONArray("imagePaths") ?: JSONArray()
+                val paths = (0 until pathsArr.length()).map { pathsArr.getString(it) }
+                val detail = ErrorLogDetail(item, res.optString("logText"), paths)
+                ui { selectedError = detail; errorLogsLoading = false }
+            } catch(problem: Throwable) { ui { errorLogsLoading = false; notify(problem.message ?: "读取错误详情失败") } }
+        }
+    }
+    fun closeErrorLog() { selectedError = null }
+    fun deleteErrorLog(id: String? = null) {
+        executor.submit {
+            try {
+                val list = parseErrorLogs(engine().callAttr("delete_error_log", id).toString())
+                ui {
+                    errorLogs = list
+                    if(id == null || selectedError?.item?.id == id) selectedError = null
+                    notify(if(id == null) "已清空报错记录" else "已删除该报错记录")
+                }
+            } catch(problem: Throwable) { ui { notify(problem.message ?: "删除失败") } }
+        }
+    }
     fun loadEditor(id: String) {
         editing = id; definition = null; editorError = ""
         executor.submit {

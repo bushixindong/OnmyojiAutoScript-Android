@@ -1,6 +1,7 @@
 """Runs original OAS tasks in-process; no Windows service, subprocess worker or OCR RPC."""
 from __future__ import annotations
 import ast
+from collections import deque
 import importlib
 import json
 import logging
@@ -26,6 +27,7 @@ _guard=None
 _config_lock=threading.RLock()
 _stop_event=threading.Event()
 _wakeup_event=threading.Event()
+_recent_logs=deque(maxlen=200)
 _RESERVED_PRESETS={'template','android-audit','Home','home'}
 
 class Cancelled(BaseException):
@@ -82,9 +84,19 @@ def initialize(root,host):
     # Optional Frida extraction is replaced by the original root-free UI workflow.
     _module('oas_checkin_biggod',FRIDA_SERVER_XZ=b'',ADB_PATH='android-shizuku')
     from module.logger import logger
+    import re
+    _rich_tag=re.compile(r'\[/?[a-zA-Z_][a-zA-Z0-9_ #]*\]')
     class AndroidLog(logging.Handler):
         def emit(self,record):
-            try:host.log(record.getMessage())
+            try:
+                raw=record.getMessage()
+                msg=_rich_tag.sub('',raw)
+                now=time.time()
+                ms=int((now-int(now))*1000)
+                stamp=f"{time.strftime('%H:%M:%S',time.localtime(now))}.{ms:03d}"
+                line=f'{stamp} | {record.levelname} | {msg}'
+                _recent_logs.append(line)
+                host.log(line)
             except Exception:pass
     logger.addHandler(AndroidLog())
     _ready=True
@@ -489,6 +501,99 @@ def save_task_config(name,data):
         _wakeup_event.set();_notify_state()
         return task_config(name)
 
+def _save_error_snapshot(task_name,error_text,tb_text,device=None,settings=None):
+    try:
+        err_cfg=getattr(getattr(settings,'model',None),'script',None)
+        err_cfg=getattr(err_cfg,'error',None)
+        if err_cfg is not None and not getattr(err_cfg,'save_error',True):
+            return None
+        ts_ms=int(time.time()*1000)
+        err_root=_root/'log'/'error'
+        folder=err_root/str(ts_ms)
+        folder.mkdir(parents=True,exist_ok=True)
+        frames=[]
+        if device is not None:
+            q=getattr(device,'screenshot_deque',None)
+            if q:frames=list(q)
+            elif getattr(device,'image',None) is not None:frames=[(ts_ms,device.image)]
+        limit=max(1,min(20,int(getattr(err_cfg,'screenshot_length',1) or 1)))
+        frames=frames[-limit:]
+        saved_images=0
+        if frames:
+            import cv2
+            for idx,(_,img) in enumerate(frames,1):
+                try:
+                    ok,buf=cv2.imencode('.png',cv2.cvtColor(img,cv2.COLOR_RGB2BGR))
+                    if ok:
+                        (folder/f'{idx:03d}.png').write_bytes(buf.tobytes())
+                        saved_images+=1
+                except Exception:pass
+        translations=json.loads(labels())
+        meta=dict(
+            id=str(ts_ms),
+            timestampMs=ts_ms,
+            timeText=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(ts_ms/1000.0)),
+            config=_config_name,
+            task=str(task_name),
+            taskLabel=translations.get(str(task_name),str(task_name)),
+            summary=str(error_text),
+            imageCount=saved_images,
+        )
+        (folder/'meta.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8')
+        log_body='\n'.join(list(_recent_logs))
+        full_log=f"{log_body}\n\n=== ERROR ({meta['timeText']} · {meta['taskLabel']}) ===\n{error_text}\n{tb_text}".strip()
+        (folder/'log.txt').write_text(full_log,encoding='utf-8')
+        # Keep at most 30 error folders to avoid filling phone storage.
+        import shutil
+        existing=sorted([p for p in err_root.iterdir() if p.is_dir()],key=lambda p:p.name,reverse=True)
+        for stale in existing[30:]:
+            shutil.rmtree(stale,ignore_errors=True)
+        return str(ts_ms)
+    except Exception:
+        return None
+
+def list_error_logs(limit=30):
+    err_root=_root/'log'/'error'
+    if not err_root.is_dir():return '[]'
+    items=[]
+    for folder in sorted([p for p in err_root.iterdir() if p.is_dir()],key=lambda p:p.name,reverse=True)[:int(limit)]:
+        meta_file=folder/'meta.json'
+        if meta_file.is_file():
+            try:
+                items.append(json.loads(meta_file.read_text(encoding='utf-8')))
+                continue
+            except Exception:pass
+        pngs=sorted(folder.glob('*.png'))
+        items.append(dict(id=folder.name,timestampMs=int(folder.name) if folder.name.isdigit() else 0,
+            timeText=folder.name,config=_config_name,task='',taskLabel='异常记录',summary='查看详情',imageCount=len(pngs)))
+    return json.dumps(items,ensure_ascii=False)
+
+def get_error_log(error_id):
+    clean=str(error_id or '').strip()
+    if not clean.isdigit():raise ValueError('无效的错误记录编号')
+    folder=_root/'log'/'error'/clean
+    if not folder.is_dir():raise ValueError('错误记录不存在')
+    meta_file=folder/'meta.json'
+    meta=json.loads(meta_file.read_text(encoding='utf-8')) if meta_file.is_file() else dict(
+        id=clean,timeText=clean,task='',taskLabel='异常记录',summary='',imageCount=0)
+    log_file=folder/'log.txt'
+    log_text=log_file.read_text(encoding='utf-8') if log_file.is_file() else ''
+    images=[str(p) for p in sorted(folder.glob('*.png'))]
+    meta['imageCount']=len(images)
+    return json.dumps(dict(meta=meta,logText=log_text,imagePaths=images),ensure_ascii=False)
+
+def delete_error_log(error_id=None):
+    import shutil
+    err_root=_root/'log'/'error'
+    if not err_root.is_dir():return '[]'
+    if error_id is None or not str(error_id).strip():
+        shutil.rmtree(err_root,ignore_errors=True)
+    else:
+        clean=str(error_id).strip()
+        if clean.isdigit():
+            shutil.rmtree(err_root/clean,ignore_errors=True)
+    return list_error_logs()
+
 def run(name,host=None):
     global _active,_running_task,_last_outcome,_host
     from module.device.device import Device
@@ -499,6 +604,8 @@ def run(name,host=None):
     _active=True;_running_task=name;_last_outcome=None
     _notify_state()
     cooperation=None
+    device=None
+    settings=None
     trace_count=0
     def trace(frame,event,arg):
         nonlocal trace_count
@@ -538,7 +645,9 @@ def run(name,host=None):
         return json.dumps(dict(task=name,status=status,detail='任务流程已结束，真实效果请核对游戏',runtimeOutcome=getattr(settings,'task_runtime_outcome',None)),ensure_ascii=False,default=str)
     except Cancelled as error:return json.dumps(dict(task=name,status='cancelled',detail=str(error)),ensure_ascii=False)
     except Exception as error:
-        return json.dumps(dict(task=name,status='failed',detail=str(error),traceback=traceback.format_exc()),ensure_ascii=False)
+        tb=traceback.format_exc()
+        error_id=_save_error_snapshot(name,str(error),tb,device=device,settings=settings)
+        return json.dumps(dict(task=name,status='failed',detail=str(error),traceback=tb,errorId=error_id),ensure_ascii=False)
     finally:
         sys.settrace(None);_active=False;_running_task=None
         _notify_state()

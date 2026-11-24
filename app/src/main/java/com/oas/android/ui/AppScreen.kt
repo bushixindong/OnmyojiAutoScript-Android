@@ -6,12 +6,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.oas.android.R
@@ -65,9 +67,16 @@ fun OasAppScreen(controller: OasController) {
                         TopAppBar(
                             title = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Image(painterResource(R.drawable.oasx_logo), "OASA", Modifier.size(30.dp))
+                                    Image(painterResource(R.drawable.oasx_logo), "OASA", Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)))
                                     Spacer(Modifier.width(14.dp))
-                                    Text(if(destination == 0) "OASA / 主页" else "OASA / 设置", style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        when(destination) {
+                                            0 -> "OASA / 主页"
+                                            1 -> "OASA / 画面"
+                                            else -> "OASA / 设置"
+                                        },
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -81,8 +90,8 @@ fun OasAppScreen(controller: OasController) {
                             VerticalDivider()
                         }
                         Box(Modifier.weight(1f).fillMaxHeight()) {
-                            if(destination == 0) {
-                                HomeWorkbench(
+                            when(destination) {
+                                0 -> HomeWorkbench(
                                     controller = controller,
                                     wide = wide,
                                     showWorkspace = showWorkspace,
@@ -94,8 +103,8 @@ fun OasAppScreen(controller: OasController) {
                                     onDevice = { deviceSheet = true },
                                     onEdit = ::editInWorkspace
                                 )
-                            } else {
-                                SettingsScreen(
+                                1 -> ScreenDestination(controller, onDevice = { deviceSheet = true })
+                                else -> SettingsScreen(
                                     controller,
                                     onDevice = { deviceSheet = true },
                                     onEdit = ::editStandalone,

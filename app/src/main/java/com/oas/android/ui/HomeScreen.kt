@@ -3,13 +3,16 @@ package com.oas.android.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +22,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -31,8 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -535,9 +544,10 @@ private fun ActiveConfigPanel(
             }
             Spacer(Modifier.height(10.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("总览", "任务", "日志", "画面").forEachIndexed { index, label ->
+                val safeTab = tab.coerceIn(0, 2)
+                listOf("总览", "任务", "日志").forEachIndexed { index, label ->
                     FilterChip(
-                        selected = tab == index,
+                        selected = safeTab == index,
                         onClick = { onTab(index) },
                         label = { Text(label) },
                         leadingIcon = null
@@ -554,11 +564,10 @@ private fun ActiveConfigPanel(
                         showTopTitleBar = false
                     )
                 } else {
-                    when(tab) {
+                    when(tab.coerceIn(0, 2)) {
                         0 -> TaskStatusPanel(controller, onEdit, onDevice)
                         1 -> TaskScreen(controller, onEdit)
-                        2 -> LogCenterPanel(controller)
-                        3 -> ScreenPanel(controller)
+                        else -> LogCenterPanel(controller)
                     }
                 }
             }
@@ -641,6 +650,7 @@ private fun LogCenterPanel(controller: OasController) {
     var logTab by rememberSaveable { mutableIntStateOf(0) }
     var wrapLines by rememberSaveable { mutableStateOf(true) }
     var autoScroll by rememberSaveable { mutableStateOf(true) }
+    var previewImagePath by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val context = LocalContext.current
 
@@ -653,11 +663,17 @@ private fun LogCenterPanel(controller: OasController) {
             listState.scrollToItem(infoLines.lastIndex)
         }
     }
+    LaunchedEffect(logTab) {
+        if(logTab == 1) controller.refreshErrorLogs()
+    }
+
+    val selectedError = controller.selectedError
+    val showTextActions = logTab == 0 || selectedError != null
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SingleChoiceSegmentedButtonRow {
-                listOf("信息", "结果").forEachIndexed { index, label ->
+                listOf("信息", "错误").forEachIndexed { index, label ->
                     SegmentedButton(
                         selected = logTab == index,
                         onClick = { logTab = index },
@@ -668,16 +684,18 @@ private fun LogCenterPanel(controller: OasController) {
                 }
             }
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = { wrapLines = !wrapLines }, modifier = Modifier.size(38.dp)) {
-                Icon(
-                    painterResource(R.drawable.ic_oasx_wrap_text),
-                    "自动换行",
-                    modifier = Modifier.size(20.dp),
-                    tint = if(wrapLines) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            if(showTextActions) {
+                IconButton(onClick = { wrapLines = !wrapLines }, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        painterResource(R.drawable.ic_oasx_wrap_text),
+                        "自动换行",
+                        modifier = Modifier.size(20.dp),
+                        tint = if(wrapLines) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             if(logTab == 0) {
-                IconButton(onClick = { autoScroll = !autoScroll }, modifier = Modifier.size(38.dp)) {
+                IconButton(onClick = { autoScroll = !autoScroll }, modifier = Modifier.size(36.dp)) {
                     Icon(
                         painterResource(R.drawable.ic_oasx_auto_scroll),
                         "自动滚动",
@@ -685,22 +703,34 @@ private fun LogCenterPanel(controller: OasController) {
                         tint = if(autoScroll) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            } else if(selectedError == null) {
+                IconButton(onClick = controller::refreshErrorLogs, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Refresh, "刷新错误日志", modifier = Modifier.size(20.dp))
+                }
+            }
+            if(showTextActions) {
+                IconButton(
+                    onClick = {
+                        val text = if(logTab == 0) infoLines.joinToString("\n") else selectedError?.logText.orEmpty()
+                        val manager = context.getSystemService(ClipboardManager::class.java)
+                        manager?.setPrimaryClip(ClipData.newPlainText("OASA Log", text))
+                        controller.notify("已复制日志")
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(painterResource(R.drawable.ic_oasx_copy), "复制日志", modifier = Modifier.size(20.dp))
+                }
             }
             IconButton(
                 onClick = {
-                    val text = if(logTab == 0) infoLines.joinToString("\n") else resultText(controller.lastResult, controller.labels)
-                    val manager = context.getSystemService(ClipboardManager::class.java)
-                    manager?.setPrimaryClip(ClipData.newPlainText("OASA Log", text))
-                    controller.notify("已复制内容")
+                    if(logTab == 0) controller.clearLogs()
+                    else if(selectedError != null) controller.deleteErrorLog(selectedError.item.id)
+                    else controller.deleteErrorLog(null)
                 },
-                modifier = Modifier.size(38.dp)
+                enabled = if(logTab == 0) infoLines.isNotEmpty() else controller.errorLogs.isNotEmpty(),
+                modifier = Modifier.size(36.dp)
             ) {
-                Icon(painterResource(R.drawable.ic_oasx_copy), "复制日志", modifier = Modifier.size(20.dp))
-            }
-            if(logTab == 0) {
-                IconButton(onClick = controller::clearLogs, modifier = Modifier.size(38.dp)) {
-                    Icon(painterResource(R.drawable.ic_oasx_delete), "清空日志", modifier = Modifier.size(20.dp))
-                }
+                Icon(painterResource(R.drawable.ic_oasx_delete), if(logTab == 0) "清空日志" else "删除报错记录", modifier = Modifier.size(20.dp))
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -726,23 +756,79 @@ private fun LogCenterPanel(controller: OasController) {
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(infoLines) { line ->
-                                Text(
-                                    line,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    softWrap = wrapLines
-                                )
+                                OasxLogLineText(line = line, wrapLines = wrapLines)
                             }
                         }
                     }
                 }
+            } else if(selectedError != null) {
+                ErrorLogDetailPanel(
+                    detail = selectedError,
+                    wrapLines = wrapLines,
+                    onBack = controller::closeErrorLog,
+                    onOpenImage = { previewImagePath = it }
+                )
             } else {
-                SelectionContainer {
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-                        Text("最近结果", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.height(6.dp))
-                        Text(resultText(controller.lastResult, controller.labels), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                ErrorLogListPanel(controller)
+            }
+        }
+    }
+
+    previewImagePath?.let { path ->
+        ErrorImagePreviewDialog(path = path, onDismiss = { previewImagePath = null })
+    }
+}
+
+@Composable
+private fun ErrorLogListPanel(controller: OasController) {
+    if(controller.errorLogsLoading && controller.errorLogs.isEmpty()) {
+        LoadingPanel("正在读取错误日志…")
+        return
+    }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
+        if(controller.errorLogs.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    Text("暂无报错记录", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            items(controller.errorLogs, key = { it.id }) { item ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { controller.openErrorLog(item.id) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(item.taskLabel.ifBlank { "异常" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            Text("· ${item.imageCount} 张图", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Text(item.timeText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                        if(item.summary.isNotBlank()) {
+                            Text(
+                                item.summary,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
                     }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            }
+        }
+        item {
+            Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                Text("最近运行结果", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(4.dp))
+                SelectionContainer {
+                    Text(resultText(controller.lastResult, controller.labels), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
                 }
             }
         }
@@ -750,14 +836,224 @@ private fun LogCenterPanel(controller: OasController) {
 }
 
 @Composable
-private fun ScreenPanel(controller: OasController) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        GamePreview(controller)
-        Text(
-            "后台虚拟屏支持实时预览。打开手动控制后可直接点击、滑动；脚本运行时自动禁用。",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun ErrorLogDetailPanel(
+    detail: ErrorLogDetail,
+    wrapLines: Boolean,
+    onBack: () -> Unit,
+    onOpenImage: (String) -> Unit
+) {
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack, modifier = Modifier.size(38.dp)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回错误列表")
+            }
+            Column(Modifier.weight(1f)) {
+                Text(detail.item.taskLabel.ifBlank { "错误详情" }, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(detail.item.timeText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        if(detail.imagePaths.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().height(156.dp),
+                contentPadding = PaddingValues(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(detail.imagePaths, key = { it }) { path ->
+                    ErrorThumbnailCard(path = path, onClick = { onOpenImage(path) })
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        }
+        val hScroll = rememberScrollState()
+        val vScroll = rememberScrollState()
+        val textMod = if(wrapLines) {
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(vScroll).padding(10.dp)
+        } else {
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(vScroll).horizontalScroll(hScroll).padding(10.dp)
+        }
+        SelectionContainer(modifier = textMod) {
+            val lines = remember(detail.logText) {
+                if(detail.logText.isBlank()) listOf("无日志内容") else detail.logText.lines()
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                lines.forEach { line ->
+                    OasxLogLineText(line = line, wrapLines = wrapLines)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OasxLogLineText(line: String, wrapLines: Boolean) {
+    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+    val annotated = remember(line, isDark) { buildOasxLogSpan(line, isDark) }
+    Text(
+        text = annotated,
+        style = MaterialTheme.typography.bodySmall.copy(
+            fontFamily = FontFamily.Monospace,
+            fontFeatureSettings = "tnum",
+            lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.15f
+        ),
+        softWrap = wrapLines
+    )
+}
+
+private fun buildOasxLogSpan(source: String, isDark: Boolean) = buildAnnotatedString {
+    val value = source.trimEnd('\r', '\n')
+    if(value.length > 2000) {
+        append(value)
+        return@buildAnnotatedString
+    }
+    val cyan = if(isDark) Color(0xFF26C6DA) else Color(0xFF00838F)
+    val infoBlue = if(isDark) Color(0xFF64B5F6) else Color(0xFF376D88)
+    val warnYellow = if(isDark) Color(0xFFFFD54F) else Color(0xFFE65100)
+    val errRed = if(isDark) Color(0xFFEF5350) else Color(0xFFD32F2F)
+    val okGreen = if(isDark) Color(0xFF8BC34A) else Color(0xFF558B2F)
+    val nonePurple = if(isDark) Color(0xFFCE93D8) else Color(0xFF7B1FA2)
+
+    val isHeading = value.contains("<<<") && value.contains(">>>")
+    val tokenStyles = listOf(
+        "CRITICAL" to SpanStyle(color = errRed, fontWeight = FontWeight.Bold),
+        "WARNING" to SpanStyle(color = warnYellow, fontWeight = FontWeight.SemiBold),
+        "ERROR" to SpanStyle(color = errRed, fontWeight = FontWeight.Bold),
+        "INFO" to SpanStyle(color = infoBlue, fontWeight = FontWeight.SemiBold),
+        "True" to SpanStyle(color = okGreen),
+        "False" to SpanStyle(color = errRed),
+        "None" to SpanStyle(color = nonePurple)
+    )
+    fun isWord(c: Char) = c.isLetterOrDigit() || c == '_'
+    fun isDigits(s: String, start: Int, len: Int): Boolean {
+        if(start + len > s.length) return false
+        for(k in 0 until len) if(!s[start + k].isDigit()) return false
+        return true
+    }
+    fun timeLen(s: String, idx: Int): Int {
+        // YYYY-MM-DD HH:mm:ss.SSS or YYYY-MM-DD HH:mm:ss
+        if(idx + 19 <= s.length && isDigits(s, idx, 4) && s[idx + 4] == '-' && isDigits(s, idx + 5, 2) &&
+            s[idx + 7] == '-' && isDigits(s, idx + 8, 2) && s[idx + 10] == ' ' &&
+            isDigits(s, idx + 11, 2) && s[idx + 13] == ':' && isDigits(s, idx + 14, 2) &&
+            s[idx + 16] == ':' && isDigits(s, idx + 17, 2)) {
+            return if(idx + 23 <= s.length && s[idx + 19] == '.' && isDigits(s, idx + 20, 3)) 23 else 19
+        }
+        // HH:mm:ss.SSS or HH:mm:ss
+        if(idx + 8 <= s.length && isDigits(s, idx, 2) && s[idx + 2] == ':' && isDigits(s, idx + 3, 2) &&
+            s[idx + 5] == ':' && isDigits(s, idx + 6, 2)) {
+            return if(idx + 12 <= s.length && s[idx + 8] == '.' && isDigits(s, idx + 9, 3)) 12 else 8
+        }
+        return 0
+    }
+
+    var plainStart = 0
+    var i = 0
+    while(i < value.length) {
+        val tsLen = timeLen(value, i)
+        if(tsLen > 0 && (i == 0 || !isWord(value[i - 1]))) {
+            if(plainStart < i) {
+                val seg = value.substring(plainStart, i)
+                if(isHeading) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(seg) } else append(seg)
+            }
+            withStyle(SpanStyle(color = cyan)) { append(value.substring(i, i + tsLen)) }
+            i += tsLen
+            plainStart = i
+            continue
+        }
+        var matched = false
+        for((tok, style) in tokenStyles) {
+            if(value.startsWith(tok, i)) {
+                val beforeOk = i == 0 || !isWord(value[i - 1])
+                val afterIdx = i + tok.length
+                val afterOk = afterIdx >= value.length || !isWord(value[afterIdx])
+                if(beforeOk && afterOk) {
+                    if(plainStart < i) {
+                        val seg = value.substring(plainStart, i)
+                        if(isHeading) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(seg) } else append(seg)
+                    }
+                    withStyle(style) { append(tok) }
+                    i = afterIdx
+                    plainStart = i
+                    matched = true
+                    break
+                }
+            }
+        }
+        if(!matched) i++
+    }
+    if(plainStart < value.length) {
+        val seg = value.substring(plainStart)
+        if(isHeading) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(seg) } else append(seg)
+    }
+}
+
+@Composable
+private fun ErrorThumbnailCard(path: String, onClick: () -> Unit) {
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, path) {
+        value = withContext(Dispatchers.IO) {
+            try { BitmapFactory.decodeFile(path)?.asImageBitmap() } catch(_: Throwable) { null }
+        }
+    }
+    Surface(
+        modifier = Modifier.width(220.dp).fillMaxHeight().clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        val img = bitmap
+        if(img != null) {
+            Image(img, "报错截图", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("加载中…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorImagePreviewDialog(path: String, onDismiss: () -> Unit) {
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, path) {
+        value = withContext(Dispatchers.IO) {
+            try { BitmapFactory.decodeFile(path)?.asImageBitmap() } catch(_: Throwable) { null }
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("报错现场截图") },
+        text = {
+            val img = bitmap
+            if(img != null) {
+                Image(img, "报错现场截图", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp))
+            } else {
+                Text("无法加载图片")
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } }
+    )
+}
+
+@Composable
+fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(8.dp)) {
+        OasCard(Modifier.fillMaxSize()) {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GamePreview(controller)
+                if(!controller.connected || !controller.environmentReady) {
+                    DeviceReadinessCard(controller, onDevice)
+                }
+                Text(
+                    "后台虚拟屏支持实时预览。打开手动控制后可直接点击、滑动；脚本运行时自动禁用。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

@@ -60,8 +60,6 @@ proc=None
 try:
     adb('shell','am','force-stop','com.oas.android')
     adb('shell','am','start','-n','com.oas.android/.MainActivity')
-    eventually(lambda:node('android'))
-    click('android')
     eventually(lambda:node('画面'))
     tx,ty,tr,tb=bounds(node('OASA / 主页'));focus_point=((tx+tr)//2,(ty+tb)//2)
     proc=subprocess.Popen(['adb','-s',args.serial,'shell',f"CLASSPATH='{apk}' app_process /system/bin --nice-name=oas-preview-qa com.oas.android.bridge.DebugMain"],stdout=log,stderr=log)
@@ -88,7 +86,7 @@ try:
     assert moved[0]==old[0]+1 and moved[2]==old[2]+1 and moved[1]>old[1],'Swipe was not a continuous gesture'
     latest=status();assert latest['frames']>first['frames']+10
     shot('live-controlled');report.append({'check':'SurfaceView dynamic frames, correct orientation, mapped single-finger tap/swipe','frames':latest['frames']-first['frames']})
-    click('日志');eventually(lambda:not status()['attached']);stopped=status()['frames'];time.sleep(.6)
+    click('主页');eventually(lambda:not status()['attached']);stopped=status()['frames'];time.sleep(.6)
     assert status()['frames']==stopped,'Frames continued off page'
     click('画面');eventually(lambda:status()['attached']);report.append({'check':'tab detach/reattach','status':'passed'})
     adb('shell','input','-d','0','keyevent','KEYCODE_HOME');eventually(lambda:not status()['attached'])

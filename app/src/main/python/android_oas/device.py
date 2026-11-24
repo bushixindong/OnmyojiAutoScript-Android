@@ -63,6 +63,8 @@ def install(root,host,check):
             self.config=config;self.serial='android-shizuku';self.orientation=0
             self.package=str(config.script.device.package_name);self.image=None;self.image_frame_id=None
             self.detect_record=set();self.click_record=deque(maxlen=15)
+            max_shots=max(1,min(20,int(getattr(getattr(config.script,'error',None),'screenshot_length',1) or 1)))
+            self.screenshot_deque=deque(maxlen=max_shots)
             self.stuck_timer=Timer(60,count=60).start();self.stuck_timer_long=Timer(300,count=300).start()
             self._screen_size_checked=True;self._screen_black_checked=True
             self.interval_timer={};self._image_batch_cache_frame_id=None;self._image_batch_cache={}
@@ -92,6 +94,8 @@ def install(root,host,check):
             from module.image.rpc import get_image_client
             entry=get_image_client().register_frame(self.image,self.config.config_name)
             self.image_frame_id=entry['frame_id'];self.reset_image_batch_cache(self.image_frame_id)
+            try:self.screenshot_deque.append((int(time.time()*1000),self.image.copy()))
+            except Exception:pass
             return self.image
         def screenshot_adb(self):return self.screenshot()
         screenshot_nemu_ipc=screenshot_adb

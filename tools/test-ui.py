@@ -139,7 +139,7 @@ try:
     shot('plan')
     click('日志')
     find('信息')
-    find('结果')
+    find('错误')
     shot('logs')
     click('画面')
     find('手动控制')
