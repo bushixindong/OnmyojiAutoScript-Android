@@ -10,7 +10,7 @@ on:
       oas_ref:
         description: 'Upstream OAS branch or tag'
         required: true
-        default: 'master'
+        default: 'mine'
       release_tag:
         description: 'Release tag to publish (leave empty to use v<versionName>)'
         required: false
@@ -19,9 +19,6 @@ on:
         description: 'Release notes'
         required: false
         default: 'OASA Android 正式版'
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
@@ -33,12 +30,12 @@ jobs:
       - name: Checkout OASA
         uses: actions/checkout@v4
 
-      - name: Checkout upstream OAS
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.event.inputs.oas_repo || 'kongdr418/OnmyojiAutoScript' }}
-          ref: ${{ github.event.inputs.oas_ref || 'master' }}
-          path: upstream-oas
+      - name: Clone upstream OAS
+        env:
+          OAS_REPO: ${{ github.event.inputs.oas_repo || 'kongdr418/OnmyojiAutoScript' }}
+          OAS_REF: ${{ github.event.inputs.oas_ref || 'mine' }}
+        run: |
+          git clone --depth=1 --branch "$OAS_REF" "https://github.com/${OAS_REPO}.git" upstream-oas
 
       - name: Setup JDK 21
         uses: actions/setup-java@v4

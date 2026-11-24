@@ -10,11 +10,11 @@ on:
       oas_ref:
         description: 'Upstream OAS branch or tag'
         required: true
-        default: 'master'
+        default: 'mine'
       release_tag:
         description: 'Release tag to update or create'
         required: true
-        default: 'v1.0.0'
+        default: 'v1.0.1'
       runtime_notes:
         description: 'Release notes shown inside OASA updater'
         required: false
@@ -30,12 +30,12 @@ jobs:
       - name: Checkout OASA
         uses: actions/checkout@v4
 
-      - name: Checkout upstream OAS
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.event.inputs.oas_repo }}
-          ref: ${{ github.event.inputs.oas_ref }}
-          path: upstream-oas
+      - name: Clone upstream OAS
+        env:
+          OAS_REPO: ${{ github.event.inputs.oas_repo }}
+          OAS_REF: ${{ github.event.inputs.oas_ref }}
+        run: |
+          git clone --depth=1 --branch "$OAS_REF" "https://github.com/${OAS_REPO}.git" upstream-oas
 
       - name: Setup Python 3.10
         uses: actions/setup-python@v5
