@@ -101,7 +101,7 @@ fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (Str
                 )
                 SettingItemRow(
                     title = "当前版本",
-                    subtitle = "沿用 OASX 主题与工作台设计 · 百鬼夜行暂缓",
+                    subtitle = "Onmyoji AutoScript Android",
                     trailing = {
                         Text("OASA ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     },
@@ -161,10 +161,10 @@ fun DeviceSheet(controller: OasController, onDismiss: () -> Unit) {
             InfoRow("Shizuku", controller.permissionText(), controller.connected)
             if(!controller.connected) {
                 val hint = when(controller.shizukuStage) {
-                    ShizukuStage.NOT_INSTALLED -> "尚未安装 Shizuku。请先下载安装 Shizuku 并通过无线调试或电脑 ADB 启动，返回本页将自动识别。"
-                    ShizukuStage.NOT_RUNNING -> "Shizuku 已安装但未启动。点击下方打开 Shizuku 启动服务（Android 11+ 可用无线调试），切回 OASA 将自动连接。"
-                    ShizukuStage.NEED_AUTH -> "Shizuku 服务已运行，请授权 OASA 访问设备服务。"
-                    ShizukuStage.READY -> controller.message.ifBlank { "已获得 Shizuku 授权，正在准备连接设备服务。" }
+                    ShizukuStage.NOT_INSTALLED -> "请先安装并启动 Shizuku。"
+                    ShizukuStage.NOT_RUNNING -> "请先启动 Shizuku 服务。"
+                    ShizukuStage.NEED_AUTH -> "请授权 OASA 访问 Shizuku。"
+                    ShizukuStage.READY -> controller.message.ifBlank { "正在连接设备服务…" }
                     ShizukuStage.CONNECTED -> ""
                 }
                 if(hint.isNotBlank()) {
@@ -222,7 +222,6 @@ fun DeviceSheet(controller: OasController, onDismiss: () -> Unit) {
                 singleLine = true,
                 shape = MaterialTheme.shapes.small
             )
-            Text("仅创建独立运行屏幕，不调整手机主屏分辨率。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(
                 onClick = { if(controller.saveDevice(packageName, primary, dpi)) { controller.prepare(); onDismiss() } },
                 enabled = controller.connected && !controller.active && !controller.busy,

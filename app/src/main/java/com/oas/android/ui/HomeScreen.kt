@@ -627,17 +627,11 @@ fun DeviceReadinessCard(controller: OasController, onDevice: () -> Unit) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    if(!controller.connected) "Shizuku ${controller.permissionText()}" else "运行屏幕：${controller.screenLabel}",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                Text(
-                    if(!controller.connected) "点按连接 Shizuku 并开启运行环境" else "点按准备游戏运行屏幕",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                if(!controller.connected) "Shizuku ${controller.permissionText()}" else "运行屏幕：${controller.screenLabel}",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.weight(1f)
+            )
             FilledTonalButton(onClick = onDevice, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
                 Text("设备与游戏")
             }
@@ -1047,11 +1041,6 @@ fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
                 if(!controller.connected || !controller.environmentReady) {
                     DeviceReadinessCard(controller, onDevice)
                 }
-                Text(
-                    "后台虚拟屏支持实时预览。打开手动控制后可直接点击、滑动；脚本运行时自动禁用。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

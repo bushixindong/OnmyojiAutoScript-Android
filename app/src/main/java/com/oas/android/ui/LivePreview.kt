@@ -49,7 +49,7 @@ fun GamePreview(controller: OasController) {
     val allowTouch = remember { AtomicBoolean(false) }
     var attachedBridge by remember { mutableStateOf<IDeviceBridge?>(null) }
     val currentState by rememberUpdatedState(state)
-    SideEffect { allowTouch.set(manual && !controller.active && !controller.busy && resumed && state.live) }
+    SideEffect { allowTouch.set(manual && !controller.busy && resumed && state.live) }
 
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, _ -> resumed = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
@@ -99,12 +99,12 @@ fun GamePreview(controller: OasController) {
             }
         }
     }
-    LaunchedEffect(manual, controller.active, controller.busy, resumed, state.live) {
-        if(!manual || controller.active || controller.busy || !resumed || !state.live) {
+    LaunchedEffect(manual, controller.busy, resumed, state.live) {
+        if(!manual || controller.busy || !resumed || !state.live) {
             val bridge = attachedBridge
             if(bridge != null) touchExecutor.submit { try { bridge.previewTouch(MotionEvent.ACTION_CANCEL,0,0,owner) } catch(_: Exception) { } }
         }
-        if(controller.active || controller.busy || !resumed) manual = false
+        if(controller.busy || !resumed) manual = false
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -126,7 +126,7 @@ fun GamePreview(controller: OasController) {
                             var lastMove=0L
                             setOnTouchListener { view,event ->
                                 val bridge=attachedBridge
-                                if(!allowTouch.get() || controller.session.taskActive.get() || bridge==null) {
+                                if(!allowTouch.get() || bridge==null) {
                                     held.clear();view.parent.requestDisallowInterceptTouchEvent(false)
                                     return@setOnTouchListener false
                                 }
@@ -163,7 +163,7 @@ fun GamePreview(controller: OasController) {
                                 val actionIndex=ids.indexOf(changed).coerceAtLeast(0)
                                 touchExecutor.submit {
                                     try {
-                                        if(allowTouch.get() && !controller.session.taskActive.get()) bridge.previewPointers(mapped,actionIndex,ids,xy,owner)
+                                        if(allowTouch.get()) bridge.previewPointers(mapped,actionIndex,ids,xy,owner)
                                         else bridge.previewTouch(MotionEvent.ACTION_CANCEL,0,0,owner)
                                     } catch(problem: Exception) {
                                         try {bridge.previewTouch(MotionEvent.ACTION_CANCEL,0,0,owner)}catch(_: Exception){}
@@ -191,10 +191,10 @@ fun GamePreview(controller: OasController) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("手动控制",style=MaterialTheme.typography.bodyMedium)
-                Text(if(controller.active) "脚本运行中，手动控制已禁用" else "开启后支持点击、滑动与多点触控",
+                Text("支持点击、滑动与多点触控",
                     style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(checked=manual,onCheckedChange={ manual=it },enabled=state.live && !controller.active && !controller.busy,
+            Switch(checked=manual,onCheckedChange={ manual=it },enabled=state.live && !controller.busy,
                 modifier=Modifier.semantics{contentDescription="手动控制开关"})
         }
         if(state.live && state.fps>=0)Text("${state.fpsSource} · ${"%.1f".format(state.fps)} FPS",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)

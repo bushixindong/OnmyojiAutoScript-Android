@@ -67,7 +67,7 @@ fun TaskStatusPanel(controller: OasController, onEdit: (String) -> Unit, onDevic
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if(enabled.isEmpty()) {
                 item {
-                    EmptyPanel("还没有启用的任务", "在任务页勾选加入计划，即可在这里一键设为立即运行或等待。")
+                    EmptyPanel("暂无已启用任务", "在任务页勾选加入计划")
                 }
             } else {
                 items(enabled, key = { it.id }) { task ->
@@ -233,15 +233,7 @@ fun TaskScreen(controller: OasController, onEdit: (String) -> Unit) {
                 }
             }
             if(visible.isEmpty() && !controller.loading) {
-                item { EmptyPanel(if(query.isNotBlank()) "没有找到相关任务" else "这一分类还没有任务", "试试其他分类或搜索关键词。") }
-            }
-            item {
-                Text(
-                    "百鬼夜行暂缓适配。点按勾选图标可启停任务，右侧快捷按钮可立即运行、置为等待或配置参数。",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
+                item { EmptyPanel(if(query.isNotBlank()) "未找到相关任务" else "暂无任务", "") }
             }
         }
     }
@@ -451,7 +443,7 @@ fun EmptyPanel(title: String, detail: String) {
     Column(Modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.AutoMirrored.Filled.List, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp))
-        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+        if(detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
     }
 }
 

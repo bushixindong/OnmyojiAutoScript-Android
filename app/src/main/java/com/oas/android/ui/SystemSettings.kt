@@ -25,11 +25,10 @@ fun SystemSettings(controller: OasController) {
     }
     OasSettingCard("运行与省电") {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("自动熄屏、静音和保活选项在下次启动脚本时生效。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            SystemToggle("后台保活", "运行时保持 CPU 和运行屏活跃", controller.keepAwake) { controller.systemOption("keepAwake", it) }
-            SystemToggle("自动熄屏", "后台模式运行脚本时关闭实体屏幕，结束后恢复", controller.autoPanelOff) { controller.systemOption("autoPanelOff", it) }
-            SystemToggle("自动静音游戏", "仅静音当前游戏，脚本结束后恢复声音", controller.autoMute) { controller.systemOption("autoMute", it) }
-            SystemToggle("帧率监测", "显示游戏帧率，持续低帧时给出提示", controller.fpsEnabled) { controller.systemOption("fpsEnabled", it) }
+            SystemToggle("后台保活", "保持 CPU 与运行屏活跃", controller.keepAwake) { controller.systemOption("keepAwake", it) }
+            SystemToggle("自动熄屏", "后台运行时关闭实体屏", controller.autoPanelOff) { controller.systemOption("autoPanelOff", it) }
+            SystemToggle("自动静音游戏", "运行时静音游戏，结束恢复", controller.autoMute) { controller.systemOption("autoMute", it) }
+            SystemToggle("帧率监测", "显示实时游戏帧率", controller.fpsEnabled) { controller.systemOption("fpsEnabled", it) }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             Text("任务取图上限", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -37,7 +36,6 @@ fun SystemSettings(controller: OasController) {
                     FilterChip(selected = controller.captureFps == fps, onClick = { controller.frameRate(capture = fps) }, label = { Text(label) }, enabled = !controller.systemBusy)
                 }
             }
-            Text("实际取图频率由任务决定；更高上限会增加耗电和发热。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("实时预览帧率", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(30, 60).forEach { fps -> FilterChip(selected = controller.previewFps == fps, onClick = { controller.frameRate(preview = fps) }, label = { Text("$fps FPS") }, enabled = !controller.systemBusy) }
@@ -59,8 +57,6 @@ fun SystemSettings(controller: OasController) {
                         Text(if(controller.gameMuted) "恢复游戏声音" else "静音游戏")
                     }
                 }
-            } else {
-                Text("连接设备后可查看实际运行状态，并单独控制游戏声音和实体屏幕。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
