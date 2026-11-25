@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,9 +27,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -341,6 +346,7 @@ private fun IncomeTile(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun IncomeTrendSection(
     history: IncomeHistoryData?,
@@ -352,36 +358,54 @@ private fun IncomeTrendSection(
 ) {
     var rangeMenu by remember { mutableStateOf(false) }
     var resMenu by remember { mutableStateOf(false) }
-    var touchedIndex by remember(history, resource) { mutableStateOf<Int?>(null) }
+    var touchedIndex by remember(history, resource, days) { mutableStateOf<Int?>(null) }
 
-    val points = remember(history, resource) {
+    val startDate = remember(history) {
+        val key = history?.records?.firstOrNull()?.date ?: history?.start.orEmpty()
+        try { LocalDate.parse(key) } catch(_: Exception) { null }
+    }
+    val allPoints = remember(history, resource, startDate) {
         val recs = history?.records.orEmpty()
-        val firstDate = recs.firstOrNull()?.date?.let { try { LocalDate.parse(it) } catch(_: Exception) { null } }
         recs.mapNotNull { rec ->
             val v = rec.values[resource]
             if(v != null && v >= 0) {
                 val d = try { LocalDate.parse(rec.date) } catch(_: Exception) { null }
-                val offset = if(firstDate != null && d != null) ChronoUnit.DAYS.between(firstDate, d).toDouble() else 0.0
+                val offset = if(startDate != null && d != null) ChronoUnit.DAYS.between(startDate, d).toDouble() else 0.0
                 Triple(offset, v.toDouble(), rec.date)
             } else null
         }
     }
+    // OASX downsampling: target ~20 points, always keeping first and last
+    val points = remember(allPoints) {
+        if(allPoints.size <= 20) allPoints
+        else {
+            val step = ceil(allPoints.size / 20.0).toInt().coerceAtLeast(1)
+            val sampled = mutableListOf<Triple<Double, Double, String>>()
+            var i = 0
+            while(i < allPoints.size) { sampled.add(allPoints[i]); i += step }
+            if(sampled.last() != allPoints.last()) sampled.add(allPoints.last())
+            sampled
+        }
+    }
 
-    val firstVal = points.firstOrNull()?.second
-    val lastVal = points.lastOrNull()?.second
-    val changeVal = if(points.size >= 2 && firstVal != null && lastVal != null) lastVal - firstVal else null
-    val minVal = points.minOfOrNull { it.second } ?: 0.0
-    val maxVal = points.maxOfOrNull { it.second } ?: 0.0
+    val firstVal = allPoints.firstOrNull()?.second
+    val lastVal = allPoints.lastOrNull()?.second
+    val changeVal = if(allPoints.size >= 2 && firstVal != null && lastVal != null) lastVal - firstVal else null
+    val minVal = allPoints.minOfOrNull { it.second } ?: 0.0
+    val maxVal = allPoints.maxOfOrNull { it.second } ?: 0.0
+
+    val scheme = MaterialTheme.colorScheme
+    val density = LocalDensity.current
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest
+        color = scheme.surfaceContainerHighest
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("变化趋势", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                if(points.isNotEmpty()) {
+                if(allPoints.isNotEmpty()) {
                     Text(
                         "变化 ${formatIncomeSignedValue(changeVal)}",
                         style = MaterialTheme.typography.titleSmall,
@@ -390,16 +414,20 @@ private fun IncomeTrendSection(
                     )
                 }
             }
+            // OASX _IncomeDropdown pair: compact bordered boxes
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box {
-                    OutlinedButton(
-                        onClick = { rangeMenu = true },
+                    Surface(
+                        modifier = Modifier.clickable { rangeMenu = true },
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        color = Color.Transparent,
+                        border = BorderStroke(1.dp, scheme.outlineVariant)
                     ) {
-                        Text(formatIncomeRangeLabel(days), style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.width(2.dp))
-                        Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp))
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(formatIncomeRangeLabel(days), style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(2.dp))
+                            Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp))
+                        }
                     }
                     DropdownMenu(expanded = rangeMenu, onDismissRequest = { rangeMenu = false }) {
                         incomeHistoryRanges.forEach { range ->
@@ -411,16 +439,19 @@ private fun IncomeTrendSection(
                     }
                 }
                 Box {
-                    OutlinedButton(
-                        onClick = { resMenu = true },
+                    Surface(
+                        modifier = Modifier.clickable { resMenu = true },
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        color = Color.Transparent,
+                        border = BorderStroke(1.dp, scheme.outlineVariant)
                     ) {
-                        IncomeIcon(resource, size = 18.dp)
-                        Spacer(Modifier.width(6.dp))
-                        Text(incomeResourceMap[resource]?.label ?: resource, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.width(2.dp))
-                        Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp))
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IncomeIcon(resource, size = 18.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(incomeResourceMap[resource]?.label ?: resource, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(2.dp))
+                            Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp))
+                        }
                     }
                     DropdownMenu(expanded = resMenu, onDismissRequest = { resMenu = false }) {
                         incomeResources.forEach { meta ->
@@ -439,13 +470,14 @@ private fun IncomeTrendSection(
                 }
             }
 
+            // OASX _IncomeLineChart: 220dp + 14dp top padding, fl_chart style
             if(loading) {
-                Box(Modifier.fillMaxWidth().height(190.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().height(234.dp), contentAlignment = Alignment.Center) {
                     Text("加载趋势中…", style = MaterialTheme.typography.bodySmall)
                 }
             } else if(points.isEmpty()) {
-                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
-                    Text("该时间范围内暂无记录", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.fillMaxWidth().height(234.dp), contentAlignment = Alignment.Center) {
+                    Text("该时间范围内暂无记录", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
                 }
             } else {
                 val (axisMin, axisMax, axisStep) = niceIncomeAxis(minVal, maxVal)
@@ -459,112 +491,174 @@ private fun IncomeTrendSection(
                     }
                     list
                 }
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val gridColor = MaterialTheme.colorScheme.outlineVariant
                 val maxX = (points.last().first).coerceAtLeast(1.0)
-
-                touchedIndex?.let { idx ->
-                    points.getOrNull(idx)?.let { (_, value, dateKey) ->
-                        Text(
-                            "${formatIncomeDayLabel(dateKey)}  ${formatIncomeValue(value.roundToInt())}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = primaryColor
-                        )
+                val xInterval = ceil(maxX / 5.0).coerceAtLeast(1.0)
+                val xTicks = remember(maxX, xInterval) {
+                    val list = mutableListOf<Double>()
+                    var cur = 0.0
+                    while(cur <= maxX + 0.01 && list.size < 10) {
+                        list.add(cur)
+                        cur += xInterval
                     }
+                    list
                 }
 
-                Row(Modifier.fillMaxWidth().height(190.dp)) {
-                    // Left Y-axis ticks (matching OASX leftTitles)
-                    Column(
-                        Modifier.width(52.dp).fillMaxHeight().padding(top = 6.dp, bottom = 22.dp),
-                        verticalArrangement = Arrangement.SpaceBetween,
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        val visibleTicks = yTicks.reversed()
-                        visibleTicks.forEachIndexed { idx, v ->
-                            val isEdge = idx == 0 || idx == visibleTicks.lastIndex
-                            Text(
-                                if(isEdge && visibleTicks.size > 2) "" else formatIncomeAxisValue(v, axisSpan),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1
+                val primaryColor = scheme.primary
+                val gridColor = scheme.outlineVariant
+                val surfaceColor = scheme.surfaceContainerHighest
+                val labelColorArgb = scheme.onSurfaceVariant.toArgb()
+                val tooltipColorArgb = scheme.onSurface.toArgb()
+                val leftReservedPx = with(density) { 56.dp.toPx() }
+                val rightPadPx = with(density) { 20.dp.toPx() }
+                val topPadPx = with(density) { 28.dp.toPx() }
+                val bottomReservedPx = with(density) { 26.dp.toPx() }
+                val labelTextPx = with(density) { 11.sp.toPx() }
+                val tooltipTextPx = with(density) { 12.sp.toPx() }
+                val lineStrokePx = with(density) { 2.dp.toPx() }
+                val gridStrokePx = with(density) { 0.5.dp.toPx() }
+                val dotRadiusPx = with(density) { 3.5.dp.toPx() }
+                val dotActiveRadiusPx = with(density) { 5.dp.toPx() }
+                val dotBorderPx = with(density) { 1.5.dp.toPx() }
+
+                fun pickNearest(touchX: Float, canvasWidth: Float) {
+                    val plotW = (canvasWidth - leftReservedPx - rightPadPx).coerceAtLeast(1f)
+                    val relX = (touchX - leftReservedPx).coerceIn(0f, plotW)
+                    val best = points.indices.minByOrNull { i ->
+                        val px = if(points.size == 1) plotW / 2f else (points[i].first / maxX).toFloat() * plotW
+                        abs(px - relX)
+                    }
+                    touchedIndex = best
+                }
+
+                Canvas(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(234.dp)
+                        .pointerInput(points, maxX) {
+                            detectTapGestures { offset -> pickNearest(offset.x, size.width.toFloat()) }
+                        }
+                        .pointerInput(points, maxX) {
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { change, _ -> pickNearest(change.position.x, size.width.toFloat()) }
+                            )
+                        }
+                ) {
+                    val plotLeft = leftReservedPx
+                    val plotRight = size.width - rightPadPx
+                    val plotTop = topPadPx
+                    val plotBottom = size.height - bottomReservedPx
+                    val plotW = (plotRight - plotLeft).coerceAtLeast(1f)
+                    val plotH = (plotBottom - plotTop).coerceAtLeast(1f)
+                    val yRange = (axisMax - axisMin).coerceAtLeast(1.0)
+
+                    val axisPaint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        color = labelColorArgb
+                        textSize = labelTextPx
+                    }
+
+                    // Horizontal gridlines & left Y-axis ticks (aligned to exact gridline Y, skipping top/bottom edges like OASX)
+                    yTicks.forEach { tick ->
+                        val norm = ((tick - axisMin) / yRange).toFloat()
+                        val y = plotBottom - norm * plotH
+                        drawLine(gridColor, Offset(plotLeft, y), Offset(plotRight, y), strokeWidth = gridStrokePx)
+                        val nearEdge = abs(tick - axisMin) < yRange * 0.06 || abs(axisMax - tick) < yRange * 0.06
+                        if(!nearEdge) {
+                            val text = formatIncomeAxisValue(tick, axisSpan)
+                            axisPaint.textAlign = android.graphics.Paint.Align.RIGHT
+                            val fm = axisPaint.fontMetrics
+                            val baseline = y - (fm.ascent + fm.descent) / 2f
+                            drawContext.canvas.nativeCanvas.drawText(text, plotLeft - 8f, baseline, axisPaint)
+                        }
+                    }
+
+                    // Bottom X-axis date ticks (MM-dd aligned to exact x-coordinate)
+                    axisPaint.textAlign = android.graphics.Paint.Align.CENTER
+                    val xBaseline = plotBottom + bottomReservedPx * 0.72f
+                    xTicks.forEach { xOff ->
+                        val x = if(points.size == 1) plotLeft + plotW / 2f else plotLeft + (xOff / maxX).toFloat() * plotW
+                        val dateLabel = if(startDate != null) {
+                            startDate.plusDays(xOff.roundToInt().toLong()).format(DateTimeFormatter.ofPattern("MM-dd"))
+                        } else ""
+                        if(dateLabel.isNotEmpty()) {
+                            drawContext.canvas.nativeCanvas.drawText(dateLabel, x, xBaseline, axisPaint)
+                        }
+                    }
+
+                    // Data points & line + area fill
+                    val coords = points.map { (dayOffset, value, _) ->
+                        val x = if(points.size == 1) plotLeft + plotW / 2f else plotLeft + (dayOffset / maxX).toFloat() * plotW
+                        val y = plotBottom - ((value - axisMin) / yRange).toFloat() * plotH
+                        Offset(x, y)
+                    }
+                    if(coords.size >= 2) {
+                        val fillPath = Path().apply {
+                            moveTo(coords.first().x, plotBottom)
+                            coords.forEach { lineTo(it.x, it.y) }
+                            lineTo(coords.last().x, plotBottom)
+                            close()
+                        }
+                        drawPath(fillPath, color = primaryColor.copy(alpha = 0.12f))
+                        val linePath = Path().apply {
+                            moveTo(coords.first().x, coords.first().y)
+                            coords.drop(1).forEach { lineTo(it.x, it.y) }
+                        }
+                        drawPath(linePath, color = primaryColor, style = Stroke(width = lineStrokePx, cap = StrokeCap.Round))
+                    }
+
+                    // Vertical indicator line on touched point (fl_chart touchIndicator)
+                    touchedIndex?.let { idx ->
+                        coords.getOrNull(idx)?.let { pt ->
+                            drawLine(
+                                color = primaryColor.copy(alpha = 0.65f),
+                                start = Offset(pt.x, plotTop),
+                                end = Offset(pt.x, plotBottom),
+                                strokeWidth = 1.5f,
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f))
                             )
                         }
                     }
-                    Spacer(Modifier.width(6.dp))
-                    Column(Modifier.weight(1f).fillMaxHeight()) {
-                        Canvas(
-                            Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(top = 6.dp, end = 12.dp)
-                                .pointerInput(points) {
-                                    detectTapGestures { offset ->
-                                        val w = size.width.toFloat().coerceAtLeast(1f)
-                                        val best = points.indices.minByOrNull { i ->
-                                            val px = if(points.size == 1) w / 2f else (points[i].first / maxX).toFloat() * w
-                                            abs(px - offset.x)
-                                        }
-                                        touchedIndex = best
-                                    }
-                                }
-                        ) {
-                            val w = size.width
-                            val h = size.height
-                            val yRange = (axisMax - axisMin).coerceAtLeast(1.0)
-                            yTicks.forEach { tick ->
-                                val norm = ((tick - axisMin) / yRange).toFloat()
-                                val y = h - norm * h
-                                drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 1f)
+
+                    // Dots with fl_chart-style surface ring
+                    coords.forEachIndexed { idx, pt ->
+                        val focused = touchedIndex == idx
+                        val r = if(focused) dotActiveRadiusPx else dotRadiusPx
+                        drawCircle(color = surfaceColor, radius = r + dotBorderPx, center = pt)
+                        drawCircle(color = primaryColor, radius = r, center = pt)
+                    }
+
+                    // Transparent-background floating tooltip above touched point (matching OASX getTooltipColor: transparent)
+                    touchedIndex?.let { idx ->
+                        val pt = coords.getOrNull(idx)
+                        val data = points.getOrNull(idx)
+                        if(pt != null && data != null) {
+                            val line1 = formatIncomeDayLabel(data.third)
+                            val line2 = formatIncomeValue(data.second.roundToInt())
+                            val tipPaint = android.graphics.Paint().apply {
+                                isAntiAlias = true
+                                color = tooltipColorArgb
+                                textSize = tooltipTextPx
+                                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                                textAlign = android.graphics.Paint.Align.CENTER
                             }
-                            val coords = points.map { (dayOffset, value, _) ->
-                                val x = if(points.size == 1) w / 2f else (dayOffset / maxX).toFloat() * w
-                                val y = h - ((value - axisMin) / yRange).toFloat() * h
-                                Offset(x, y)
-                            }
-                            if(coords.size >= 2) {
-                                val fillPath = Path().apply {
-                                    moveTo(coords.first().x, h)
-                                    coords.forEach { lineTo(it.x, it.y) }
-                                    lineTo(coords.last().x, h)
-                                    close()
-                                }
-                                drawPath(fillPath, color = primaryColor.copy(alpha = 0.12f))
-                                val linePath = Path().apply {
-                                    moveTo(coords.first().x, coords.first().y)
-                                    coords.drop(1).forEach { lineTo(it.x, it.y) }
-                                }
-                                drawPath(linePath, color = primaryColor, style = Stroke(width = 4f, cap = StrokeCap.Round))
-                            }
-                            coords.forEachIndexed { idx, pt ->
-                                val focused = touchedIndex == idx
-                                drawCircle(color = primaryColor, radius = if(focused) 8f else 5f, center = pt)
-                            }
-                        }
-                        // Bottom X-axis labels
-                        Row(
-                            Modifier.fillMaxWidth().height(22.dp).padding(end = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(formatIncomeDayLabel(points.first().third), style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if(points.size >= 3) {
-                                val mid = points[points.size / 2]
-                                Text(formatIncomeDayLabel(mid.third), style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            if(points.size >= 2) {
-                                Text(formatIncomeDayLabel(points.last().third), style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            val halfW = maxOf(tipPaint.measureText(line1), tipPaint.measureText(line2)) / 2f + 4f
+                            val clampedX = pt.x.coerceIn(plotLeft + halfW, plotRight - halfW)
+                            val tipY = (pt.y - dotActiveRadiusPx - 14f).coerceAtLeast(tooltipTextPx * 2.1f)
+                            drawContext.canvas.nativeCanvas.drawText(line1, clampedX, tipY - tooltipTextPx * 1.15f, tipPaint)
+                            drawContext.canvas.nativeCanvas.drawText(line2, clampedX, tipY, tipPaint)
                         }
                     }
                 }
 
-                // Bottom summary stats: 初始 / 最新 / 共 N天
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("初始 ${formatIncomeValue(firstVal?.roundToInt() ?: -1)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("最新 ${formatIncomeValue(lastVal?.roundToInt() ?: -1)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("共 ${points.size}天", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Bottom summary stats: 初始 / 最新 / 共 N天 (matching OASX Wrap spacing=14)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("初始 ${formatIncomeValue(firstVal?.roundToInt() ?: -1)}", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    Text("最新 ${formatIncomeValue(lastVal?.roundToInt() ?: -1)}", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    Text("共 ${allPoints.size}天", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
                 }
             }
         }

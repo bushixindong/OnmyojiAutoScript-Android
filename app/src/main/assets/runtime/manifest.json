@@ -64,13 +64,13 @@
     "WeeklyTrifles"
   ],
   "taskCount": 62,
-  "fileCount": 4189,
-  "unpackedBytes": 75712875,
+  "fileCount": 4192,
+  "unpackedBytes": 75749510,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "748d554e7c9abfa5f96edb3fcdf09870b10f6dd833c70888be248514d74f449b",
+  "archiveSha256": "f87679dd77d1e681809eeb3874364c87f4b0481294d9e850aa49c2b8b5b89111",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -10969,8 +10969,8 @@
     },
     {
       "path": "tasks/Component/SwitchAccount/assets.py",
-      "size": 7945,
-      "sha256": "5c41c20dca98734208c6f604781e677e52486ee10738fecaed141f5fc6e7097b"
+      "size": 7967,
+      "sha256": "8348726a84eb1880b311d1993e0e99c99a6711dacd6471f52fbc22f6199b6d12"
     },
     {
       "path": "tasks/Component/SwitchAccount/click.json",
@@ -10994,13 +10994,13 @@
     },
     {
       "path": "tasks/Component/SwitchAccount/res/check_login_form.png",
-      "size": 4214,
-      "sha256": "948f6d630fe5361b4d1d6ef0d6f3fdf1866536e861bf863c5a154d689367f368"
+      "size": 3492,
+      "sha256": "3c88d0390823529cb3841ba5a52bd2ba740ff91a0035830d5d91a1c88a26e3d4"
     },
     {
       "path": "tasks/Component/SwitchAccount/res/image.json",
-      "size": 4005,
-      "sha256": "b210a9ebbf1cf1faf7d7a2d6c51fb1681666339847f9d29d06614b9a3de1b3bc"
+      "size": 4122,
+      "sha256": "3d0dfb22ac06890f00a49c0b7af970f364d51c8e4ea9e00ce4c1d3eab366bbe6"
     },
     {
       "path": "tasks/Component/SwitchAccount/res/res_sa_check_select_svr_1.png",
@@ -17789,8 +17789,8 @@
     },
     {
       "path": "tasks/Restart/assets.py",
-      "size": 10888,
-      "sha256": "7a9d3bb702276aea676b8f2340a2ca693f781c739b7893060e136d76a602ee0f"
+      "size": 10895,
+      "sha256": "705da6d9b65b9aa76485dd936536435e3480943d15cdd54bd3d9ccefa419f62d"
     },
     {
       "path": "tasks/Restart/config.py",
@@ -17929,8 +17929,8 @@
     },
     {
       "path": "tasks/Restart/login/image.json",
-      "size": 5065,
-      "sha256": "f576437a82b407668033b3028e1b3245c98c59fdfeffbe73ea704397d0c35508"
+      "size": 5235,
+      "sha256": "a1f3e2df7eeab5ba9903ef21e50246e21f6a9927401395c72627cdcb8823c5b6"
     },
     {
       "path": "tasks/Restart/login/login_cancel_battle.png",
@@ -17964,8 +17964,8 @@
     },
     {
       "path": "tasks/Restart/login/login_login_8.png",
-      "size": 4174,
-      "sha256": "bb5f1fa972eb9c8bcb358516b223754cfa15469a02423ac582db01e859073cbc"
+      "size": 3614,
+      "sha256": "de6f3e20532e0249c1d723d590daeb33be5baf9a7323f2655e2901de679d243e"
     },
     {
       "path": "tasks/Restart/login/login_login_cancel_bind_phone.png",
@@ -20220,7 +20220,7 @@
     {
       "path": "tasks/WantedQuests/assets.py",
       "size": 16095,
-      "sha256": "bfd688b89302936cc5d2ea1ec3b7f84973e6732aa6939e786f4dcc84735d8c59"
+      "sha256": "e11e938c4b14868695cb350385c68e994b60e679bca87208610b910ea2acc044"
     },
     {
       "path": "tasks/WantedQuests/chanllenge/chanllenge_wqc_battle_end_talks.png",
@@ -20260,7 +20260,7 @@
     {
       "path": "tasks/WantedQuests/invite/image.json",
       "size": 8747,
-      "sha256": "0614af6c6682bc49fa2733c0bea878786d42b67fa46d9c49f47d13cb81bb976a"
+      "sha256": "1e9e3eb869e9b172788b30933c8c974ea332cd1b46b7da2578c0e63ef5cec610"
     },
     {
       "path": "tasks/WantedQuests/invite/invite_wq_invite_1.png",
@@ -20524,8 +20524,8 @@
     },
     {
       "path": "tasks/WeeklyTrifles/assets.py",
-      "size": 8064,
-      "sha256": "7189e03335e3cfeb32b8c4553deae2cc42b63876b84fac5b31b73cb8bb7d9259"
+      "size": 8838,
+      "sha256": "7a65a9ce0bfabd787f62c12c7555dc399fba121b6592a6132648de81a6ee935d"
     },
     {
       "path": "tasks/WeeklyTrifles/broken_amulet/broken_amulet_bm_again.png",
@@ -20564,13 +20564,33 @@
     },
     {
       "path": "tasks/WeeklyTrifles/collect/collect_wt_collect.png",
-      "size": 14974,
-      "sha256": "c76534d8be03c7c18be17d8332b9e5b1ddbd32c910e27895e81d7b88b5b33663"
+      "size": 13855,
+      "sha256": "dd8629af7cda91e08fcb6fe173abe674983bea2f836314c38e368bb98e8cc257"
+    },
+    {
+      "path": "tasks/WeeklyTrifles/collect/collect_wt_collect_qr_code.png",
+      "size": 12965,
+      "sha256": "e278fab72d1bdcbbf3c9c1338e6bbd07d13c329365c562702a36f47bfcd7d502"
     },
     {
       "path": "tasks/WeeklyTrifles/collect/collect_wt_collect_wechat.png",
-      "size": 7492,
-      "sha256": "9e7ac70f67784e1ff386b1898c4d119de11f3452ece6b603697dbe03af44c75d"
+      "size": 7895,
+      "sha256": "c0f836a0b2d9d587606104c69d7f60ecf547252d0c4b5ceea998b3c040c09c49"
+    },
+    {
+      "path": "tasks/WeeklyTrifles/collect/collect_wt_collection_guide.png",
+      "size": 15363,
+      "sha256": "523d36de1e0b22f9fe17fc50ecf65cecc634ca55e4e748dd90cde74f32fdba14"
+    },
+    {
+      "path": "tasks/WeeklyTrifles/collect/collect_wt_collection_scroll.png",
+      "size": 5242,
+      "sha256": "f43488b229b5050afea01578d6750417af83c53634140df7a62aaf83c03b7b43"
+    },
+    {
+      "path": "tasks/WeeklyTrifles/collect/collect_wt_collection_title.png",
+      "size": 7655,
+      "sha256": "a89dc9b63e54a55380e4dd76ef5f8f2f40ee2bd851c2ac6af705e1813a99027d"
     },
     {
       "path": "tasks/WeeklyTrifles/collect/collect_wt_qr_code.png",
@@ -20588,14 +20608,9 @@
       "sha256": "a0c989ac78777e413c4c0d75b693bb8599113edd247341ce2079f56bbeb0e0ba"
     },
     {
-      "path": "tasks/WeeklyTrifles/collect/collect_wt_share.png",
-      "size": 5569,
-      "sha256": "ddb09de246b982eb35d5217271172c9f628fcb900eb397b5b6dfda8c20ed32a0"
-    },
-    {
       "path": "tasks/WeeklyTrifles/collect/image.json",
-      "size": 1490,
-      "sha256": "7a47242b230d2da916f858006a09a848f7492cb7ec5bf67c4c604a947ca6ae91"
+      "size": 2385,
+      "sha256": "23aeeebbd4eea1f5e0e9d1088209275226dbf303ca7fdd096755bd9431a2aa3d"
     },
     {
       "path": "tasks/WeeklyTrifles/config.py",
@@ -20604,13 +20619,13 @@
     },
     {
       "path": "tasks/WeeklyTrifles/page.py",
-      "size": 1449,
-      "sha256": "b847ac2a227a42f7680ede248826b05ca71ac19f85433af899479e94d3873d2a"
+      "size": 2387,
+      "sha256": "42ff070393dcf83412abe0c8b1d6264e02cedc3d4ce11f2f5efc33ef2d8a3ec0"
     },
     {
       "path": "tasks/WeeklyTrifles/script_task.py",
-      "size": 11900,
-      "sha256": "f138d6314dd4129ca93ff09672eebfd12bd57b41f9852db6ce88d4452d76cf3c"
+      "size": 11954,
+      "sha256": "f8f8616cf37fc857b4d3e0676b894a51df33050769685cd14463d823f540c728"
     },
     {
       "path": "tasks/WeeklyTrifles/secret/image.json",

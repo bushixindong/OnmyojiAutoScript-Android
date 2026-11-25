@@ -1043,15 +1043,15 @@
         105
       ],
       "reference_roi": [
-        178,
-        572,
+        12,
+        564,
         53,
         60
       ],
       "threshold": 0.8,
       "source": "tasks/Restart/assets.py",
       "source_image": "tasks/Restart/login/login_login_8.png",
-      "sha256": "bb5f1fa972eb9c8bcb358516b223754cfa15469a02423ac582db01e859073cbc"
+      "sha256": "de6f3e20532e0249c1d723d590daeb33be5baf9a7323f2655e2901de679d243e"
     },
     {
       "id": "I_OROCHI",

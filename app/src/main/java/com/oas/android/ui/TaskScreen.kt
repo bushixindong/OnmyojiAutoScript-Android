@@ -70,7 +70,10 @@ fun TaskStatusPanel(controller: OasController, onEdit: (String) -> Unit, onDevic
                     EmptyPanel("暂无已启用任务", "在任务页勾选加入计划")
                 }
             } else {
-                items(enabled, key = { it.id }) { task ->
+                // Omit item key intentionally so moving the top task to the bottom on quickWait/quickRun
+                // does not cause LazyColumn to auto-scroll the viewport down to follow that item.
+                items(enabled.size) { index ->
+                    val task = enabled[index]
                     TaskStatusRow(
                         task = task,
                         locked = task.running || task.id in controller.pending || controller.bulkMode != "none",
