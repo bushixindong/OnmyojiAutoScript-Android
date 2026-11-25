@@ -11,6 +11,8 @@ import org.json.JSONObject;
 public final class SystemAuditActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);TextView view=new TextView(this);view.setText("Checking raw engine transport and power/audio cleanup…");setContentView(view);
+        boolean testAlarm = getIntent().getBooleanExtra("testAlarm", false);
+        boolean alarmOnly = getIntent().getBooleanExtra("alarmOnly", false);
         new Thread(()->{
             String result;
             DeviceSession session=((OasApp)getApplication()).session;
@@ -22,13 +24,32 @@ public final class SystemAuditActivity extends Activity {
                 JSONObject report=new JSONObject();
                 options.edit().putBoolean("keepAwake",true).putBoolean("autoMute",true).putBoolean("autoPanelOff",false).commit();
                 int previous=new JSONObject(session.requireBridge().gameAudioState("com.oas.android")).getInt("mode");
-                try(RuntimePowerGuard guard=new RuntimePowerGuard(this,session,"com.oas.android",20000)) {
-                    if(!session.isGameMuted("com.oas.android")||!new JSONObject(session.requireBridge().systemStatus()).getBoolean("runtimeActive"))throw new AssertionError("Runtime guard did not acquire power/audio state");
-                    TaskEngine.initialize(this,host);
-                    report.put("pythonRaw",new JSONObject(com.chaquo.python.Python.getInstance().getModule("android_oas.system_probe").callAttr("run").toString()));
+                if (!alarmOnly) {
+                    try(RuntimePowerGuard guard=new RuntimePowerGuard(this,session,"com.oas.android",20000)) {
+                        if(!session.isGameMuted("com.oas.android")||!new JSONObject(session.requireBridge().systemStatus()).getBoolean("runtimeActive"))throw new AssertionError("Runtime guard did not acquire power/audio state");
+                        TaskEngine.initialize(this,host);
+                        session.requireBridge().launch("com.oas.android");
+                        Thread.sleep(700);
+                        report.put("pythonRaw",new JSONObject(com.chaquo.python.Python.getInstance().getModule("android_oas.system_probe").callAttr("run").toString()));
+                    }
                 }
                 if(session.isGameMuted("com.oas.android")||new JSONObject(session.requireBridge().systemStatus()).getBoolean("runtimeActive"))throw new AssertionError("Runtime guard left power/audio state behind");
                 if(new JSONObject(session.requireBridge().gameAudioState("com.oas.android")).getInt("mode")!=previous)throw new AssertionError("Audio permission changed after guard closed");
+                if (testAlarm) {
+                    options.edit().putBoolean("autoMute",false).commit();
+                    try (RuntimePowerGuard guard = new RuntimePowerGuard(this,session,"com.oas.android",0)) {
+                        if (!guard.holdsCpu() || !guard.beginIdleWait(60_000) || guard.holdsCpu())
+                            throw new AssertionError("Exact alarm did not release the CPU wake lock");
+                        long end = android.os.SystemClock.elapsedRealtime() + 75_000;
+                        while (!guard.holdsCpu() && android.os.SystemClock.elapsedRealtime() < end) Thread.sleep(250);
+                        if (!guard.holdsCpu()) throw new AssertionError("Exact alarm did not restore the CPU wake lock");
+                        guard.endIdleWait();
+                        if (!guard.beginIdleWait(120_000) || guard.holdsCpu()) throw new AssertionError("Could not rearm alarm");
+                        guard.endIdleWait();
+                        if (!guard.holdsCpu()) throw new AssertionError("Early resume did not restore CPU wake lock");
+                    }
+                    report.put("exactAlarmResume",true);
+                }
                 report.put("runtimeCleanup",true).put("status","passed");result=report.toString();
             }catch(Throwable error){result="FAIL "+android.util.Log.getStackTraceString(error);}
             finally {

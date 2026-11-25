@@ -49,4 +49,6 @@ MaaMeow 同一固定提交的 BackgroundTaskView.kt、BackgroundTaskViewModel.kt
 
 ## 0.5.0 原始帧通道与系统优化
 
-MaaMeow 同一固定提交的 bridge_frame_buffer.cpp、VirtualDisplayManager.kt（CompanionDevice + VirtualDevice 分支）、PowerController / RemoteScreenPowerController.kt、GameAudioMuteController、GameFpsMonitor.kt 及多点触控预览模型用于 raw_frames.cpp、RawFrameStore.java、RawFrameReader.java、VirtualDeviceDisplay.java、ScreenPower.java、GameAudio.java、GameFpsMonitor.java 与 ManualTouchController.java 的实现参考；相关文件遵循本项目 AGPL-3.0-only。
+MaaMeow 同一固定提交的 `bridge_frame_buffer.cpp`、`VirtualDisplayManager.kt`（CompanionDevice + VirtualDevice 分支）、`PowerController` / `RemoteScreenPowerController.kt`、`GameAudioMuteController`、`GameFpsMonitor.kt` 及多点触控预览模型用于 `raw_frames.cpp`、`RawFrameStore.java`、`RawFrameReader.java`、`VirtualDeviceDisplay.java`、`ScreenPower.java`、`GameAudio.java`、`GameFpsMonitor.java` 与 `ManualTouchController.java` 的实现参考；相关文件遵循本项目 AGPL-3.0-only。
+
+1.0.3 对照 [MaaMeow `cd8fc14`](https://github.com/Aliothmoon/MAA-Meow/tree/cd8fc14a8a980c4e559c2dd660ad262ca8d00ea2) 的 `bridge_capture.cpp`、`bridge_preview.cpp`、`PrimaryDisplayManager.kt`、`StaleFrameGuard.kt`、`AppWatchdog.kt`、`ScheduleAlarmManager.kt` 和厂商省电提示。OASA 的 `hardware_capture.cpp` 以独立的采集对象、按需 RGB 转换和硬件缓冲预览接入现有共享内存接口，源文件遵循 AGPL-3.0-only。

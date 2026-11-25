@@ -22,6 +22,15 @@ public final class NativeFrames {
     public static native void initialize(ByteBuffer store);
     public static native void publish(ByteBuffer store,ByteBuffer rgba,int width,int height,int stride,long now);
     public static native byte[] read(ByteBuffer store,long now);
+    static native long createHardwareCapture(int width, int height);
+    static native android.view.Surface hardwareCaptureSurface(long handle);
+    static native long hardwareFrameCount(long handle);
+    static native boolean readHardwareFrame(long handle, ByteBuffer store, long time);
+    static native void hardwarePreviewWindow(long handle, android.view.Surface surface);
+    static native long drawHardwarePreview(long handle, long previous);
+    static native void invalidateHardwareFrame(long handle);
+    static native void blankHardwarePreview(long handle);
+    static native void closeHardwareCapture(long handle);
     public static native int[] spawnShellBridge(String apkPath,String token);
     public static native void stopShellBridge(int pid,int writeFd);
 }

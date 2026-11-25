@@ -12,6 +12,9 @@ import com.chaquo.python.PyObject
 import com.oas.android.*
 import com.oas.android.engine.PythonHost
 import com.oas.android.engine.TaskEngine
+import com.oas.android.engine.getTaskSummary
+import com.oas.android.engine.putTaskSummary
+import com.oas.android.engine.removeTaskSummary
 import org.json.JSONArray
 import org.json.JSONObject
 import rikka.shizuku.Shizuku
@@ -19,7 +22,7 @@ import java.util.concurrent.Executors
 
 data class TaskItem(val id: String, val title: String, val enabled: Boolean, val runnable: Boolean,
     val deferred: Boolean, val schedulable: Boolean, val nextRun: String,
-    val groupId: String, val category: String, val running: Boolean = false)
+    val groupId: String, val category: String, val running: Boolean, val preset: String)
 
 data class PresetItem(val name: String, val active: Boolean, val running: Boolean,
     val previewType: String, val previewId: String, val previewTitle: String, val previewTime: String)
@@ -46,6 +49,7 @@ class OasController(private val activity: Activity) {
     private val preferences = activity.getSharedPreferences("MainActivity", 0)
     private val executor = Executors.newSingleThreadExecutor()
     private var disposed = false
+    private var refreshQueued = false
     var tasks by mutableStateOf<List<TaskItem>>(emptyList()); private set
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf(""); private set
@@ -68,6 +72,11 @@ class OasController(private val activity: Activity) {
     var autoPanelOff by mutableStateOf(preferences.getBoolean("autoPanelOff",false)); private set
     var autoMute by mutableStateOf(preferences.getBoolean("autoMute",false)); private set
     var fpsEnabled by mutableStateOf(preferences.getBoolean("fpsEnabled",true)); private set
+    var floatingBallEnabled by mutableStateOf(preferences.getBoolean("floatingBallEnabled", true)); private set
+    var floatingBallVisible by mutableStateOf(com.oas.android.FloatingOverlayController.isShowing()); private set
+    var overlayGranted by mutableStateOf(com.oas.android.FloatingOverlayController.canDrawOverlays(activity)); private set
+    private var autoShownOverlayOnce = false
+    private val overlayListener = Runnable { ui { floatingBallVisible = com.oas.android.FloatingOverlayController.isShowing() } }
     var captureFps by mutableIntStateOf(preferences.getInt("captureFps",30)); private set
     var previewFps by mutableIntStateOf(preferences.getInt("previewFps",30)); private set
     var gameMuted by mutableStateOf(false); private set
@@ -79,6 +88,7 @@ class OasController(private val activity: Activity) {
     var labels by mutableStateOf(JSONObject()); private set
     var editorError by mutableStateOf(""); private set
     var editing by mutableStateOf(""); private set
+    private var editorPreset = ""
     var mode by mutableStateOf(preferences.getBoolean("primaryMode", session.primaryMode)); private set
     var dpi by mutableIntStateOf(preferences.getInt("dpi", 240)); private set
     var appearance by mutableStateOf(preferences.getString("appearance", "system") ?: "system"); private set
@@ -116,8 +126,8 @@ class OasController(private val activity: Activity) {
 
     init {
         session.addListener(listener)
-        val cached = preferences.getString("taskSummary", null)
-        if(cached != null) try { tasks = parseTasks(cached) } catch(_: Exception) { }
+        com.oas.android.FloatingOverlayController.addVisibilityListener(overlayListener)
+        tasks = cachedTasks(activePreset)
         val cachedPresets = preferences.getString("presetSummary", null)
         presets = try {
             if(cachedPresets != null) parsePresets(cachedPresets).map {
@@ -133,15 +143,23 @@ class OasController(private val activity: Activity) {
     }
 
     private fun ui(action: () -> Unit) { activity.runOnUiThread { if(!disposed) action() } }
-    private fun engine(): PyObject {
-        val mod = TaskEngine.initialize(activity, PythonHost(session, gamePackage))
-        val desired = activePreset
-        try {
-            if(mod.callAttr("active_config").toString() != desired && !session.taskActive.get()) {
-                mod.callAttr("set_active_config", desired)
-            }
-        } catch(_: Throwable) { }
-        return mod
+    private fun engine(): PyObject = TaskEngine.initialize(activity, PythonHost(session, gamePackage))
+    private fun selectedPreset() = preferences.getString("activePreset", "android") ?: "android"
+    private fun cachedTasks(preset: String) =
+        runCatching { preferences.getTaskSummary(preset)?.let { parseTasks(it, preset) } }.getOrNull().orEmpty()
+
+    private fun syncSelectedPreset() {
+        val selected = selectedPreset()
+        if (selected == activePreset) return
+        activePreset = selected
+        tasks = cachedTasks(selected)
+    }
+
+    private fun displayTasks(preset: String, values: List<TaskItem>) {
+        if (selectedPreset() == preset) {
+            activePreset = preset
+            tasks = values
+        }
     }
     private fun parsePresets(raw: String): List<PresetItem> {
         val values = JSONArray(raw)
@@ -159,13 +177,13 @@ class OasController(private val activity: Activity) {
             )
         }
     }
-    private fun parseTasks(raw: String): List<TaskItem> {
+    private fun parseTasks(raw: String, preset: String): List<TaskItem> {
         val values = JSONArray(raw)
         return (0 until values.length()).map { index ->
             val item = values.getJSONObject(index)
             TaskItem(item.getString("id"), item.getString("label"), item.optBoolean("enabled"),
                 item.optBoolean("runnable"), item.optBoolean("deferred"), item.optBoolean("hasScheduler"), item.optString("nextRun", ""),
-                item.getString("groupId"), item.getString("groupLabel"), item.optBoolean("running", false))
+                item.getString("groupId"), item.getString("groupLabel"), item.optBoolean("running", false), preset)
         }
     }
     fun sync() {
@@ -179,6 +197,7 @@ class OasController(private val activity: Activity) {
             logLines = (logLines + formatted).takeLast(200)
         }
         message = session.message; active = session.taskActive.get() && !busy; connected = session.bridge != null
+        syncSelectedPreset()
         shizukuStage = detectShizukuStage(); shizukuBinding = session.binding
         val binder = session.bridge?.asBinder()
         if(binder != knownBridge) { knownBridge = binder; deviceEpoch++; refreshDeviceStatus() }
@@ -192,34 +211,54 @@ class OasController(private val activity: Activity) {
     }
     fun refresh() {
         syncWithoutRefresh()
-        if(loading) return
+        syncSelectedPreset()
+        if(loading) { refreshQueued = true; return }
+        val preset = activePreset
         loading = true; error = ""
         executor.submit {
             try {
-                val module = engine(); val raw = module.callAttr("dashboard").toString()
-                val presetsRaw = module.callAttr("list_presets").toString()
+                val module = engine()
+                val bundle = JSONObject(module.callAttr("preset_bundle", preset).toString())
+                val owner = bundle.getString("active")
+                val raw = bundle.getJSONArray("dashboard").toString()
+                val presetsRaw = bundle.getJSONArray("presets").toString()
+                val values = parseTasks(raw, owner)
                 val presetList = parsePresets(presetsRaw)
-                val values = parseTasks(raw); val translations = JSONObject(module.callAttr("labels").toString())
-                preferences.edit().putString("taskSummary", raw).putString("presetSummary", presetsRaw).apply()
-                ui { tasks = values; presets = presetList; labels = translations; loading = false }
-            } catch(problem: Throwable) { ui { error = problem.message ?: "任务加载失败"; loading = false } }
+                val translations = JSONObject(module.callAttr("labels").toString())
+                ui {
+                    if (owner == selectedPreset()) {
+                        preferences.edit().putTaskSummary(owner, raw).putString("presetSummary", presetsRaw).apply()
+                        displayTasks(owner, values)
+                        presets = presetList
+                        labels = translations
+                    }
+                    finishRefresh()
+                }
+            } catch(problem: Throwable) {
+                ui {
+                    if (preset == selectedPreset()) error = problem.message ?: "任务加载失败"
+                    finishRefresh()
+                }
+            }
+        }
+    }
+    private fun finishRefresh() {
+        loading = false
+        if (refreshQueued) {
+            refreshQueued = false
+            refresh()
         }
     }
     fun selectPreset(name: String, onDone: () -> Unit = {}) {
         if(active || presetBusy) { if(name == activePreset) onDone(); return }
         if(name == activePreset && presets.any { it.name == name && it.active }) { onDone(); return }
+        val previous = selectedPreset()
         presetBusy = true
         executor.submit {
             try {
                 if(session.taskActive.get()) error("任务运行中，请先停止再切换预设")
-                val res = JSONObject(engine().callAttr("set_active_config", name).toString())
-                val nextActive = res.getString("active")
-                val presetsRaw = res.getJSONArray("presets").toString()
-                val presetList = parsePresets(presetsRaw)
-                val dashRaw = res.getJSONArray("dashboard").toString()
-                val values = parseTasks(dashRaw)
-                preferences.edit().putString("activePreset", nextActive).putString("taskSummary", dashRaw).putString("presetSummary", presetsRaw).apply()
-                ui { activePreset = nextActive; presets = presetList; tasks = values; presetBusy = false; onDone() }
+                val res = JSONObject(engine().callAttr("preset_bundle", name).toString())
+                applyPresetBundle(res, previous) { selected -> if(selected) onDone() }
             } catch(problem: Throwable) { ui { presetBusy = false; notify(problem.message ?: "切换预设失败") } }
         }
     }
@@ -231,34 +270,40 @@ class OasController(private val activity: Activity) {
     }
     fun createPreset(name: String, source: String?, importJson: String?, onCreated: (String) -> Unit) {
         if(active || presetBusy) return
+        val previous = selectedPreset()
         presetBusy = true
         executor.submit {
             try {
                 if(session.taskActive.get()) error("任务运行中，请先停止再新建预设")
                 val res = JSONObject(engine().callAttr("create_preset", name, source, importJson).toString())
-                applyPresetBundle(res) { ui { presetBusy = false; notify("已创建预设：$name"); onCreated(name) } }
+                applyPresetBundle(res, previous) { selected ->
+                    notify("已创建预设：$name")
+                    if(selected) onCreated(name)
+                }
             } catch(problem: Throwable) { ui { presetBusy = false; notify(problem.message ?: "新建预设失败") } }
         }
     }
     fun renamePreset(oldName: String, newName: String, onDone: () -> Unit = {}) {
         if(active || presetBusy) return
+        val previous = selectedPreset()
         presetBusy = true
         executor.submit {
             try {
                 if(session.taskActive.get()) error("任务运行中，请先停止再重命名")
-                val res = JSONObject(engine().callAttr("rename_preset", oldName, newName).toString())
-                applyPresetBundle(res) { ui { presetBusy = false; notify("已重命名为 $newName"); onDone() } }
+                val res = JSONObject(engine().callAttr("rename_preset", oldName, newName, previous).toString())
+                applyPresetBundle(res, previous, oldName) { notify("已重命名为 $newName"); onDone() }
             } catch(problem: Throwable) { ui { presetBusy = false; notify(problem.message ?: "重命名失败") } }
         }
     }
     fun deletePreset(name: String) {
         if(active || presetBusy) return
+        val previous = selectedPreset()
         presetBusy = true
         executor.submit {
             try {
                 if(session.taskActive.get()) error("任务运行中，请先停止再删除")
-                val res = JSONObject(engine().callAttr("delete_preset", name).toString())
-                applyPresetBundle(res) { ui { presetBusy = false; notify("已删除预设：$name") } }
+                val res = JSONObject(engine().callAttr("delete_preset", name, previous).toString())
+                applyPresetBundle(res, previous, name) { notify("已删除预设：$name") }
             } catch(problem: Throwable) { ui { presetBusy = false; notify(problem.message ?: "删除失败") } }
         }
     }
@@ -276,23 +321,29 @@ class OasController(private val activity: Activity) {
     }
     fun importTaskJson(taskId: String, jsonText: String) {
         if(editorBusy) return
+        val preset = editorPreset
         editorBusy = true; editorError = ""
         executor.submit {
             try {
-                val res = JSONObject(engine().callAttr("import_task_json", taskId, jsonText).toString())
+                val res = JSONObject(engine().callAttr("import_task_json", taskId, jsonText, preset).toString())
                 val defObj = res.getJSONObject("config")
                 val dashRaw = res.getJSONArray("dashboard").toString()
-                val values = parseTasks(dashRaw)
+                val values = parseTasks(dashRaw, preset)
                 val translations = JSONObject(engine().callAttr("labels").toString())
-                preferences.edit().putString("taskSummary", dashRaw).apply()
-                ui { if(editing == taskId) definition = defObj; tasks = values; labels = translations; editorBusy = false; notify("任务配置已导入") }
+                ui {
+                    preferences.edit().putTaskSummary(preset, dashRaw).apply()
+                    if(editing == taskId && editorPreset == preset) definition = defObj
+                    displayTasks(preset, values)
+                    labels = translations; editorBusy = false; notify("任务配置已导入")
+                }
             } catch(problem: Throwable) { ui { editorBusy = false; notify(problem.message ?: "导入失败") } }
         }
     }
     fun exportTaskJson(taskId: String, copyOnly: Boolean) {
+        val preset = editorPreset
         executor.submit {
             try {
-                val jsonText = engine().callAttr("export_task_json", taskId).toString()
+                val jsonText = engine().callAttr("export_task_json", taskId, preset).toString()
                 ui {
                     if(copyOnly) {
                         val cm = activity.getSystemService(android.content.ClipboardManager::class.java)
@@ -300,21 +351,33 @@ class OasController(private val activity: Activity) {
                         notify("已复制 $taskId JSON")
                     } else {
                         val saver = onSaveJsonFile
-                        if(saver != null) saver("${activePreset}_${taskId}.json", jsonText.toByteArray(Charsets.UTF_8))
+                        if(saver != null) saver("${preset}_${taskId}.json", jsonText.toByteArray(Charsets.UTF_8))
                         else notify("当前不支持导出文件")
                     }
                 }
             } catch(problem: Throwable) { ui { notify(problem.message ?: "导出失败") } }
         }
     }
-    private fun applyPresetBundle(res: JSONObject, after: () -> Unit) {
+    private fun applyPresetBundle(res: JSONObject, previous: String, removed: String? = null, after: (Boolean) -> Unit) {
         val nextActive = res.getString("active")
         val presetsRaw = res.getJSONArray("presets").toString()
         val presetList = parsePresets(presetsRaw)
         val dashRaw = res.getJSONArray("dashboard").toString()
-        val values = parseTasks(dashRaw)
-        preferences.edit().putString("activePreset", nextActive).putString("taskSummary", dashRaw).putString("presetSummary", presetsRaw).apply()
-        ui { activePreset = nextActive; presets = presetList; tasks = values; after() }
+        val values = parseTasks(dashRaw, nextActive)
+        ui {
+            val current = selectedPreset()
+            val selected = current == nextActive || current == removed ||
+                (current == previous && !session.taskActive.get())
+            val edit = preferences.edit().putString("presetSummary", presetsRaw)
+            if(removed != null) edit.removeTaskSummary(removed)
+            if(selected) edit.putString("activePreset", nextActive).putTaskSummary(nextActive, dashRaw)
+            edit.apply()
+            presets = presetList.map { it.copy(active = it.name == selectedPreset()) }
+            if(selected) displayTasks(nextActive, values) else syncSelectedPreset()
+            presetBusy = false
+            session.notifyStateChanged()
+            after(selected)
+        }
     }
     private fun syncWithoutRefresh() { message = session.message; active = session.taskActive.get() && !busy; if(!active) stopping = false; connected = session.bridge != null
         shizukuStage = detectShizukuStage(); shizukuBinding = session.binding
@@ -328,45 +391,48 @@ class OasController(private val activity: Activity) {
             } catch(_: Throwable) { ui { environmentReady = false; screenLabel = "等待连接" } }
         }
     }
-    fun setEnabled(task: TaskItem, enabled: Boolean) {
-        if(task.running || task.id in pending) return
-        pending = pending + task.id
-        executor.submit {
-            try {
-                val raw = engine().callAttr("set_task_enabled", task.id, enabled).toString()
-                val values = parseTasks(raw); preferences.edit().putString("taskSummary", raw).apply()
-                ui { tasks = values; pending = pending - task.id }
-            } catch(problem: Throwable) { ui { pending = pending - task.id; notify(problem.message ?: "保存失败") } }
-        }
+    fun setEnabled(task: TaskItem, enabled: Boolean) = mutateSchedule(task) {
+        engine().callAttr("set_task_enabled", task.id, enabled, task.preset).toString()
     }
-    fun quickRun(task: TaskItem) = mutateSchedule(task.id, "已设为立即运行") {
-        engine().callAttr("quick_run_task", task.id).toString()
+    fun quickRun(task: TaskItem) = mutateSchedule(task, "已设为立即运行") {
+        engine().callAttr("quick_run_task", task.id, task.preset).toString()
     }
-    fun quickWait(task: TaskItem) = mutateSchedule(task.id, "已设为等待中") {
-        engine().callAttr("quick_wait_task", task.id).toString()
+    fun quickWait(task: TaskItem) = mutateSchedule(task, "已设为等待中") {
+        engine().callAttr("quick_wait_task", task.id, task.preset).toString()
     }
-    fun setNextRun(task: TaskItem, nextRun: String) = mutateSchedule(task.id, "执行时间已更新") {
-        engine().callAttr("set_task_next_run", task.id, nextRun).toString()
+    fun setNextRun(task: TaskItem, nextRun: String) = mutateSchedule(task, "执行时间已更新") {
+        engine().callAttr("set_task_next_run", task.id, nextRun, null, task.preset).toString()
     }
     fun bulkQuickSchedule(runNow: Boolean) {
         if(bulkMode != "none") return
+        val preset = activePreset
         bulkMode = if(runNow) "runNow" else "waitNow"
         executor.submit {
             try {
-                val raw = engine().callAttr("bulk_quick_schedule", runNow).toString()
-                val values = parseTasks(raw); preferences.edit().putString("taskSummary", raw).apply()
-                ui { tasks = values; bulkMode = "none"; notify(if(runNow) "已将启用任务全部设为立即运行" else "已将启用任务全部设为等待") }
+                val raw = engine().callAttr("bulk_quick_schedule", runNow, preset).toString()
+                val values = parseTasks(raw, preset)
+                ui {
+                    preferences.edit().putTaskSummary(preset, raw).apply()
+                    displayTasks(preset, values)
+                    bulkMode = "none"; notify(if(runNow) "已将启用任务全部设为立即运行" else "已将启用任务全部设为等待")
+                }
             } catch(problem: Throwable) { ui { bulkMode = "none"; notify(problem.message ?: "批量调度失败") } }
         }
     }
-    private fun mutateSchedule(id: String, doneText: String, call: () -> String) {
-        if(id in pending || bulkMode != "none") return
+    private fun mutateSchedule(task: TaskItem, doneText: String? = null, call: () -> String) {
+        val id = task.id
+        if(task.running || id in pending || bulkMode != "none") return
         pending = pending + id
         executor.submit {
             try {
                 val raw = call()
-                val values = parseTasks(raw); preferences.edit().putString("taskSummary", raw).apply()
-                ui { tasks = values; pending = pending - id; notify(doneText) }
+                val values = parseTasks(raw, task.preset)
+                ui {
+                    preferences.edit().putTaskSummary(task.preset, raw).apply()
+                    displayTasks(task.preset, values)
+                    pending = pending - id
+                    if(doneText != null) notify(doneText)
+                }
             } catch(problem: Throwable) { ui { pending = pending - id; notify(problem.message ?: "调度更新失败") } }
         }
     }
@@ -574,26 +640,29 @@ class OasController(private val activity: Activity) {
         }
     }
     fun loadEditor(id: String) {
+        val preset = activePreset
+        editorPreset = preset
         editing = id; definition = null; editorError = ""
         executor.submit {
             try {
-                val module = engine(); val value = JSONObject(module.callAttr("task_config", id).toString())
+                val module = engine(); val value = JSONObject(module.callAttr("task_config", id, preset).toString())
                 val translations = JSONObject(module.callAttr("labels").toString())
-                ui { if(editing == id) { definition = value; labels = translations } }
-            } catch(problem: Throwable) { ui { editorError = problem.message ?: "配置加载失败" } }
+                ui { if(editing == id && editorPreset == preset) { definition = value; labels = translations } }
+            } catch(problem: Throwable) { ui { if(editing == id && editorPreset == preset) editorError = problem.message ?: "配置加载失败" } }
         }
     }
     fun saveEditor(id: String, value: String, run: Boolean, onSaved: () -> Unit) {
         if(editorBusy) return
+        val preset = editorPreset
         editorBusy = true; editorError = ""
         executor.submit {
             try {
-                engine().callAttr("save_task_config", id, value)
-                ui { editorBusy = false; notify("配置已保存"); refresh(); onSaved(); if(run && !active) start(id) }
+                engine().callAttr("save_task_config", id, value, preset)
+                ui { editorBusy = false; notify("配置已保存"); refresh(); onSaved(); if(run && !active) start(id, preset) }
             } catch(problem: Throwable) { ui { editorBusy = false; editorError = problem.message ?: "配置校验失败" } }
         }
     }
-    fun start(task: String? = null) {
+    fun start(task: String? = null, preset: String = activePreset) {
         if(active || busy) return
         if(task == null && tasks.none { it.enabled && it.runnable }) { notify("先在任务页勾选要运行的任务"); return }
         try {
@@ -601,9 +670,10 @@ class OasController(private val activity: Activity) {
             if(!environmentReady) { notify("请先在设备与游戏中准备运行环境"); return }
             if(Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
                 activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 3)
-            session.update("启动配置：$activePreset")
+            session.update("启动配置：$preset")
             activity.startForegroundService(Intent(activity, MonitorService::class.java)
-                .setAction(if(task == null) "engine-schedule" else "engine").putExtra("package", gamePackage).putExtra("engineTask", task))
+                .setAction(if(task == null) "engine-schedule" else "engine").putExtra("package", gamePackage)
+                .putExtra("engineTask", task).putExtra("preset", preset))
             message = "正在启动任务…"; active = true
         } catch(problem: Throwable) { notify(problem.message ?: "启动失败") }
     }
@@ -619,7 +689,50 @@ class OasController(private val activity: Activity) {
         syncWithoutRefresh()
         if(autoConnect && shizukuStage == ShizukuStage.READY && !shizukuBinding) connect()
     }
-    fun onResume() { refreshShizuku(autoConnect = true); refresh() }
+    fun onResume() {
+        overlayGranted = com.oas.android.FloatingOverlayController.canDrawOverlays(activity)
+        if (floatingBallEnabled && overlayGranted && !autoShownOverlayOnce && !com.oas.android.FloatingOverlayController.isShowing()) {
+            autoShownOverlayOnce = true
+            com.oas.android.FloatingOverlayController.show(activity)
+        }
+        floatingBallVisible = com.oas.android.FloatingOverlayController.isShowing()
+        refreshShizuku(autoConnect = true)
+        refresh()
+    }
+    fun requestOverlayPermission() {
+        try {
+            activity.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.fromParts("package", activity.packageName, null)))
+        } catch (_: Throwable) {
+            notify("请在系统设置中允许 OASA「显示在其他应用上层」权限")
+        }
+    }
+    fun updateFloatingBallEnabled(enabled: Boolean) {
+        floatingBallEnabled = enabled
+        preferences.edit().putBoolean("floatingBallEnabled", enabled).apply()
+        if (!enabled) {
+            com.oas.android.FloatingOverlayController.hide()
+            floatingBallVisible = false
+            return
+        }
+        if (!com.oas.android.FloatingOverlayController.canDrawOverlays(activity)) {
+            notify("请先开启「显示在其他应用上层」悬浮窗权限")
+            requestOverlayPermission()
+            return
+        }
+        autoShownOverlayOnce = true
+        if (com.oas.android.FloatingOverlayController.show(activity)) {
+            floatingBallVisible = true
+        }
+    }
+    fun toggleFloatingBall() {
+        if (com.oas.android.FloatingOverlayController.isShowing()) {
+            com.oas.android.FloatingOverlayController.hide()
+            floatingBallVisible = false
+            return
+        }
+        updateFloatingBallEnabled(true)
+    }
     fun openShizuku() {
         try {
             val intent = (activity.packageManager.getLaunchIntentForPackage(DeviceSession.SHIZUKU_PACKAGE)
@@ -782,7 +895,7 @@ class OasController(private val activity: Activity) {
         catch(_: Exception) { null }
     }
     private fun detectPackage(): String = candidates.firstOrNull { try { activity.packageManager.getApplicationInfo(it, 0); true } catch(_: Exception) { false } } ?: candidates[0]
-    fun dispose() { disposed = true; session.removeListener(listener); executor.shutdownNow() }
+    fun dispose() { disposed = true; session.removeListener(listener); com.oas.android.FloatingOverlayController.removeVisibilityListener(overlayListener); executor.shutdownNow() }
     companion object {
         val candidates = listOf("com.netease.onmyoji", "com.netease.onmyoji.wyzymnqsd_cps", "com.netease.onmyoji.bili", "com.netease.onmyoji.mi", "com.netease.onmyoji.huawei", "com.netease.onmyoji.vivo", "com.netease.onmyoji.nearme.gamecenter", "com.netease.onmyoji.m4399", "com.tencent.tmgp.yys.zqb")
     }

@@ -1074,21 +1074,25 @@ fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-                    if(controller.connected && controller.environmentReady) {
+                    } else if(controller.connected && controller.environmentReady) {
                         OutlinedButton(
                             onClick = controller::release,
-                            enabled = !controller.active && !controller.busy,
+                            enabled = !controller.busy,
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
-                        ) { Text("释放虚拟屏") }
-                    } else if(!controller.active) {
+                        ) { Text("释放虚拟屏", maxLines = 1) }
+                    } else {
                         OutlinedButton(
                             onClick = onDevice,
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
-                        ) { Text("设备与游戏") }
+                        ) { Text("设备与游戏", maxLines = 1) }
                     }
+                    OutlinedButton(
+                        onClick = controller::toggleFloatingBall,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) { Text(if(controller.floatingBallVisible) "关闭悬浮球" else "打开悬浮球", maxLines = 1) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(

@@ -236,6 +236,7 @@ public final class TaskReplayActivity extends Activity {
         @Override public void previewPointers(int action,int index,int[] ids,float[] xy,long owner){throw new UnsupportedOperationException();}
         @Override public String systemStatus(){throw new UnsupportedOperationException();}
         @Override public void configureRuntime(boolean active,boolean awake,boolean fps){}
+        @Override public void setScheduleIdle(boolean idle){}
         @Override public void configureFrameRates(int capture,int preview){}
         @Override public boolean setDisplayPower(boolean on){throw new UnsupportedOperationException();}
         @Override public String gameAudioState(String pkg){throw new UnsupportedOperationException();}

@@ -14,7 +14,8 @@ import java.nio.FloatBuffer;
  * All methods, including destruction, run on the frame thread. No encoded video or PNG preview.
  * Architecture reference: MaaMeow bridge_preview.cpp (see THIRD_PARTY.md).
  */
-final class DisplayRenderer implements AutoCloseable {
+final class DisplayRenderer extends FramePipeline {
+    private final Handler handler;
     private EGLDisplay egl = EGL14.EGL_NO_DISPLAY;
     private EGLContext context = EGL14.EGL_NO_CONTEXT;
     private EGLSurface idle = EGL14.EGL_NO_SURFACE, capture = EGL14.EGL_NO_SURFACE, preview = EGL14.EGL_NO_SURFACE;
@@ -23,17 +24,16 @@ final class DisplayRenderer implements AutoCloseable {
     private Surface input, previewWindow;
     private int program, textureId, width, height;
     private boolean closed;
-    private long lastCapture, lastPreview;
-    volatile long previewFrames, previewAt;
+    private long lastCapture, lastPreview, lastComposition;
+    private boolean captureRequested;
+    private final Runnable capturePending = this::renderCapture;
     volatile long compositionFrames;
-    volatile int captureIntervalMs=180,previewIntervalMs=32;
-    volatile boolean attached;
-    volatile String error = "";
     private final float[] transform = new float[16];
     private final FloatBuffer vertices = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder())
         .asFloatBuffer().put(new float[]{-1,-1,0,0, 1,-1,1,0, -1,1,0,1, 1,1,1,1});
 
     DisplayRenderer(Handler handler, Surface captureWindow, int width, int height) {
+        this.handler = handler;
         try {
             egl = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
             int[] version = new int[2];
@@ -71,13 +71,58 @@ final class DisplayRenderer implements AutoCloseable {
     }
 
     Surface input() { return input; }
+    long compositionCount() { return compositionFrames; }
+
+    @Override void invalidate() {
+        lastComposition = 0;
+        if (!attached) return;
+        try {
+            current(preview);
+            GLES20.glClearColor(0,0,0,1);
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+            EGL14.eglSwapBuffers(egl,preview);
+        } finally {
+            previewAt = 0;
+            current(idle);
+        }
+    }
 
     void setCapture(Surface window, int width, int height) {
         current(idle);
         EGLSurface replacement = window(window);
         if(capture != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(egl,capture);
         capture = replacement; this.width=width; this.height=height;
-        texture.setDefaultBufferSize(width,height); lastCapture=0;
+        texture.setDefaultBufferSize(width,height);
+        lastCapture = lastComposition = 0;
+        captureRequested = false;
+        handler.removeCallbacks(capturePending);
+    }
+
+    /** Called on the render thread. An idle live preview never causes an RGB readback. */
+    void requestCapture() {
+        captureRequested = true;
+        renderCapture();
+    }
+
+    private void renderCapture() {
+        handler.removeCallbacks(capturePending);
+        if (closed || !captureRequested || lastComposition == 0) return;
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastComposition > 5000) return;
+        long wait = lastCapture + captureIntervalMs - now;
+        if (wait > 0) {
+            handler.postDelayed(capturePending, wait);
+            return;
+        }
+        captureRequested = false;
+        try {
+            draw(capture, width, height, false);
+            lastCapture = now;
+        } catch (RuntimeException failure) {
+            android.util.Log.w("OAS", "On-demand capture failed", failure);
+        } finally {
+            current(idle);
+        }
     }
 
     /** Takes ownership of the Binder-unparceled Surface reference. */
@@ -102,9 +147,8 @@ final class DisplayRenderer implements AutoCloseable {
             current(idle); texture.updateTexImage(); texture.getTransformMatrix(transform);
             compositionFrames++;
             long now=SystemClock.elapsedRealtime();
-            if(now-lastCapture>=captureIntervalMs) {
-                draw(capture,width,height,false); lastCapture=now;
-            }
+            lastComposition = now;
+            if (captureRequested && now - lastCapture >= captureIntervalMs) renderCapture();
             if(attached && now-lastPreview>=previewIntervalMs) {
                 try {
                     int[] w=new int[1],h=new int[1];
@@ -159,6 +203,7 @@ final class DisplayRenderer implements AutoCloseable {
     }
     @Override public void close() {
         closed=true; attached=false;
+        handler.removeCallbacks(capturePending);
         if(texture != null) texture.setOnFrameAvailableListener(null);
         if(egl!=EGL14.EGL_NO_DISPLAY && context!=EGL14.EGL_NO_CONTEXT && idle!=EGL14.EGL_NO_SURFACE) {
             current(idle);

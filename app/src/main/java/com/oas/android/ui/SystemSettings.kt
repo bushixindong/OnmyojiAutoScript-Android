@@ -12,11 +12,25 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import com.oas.android.RuntimePowerGuard
+import android.os.Build
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import kotlinx.coroutines.delay
 
 @Composable
 fun SystemSettings(controller: OasController) {
-    val lifecycle = (LocalActivity.current as ComponentActivity).lifecycle
+    val activity = LocalActivity.current as ComponentActivity
+    val lifecycle = activity.lifecycle
+    var alarmAccess by remember { mutableStateOf(RuntimePowerGuard.exactAlarmsAvailable(activity)) }
+    DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) alarmAccess = RuntimePowerGuard.exactAlarmsAvailable(activity)
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     LaunchedEffect(controller, controller.connected) {
         while(true) {
             if(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) controller.refreshSystem()
@@ -26,9 +40,26 @@ fun SystemSettings(controller: OasController) {
     OasSettingCard("运行与省电") {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SystemToggle("后台保活", "保持 CPU 与运行屏活跃", controller.keepAwake) { controller.systemOption("keepAwake", it) }
+            if (Build.VERSION.SDK_INT >= 31 && !alarmAccess) {
+                TextButton(onClick = {
+                    try { activity.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                        Uri.fromParts("package", activity.packageName, null))) }
+                    catch (_: android.content.ActivityNotFoundException) { controller.notify("请在系统设置中允许 OASA 使用闹钟和提醒") }
+                }) { Text("允许精确闹钟，以便长时间等待时休眠") }
+            }
             SystemToggle("自动熄屏", "后台运行时关闭实体屏", controller.autoPanelOff) { controller.systemOption("autoPanelOff", it) }
             SystemToggle("自动静音游戏", "运行时静音游戏，结束恢复", controller.autoMute) { controller.systemOption("autoMute", it) }
             SystemToggle("帧率监测", "显示实时游戏帧率", controller.fpsEnabled) { controller.systemOption("fpsEnabled", it) }
+            SystemToggle(
+                "悬浮窗",
+                "默认开启悬浮控制球，长按悬浮球可临时关闭",
+                controller.floatingBallEnabled && controller.overlayGranted
+            ) { controller.updateFloatingBallEnabled(it) }
+            if (!controller.overlayGranted) {
+                TextButton(onClick = controller::requestOverlayPermission) {
+                    Text("去授予「显示在其他应用上层」悬浮窗权限")
+                }
+            }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             Text("任务取图上限", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

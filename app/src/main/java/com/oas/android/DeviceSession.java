@@ -22,6 +22,7 @@ public final class DeviceSession {
     private final com.oas.android.bridge.RawFrameReader rawReader=new com.oas.android.bridge.RawFrameReader();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Set<Runnable> listeners = new CopyOnWriteArraySet<>();
+    private final java.util.ArrayDeque<String> recentLogs = new java.util.ArrayDeque<>(120);
     private final Shizuku.UserServiceArgs args;
     public volatile IDeviceBridge bridge;
     private volatile IDeviceBridge rootBridge;
@@ -115,7 +116,21 @@ public final class DeviceSession {
 
     public void addListener(Runnable listener) { listeners.add(listener); }
     public void removeListener(Runnable listener) { listeners.remove(listener); }
-    public void update(String text) { message = text; main.post(() -> { for (Runnable listener : listeners) listener.run(); }); }
+    public java.util.List<String> recentLogsSnapshot() {
+        synchronized (recentLogs) { return new java.util.ArrayList<>(recentLogs); }
+    }
+    public void update(String text) {
+        message = text;
+        if (text != null && !text.trim().isEmpty()) {
+            String time = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date());
+            String line = text.matches("^\\d{2}:\\d{2}:\\d{2}.*") ? text : (time + " | " + text);
+            synchronized (recentLogs) {
+                if (recentLogs.size() >= 120) recentLogs.removeFirst();
+                recentLogs.addLast(line);
+            }
+        }
+        main.post(() -> { for (Runnable listener : listeners) listener.run(); });
+    }
 
     public void connect() {
         try {

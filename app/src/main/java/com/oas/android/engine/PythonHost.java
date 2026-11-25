@@ -24,6 +24,8 @@ public class PythonHost implements AutoCloseable {
     protected void check(){if(!isRunning())throw new IllegalStateException("任务停止或达到运行时限");}
     private void touching(){check();if(++touches>100000)throw new IllegalStateException("达到触控次数上限");}
     public String gamePackage(){return gamePackage;}
+    public boolean beginIdleWait(long millis) { return false; }
+    public void endIdleWait() { }
     public byte[] screenshotRgb()throws Exception{check();return rawReader.read(session.requireBridge());}
     @Override public void close(){rawReader.close();}
     public byte[] screenshot()throws Exception{

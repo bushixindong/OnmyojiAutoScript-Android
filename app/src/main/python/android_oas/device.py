@@ -94,7 +94,9 @@ def install(root,host,check):
             from module.image.rpc import get_image_client
             entry=get_image_client().register_frame(self.image,self.config.config_name)
             self.image_frame_id=entry['frame_id'];self.reset_image_batch_cache(self.image_frame_id)
-            try:self.screenshot_deque.append((int(time.time()*1000),self.image.copy()))
+            try:
+                snapshot = self.image.copy() if self.image.flags.writeable else self.image
+                self.screenshot_deque.append((int(time.time()*1000),snapshot))
             except Exception:pass
             return self.image
         def screenshot_adb(self):return self.screenshot()

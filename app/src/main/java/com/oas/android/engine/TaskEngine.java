@@ -60,5 +60,9 @@ public final class TaskEngine {
             try{current.callAttr("request_stop");}catch(Throwable ignored){}
         }
     }
+    public static void wakeSchedule() {
+        PyObject current = module;
+        if (current != null) current.callAttr("wake_schedule");
+    }
     private static String read(InputStream input)throws IOException{ByteArrayOutputStream output=new ByteArrayOutputStream();byte[] bytes=new byte[16384];int n;while((n=input.read(bytes))!=-1)output.write(bytes,0,n);return output.toString("UTF-8");}
 }

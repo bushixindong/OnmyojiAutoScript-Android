@@ -19,7 +19,10 @@ app/src/main/jniLibs/
 
 # Local test/audit outputs and internal handoff notes
 engine-audit-*.json
+perf-system-audit-*.json
 MIGRATION_HANDOFF.txt
+THIRD_PARTY.md
+VALIDATION.md
 
 # Local release signing secrets (NEVER commit)
 keystore/

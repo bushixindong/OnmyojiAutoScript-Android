@@ -52,7 +52,9 @@ fun GamePreview(controller: OasController) {
     SideEffect { allowTouch.set(manual && !controller.busy && resumed && state.live) }
 
     DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, _ -> resumed = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
+        val observer = LifecycleEventObserver { _, _ ->
+            resumed = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer); allowTouch.set(false); touchExecutor.shutdown() }
     }
@@ -73,14 +75,18 @@ fun GamePreview(controller: OasController) {
                     } else if(status.optInt("displayId",-1) < 0) {
                         state = PreviewState("请先在设备与游戏中准备后台虚拟屏")
                     } else {
-                        if(!attached || !status.optBoolean("attached")) {
+                        val activeOwner = status.optLong("owner", 0L)
+                        val takenByOther = activeOwner != 0L && activeOwner != owner
+                        if(!takenByOther && (!attached || !status.optBoolean("attached"))) {
                             withContext(Dispatchers.IO) { bridge.setPreviewSurface(window,owner) }
                             attached = true; attachedBridge = bridge
                         }
+                        val owned = status.optBoolean("attached") && activeOwner == owner
                         val age = status.optLong("ageMs",-1)
-                        val live = status.optBoolean("attached") && age in 0..2000
+                        val live = owned && age in 0..2000
                         val error = status.optString("error")
                         state = PreviewState(when {
+                            takenByOther -> "画面正在悬浮窗中显示"
                             error.isNotBlank() -> "预览异常：$error"
                             live -> "实时预览"
                             else -> "等待虚拟屏新画面…"
@@ -185,11 +191,7 @@ fun GamePreview(controller: OasController) {
             }
         }
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("手动控制",style=MaterialTheme.typography.bodyMedium)
-                Text("支持点击、滑动与多点触控",
-                    style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Text("手动控制",style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
             Switch(checked=manual,onCheckedChange={ manual=it },enabled=state.live && !controller.busy,
                 modifier=Modifier.semantics{contentDescription="手动控制开关"})
         }

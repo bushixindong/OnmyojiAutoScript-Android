@@ -2,8 +2,9 @@
 $ErrorActionPreference='Stop'
 $taskRoot=Split-Path $PSScriptRoot
 $taskSource=Join-Path $taskRoot 'app\src\main\native\raw_frames.cpp'
+$taskHardwareSource=Join-Path $taskRoot 'app\src\main\native\hardware_capture.cpp'
 $taskCompiler=Join-Path $NdkPath 'toolchains\llvm\prebuilt\windows-x86_64\bin\clang++.exe'
-$taskDigest=(Get-FileHash -LiteralPath $taskSource -Algorithm SHA256).Hash
+$taskDigest=(@($taskSource,$taskHardwareSource) | Get-FileHash -Algorithm SHA256 | ForEach-Object Hash) -join ':'
 if(-not(Test-Path -LiteralPath $taskCompiler)){
     $taskStale=$false
     foreach($taskAbi in @('arm64-v8a','x86_64')){
@@ -24,7 +25,7 @@ foreach($taskAbi in @('arm64-v8a','x86_64')){
     $taskStamp="$taskOutput.source-sha256"
     if((Test-Path -LiteralPath $taskOutput)-and(Test-Path -LiteralPath $taskStamp)-and((Get-Content -LiteralPath $taskStamp -Raw).Trim() -eq $taskDigest)){continue}
     New-Item -ItemType Directory -Path (Split-Path $taskOutput) -Force | Out-Null
-    & $taskCompiler "--target=$taskTriple" -std=c++17 -O3 -fPIC -shared -static-libstdc++ '-Wl,-z,max-page-size=16384' '-Wl,-soname,liboas_frames.so' $taskSource -o $taskOutput
+    & $taskCompiler "--target=$taskTriple" -std=c++17 -O3 -fPIC -shared -static-libstdc++ '-Wl,-z,max-page-size=16384' '-Wl,-soname,liboas_frames.so' $taskSource $taskHardwareSource -lmediandk -landroid -lEGL -lGLESv2 -o $taskOutput
     if($LASTEXITCODE -ne 0){throw "Native RGB build failed: $taskAbi"}
     Set-Content -LiteralPath $taskStamp -Value $taskDigest -Encoding ascii
 }

@@ -38,7 +38,13 @@ public final class OptimizationSmokeMain {
             for(int i=0;i<slow.length;i++){long start=System.nanoTime();Bitmap image=png(bridge);image.recycle();slow[i]=System.nanoTime()-start;}
             report.put("rawMedianMs",median(fast)).put("pngMedianMs",median(slow)).put("readOnlySharedMemory",true);
             bridge.configureRuntime(true,true,true);bridge.configureFrameRates(60,60);
+            long idleCount = new JSONObject(bridge.systemStatus()).getLong("recognitionFrames");
             bridge.setPreviewSurface(copy(sink.getSurface()),51);Thread.sleep(600);
+            if (new JSONObject(bridge.systemStatus()).getLong("recognitionFrames") != idleCount)
+                throw new AssertionError("Live preview produced unrequested recognition frames");
+            if (new JSONObject(bridge.previewStatus()).getLong("frames") == 0)
+                throw new AssertionError("Capture did not render a live preview");
+            report.put("zeroUnrequestedRecognitionFrames",true);
             bridge.previewPointers(MotionEvent.ACTION_DOWN,0,new int[]{0},new float[]{200,300},51);
             bridge.previewPointers(MotionEvent.ACTION_POINTER_DOWN,1,new int[]{0,1},new float[]{200,300,800,300},51);
             bridge.previewPointers(MotionEvent.ACTION_MOVE,0,new int[]{0,1},new float[]{250,350,750,350},51);

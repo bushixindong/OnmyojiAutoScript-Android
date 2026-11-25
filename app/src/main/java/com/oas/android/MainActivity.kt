@@ -71,7 +71,15 @@ class MainActivity : ComponentActivity() {
         setContent { OasAppScreen(controller) }
     }
 
-    override fun onResume() { super.onResume(); if(::controller.isInitialized) controller.onResume() }
-    override fun onDestroy() { if(::controller.isInitialized) controller.dispose(); super.onDestroy() }
+    override fun onResume() {
+        super.onResume()
+        FloatingOverlayController.collapse()
+        if(::controller.isInitialized) controller.onResume()
+    }
+    override fun onDestroy() {
+        if (!isChangingConfigurations) FloatingOverlayController.hide()
+        if(::controller.isInitialized) controller.dispose()
+        super.onDestroy()
+    }
     companion object { @JvmStatic fun readText(input: InputStream): String = ToolsActivity.readText(input) }
 }

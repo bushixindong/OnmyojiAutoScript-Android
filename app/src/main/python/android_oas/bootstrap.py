@@ -19,6 +19,7 @@ _host=None
 _config=None
 _config_name='android'
 _active=False
+_schedule_active=False
 _ready=False
 _running_task=None
 _last_outcome=None
@@ -35,6 +36,9 @@ class Cancelled(BaseException):
 
 def request_stop():
     _stop_event.set()
+    _wakeup_event.set()
+
+def wake_schedule():
     _wakeup_event.set()
 
 def _notify_state():
@@ -65,12 +69,24 @@ def _wait_schedule(seconds):
         if not _stop_event.is_set():
             _wakeup_event.clear()
 
+def _wait_idle(host, seconds):
+    duration = max(0.0, float(seconds))
+    begin = getattr(host, 'beginIdleWait', None)
+    if duration >= 60 and begin is not None and begin(int(duration * 1000)):
+        try:
+            _wait_schedule(duration)
+        finally:
+            host.endIdleWait()
+    else:
+        _wait_schedule(min(1.0, duration))
+
 def _module(name,**values):
     module=types.ModuleType(name);module.__dict__.update(values);sys.modules[name]=module;return module
 
 def initialize(root,host):
     global _root,_host,_ready
-    if not _active:_host=host
+    with _config_lock:
+        if not (_active or _schedule_active):_host=host
     if _ready:return
     _root=Path(str(root));os.chdir(_root);sys.path.insert(0,str(_root));sys.dont_write_bytecode=True
     os.environ.setdefault('OPENBLAS_NUM_THREADS','2');os.environ.setdefault('OMP_NUM_THREADS','2')
@@ -138,10 +154,29 @@ def _install_image():
     node=next(node for node in ast.parse(source).body if isinstance(node,ast.ClassDef) and node.name=='ImageClient')
     namespace=dict(np=np,pickle=pickle,ScriptError=ScriptError,__name__='module.image.rpc')
     exec(compile(ast.Module(body=[node],type_ignores=[]),str(_root/'module/image/rpc.py'),'exec'),namespace)
+    # The bundled and hot-updated desktop runtime share the registration logic.
+    # Give just that method a decoder for local NumPy snapshots, without changing
+    # pickle or any other desktop API globally.
+    register_frame = ImageRuntime.register_frame
+    frame_globals = dict(register_frame.__globals__)
+    frame_globals['pickle'] = types.SimpleNamespace(
+        loads=lambda payload: payload if isinstance(payload, np.ndarray) else pickle.loads(payload))
+    register_local_frame = types.FunctionType(register_frame.__code__, frame_globals,
+        register_frame.__name__, register_frame.__defaults__, register_frame.__closure__)
+    register_local_frame.__kwdefaults__ = register_frame.__kwdefaults__
     class LocalImageClient(namespace['ImageClient']):
         def __init__(self):
             self.address='in-process'
             self.client=ImageRuntime(dict(worker_count=2,frame_cache_max_count=24,frame_cache_expire_seconds=30.0))
+        def register_frame(self, image, config_name):
+            if not isinstance(image, np.ndarray):
+                raise TypeError('register_frame expects a NumPy array')
+            # A bytes-backed raw frame is already immutable. Keep the previous
+            # snapshot semantics for callers passing a mutable image.
+            if image.flags.writeable or not image.flags.c_contiguous:
+                image = np.array(image, copy=True, order='C')
+                image.setflags(write=False)
+            return register_local_frame(self.client, image, config_name)
     client=LocalImageClient()
     rpc=_module('module.image.rpc',ImageClient=LocalImageClient,get_image_client=lambda *args,**kwargs:client,
             ensure_image_server_started=lambda:True,ensure_image_server_ready=lambda:True,
@@ -181,44 +216,70 @@ def _validate_preset_name(name):
         raise ValueError('名称只能包含中英文、数字、空格、下划线或连字符')
     return clean
 
-def _normalize_android_device(settings):
+def _normalize_android_device(settings,create=False):
     # Platform selectors do not describe a desktop emulator on a phone.
-    settings.model.script.device.control_method='adb'
-    settings.model.script.device.screenshot_method='ADB'
-    settings.model.script.device.serial='android-shizuku'
-    settings.model.script.device.package_name=str(_host.gamePackage())
-    settings.model.auto_checkin_big_god.checkin_config.manual_claim=True
-    settings.save()
+    device=settings.model.script.device
+    checkin=settings.model.auto_checkin_big_god.checkin_config
+    values=dict(control_method='adb',screenshot_method='ADB',serial='android-shizuku',
+        package_name=str(_host.gamePackage()))
+    changed=create or not checkin.manual_claim
+    for field,value in values.items():
+        if getattr(device,field)!=value:
+            setattr(device,field,value);changed=True
+    checkin.manual_claim=True
+    if changed:settings.save()
     return settings
 
-def config():
-    global _config,_config_name
-    if _config is None:
-        from module.config.config import Config
-        path=_root/'config'/f'{_config_name}.json'
-        if path.is_file():
-            saved=json.loads(path.read_text(encoding='utf-8-sig'))
-            device=saved.get('script',{}).get('device',{})
-            changed=False
-            if device.get('control_method')=='ADB':
-                device['control_method']='adb';changed=True
-            if device.get('screenshot_method') not in ('ADB','window_background','ldopengl','nemu_ipc'):
-                device['screenshot_method']='ADB';changed=True
-            if changed:
-                path.write_text(json.dumps(saved,ensure_ascii=False,indent=2),encoding='utf-8')
-        _config=_normalize_android_device(Config(_config_name))
-    return _config
+def _load_config(name):
+    from module.config.config import Config
+    path=_root/'config'/f'{name}.json'
+    exists=path.is_file()
+    if exists:
+        saved=json.loads(path.read_text(encoding='utf-8-sig'))
+        device=saved.get('script',{}).get('device',{})
+        changed=False
+        if device.get('control_method')=='ADB':
+            device['control_method']='adb';changed=True
+        if device.get('screenshot_method') not in ('ADB','window_background','ldopengl','nemu_ipc'):
+            device['screenshot_method']='ADB';changed=True
+        if changed:
+            path.write_text(json.dumps(saved,ensure_ascii=False,indent=2),encoding='utf-8')
+    return _normalize_android_device(Config(name),create=not exists)
+
+def config(preset=None):
+    global _config
+    with _config_lock:
+        if preset is not None:
+            name=_validate_preset_name(preset)
+            if name!=_config_name:
+                if not (_root/'config'/f'{name}.json').is_file():
+                    raise ValueError('预设不存在：'+name)
+                return _load_config(name)
+        if _config is None:_config=_load_config(_config_name)
+        return _config
 
 def active_config():
-    return _config_name
+    with _config_lock:return _config_name
 
 def set_active_config(name):
+    with _config_lock:
+        if _active or _schedule_active:raise RuntimeError('任务运行时请先停止再切换脚本预设')
+        _activate_preset_locked(name)
+        return preset_bundle()
+
+def _activate_preset_locked(preset):
     global _config,_config_name
-    if _active:raise RuntimeError('任务运行时请先停止再切换脚本预设')
-    clean=_validate_preset_name(name)
-    _config_name=clean;_config=None
-    config()
-    return json.dumps(dict(active=_config_name,presets=json.loads(list_presets()),dashboard=json.loads(dashboard())),ensure_ascii=False)
+    settings=config(preset)
+    if preset is not None:
+        _config_name=_validate_preset_name(preset)
+        _config=settings
+
+def preset_bundle(preset=None):
+    with _config_lock:
+        name=_config_name if preset is None else _validate_preset_name(preset)
+        settings=config(name)
+        return json.dumps(dict(active=name,presets=json.loads(_list_presets(name,settings)),
+            dashboard=_dashboard(name,settings)),ensure_ascii=False)
 
 def _preset_preview(raw,translations,key_to_task):
     from datetime import datetime
@@ -244,13 +305,14 @@ def _preset_preview(raw,translations,key_to_task):
     return dict(type='none',id='',title='',time='')
 
 def list_presets():
-    config()
+    with _config_lock:return _list_presets(_config_name,config())
+
+def _list_presets(selected,settings):
     config_dir=_root/'config'
     names=[p.stem for p in config_dir.glob('*.json') if p.stem not in _RESERVED_PRESETS]
     names=sorted(set(names),key=lambda s:(0 if s=='android' else 1,s.lower()))
     if not names:names=['android']
     translations=json.loads(labels())
-    settings=config()
     key_to_task={k:type(settings.model).type(k) for k in type(settings.model).model_fields}
     running_title=translations.get(_running_task,_running_task) if (_active and _running_task) else ''
     result=[]
@@ -265,7 +327,7 @@ def list_presets():
                 preview=_preset_preview(raw,translations,key_to_task)
             except Exception:
                 pass
-        result.append(dict(name=stem,active=(stem==_config_name),running=(stem==_config_name and _active),preview=preview))
+        result.append(dict(name=stem,active=(stem==selected),running=(stem==_config_name and (_active or _schedule_active)),preview=preview))
     return json.dumps(result,ensure_ascii=False)
 
 def suggest_preset_name():
@@ -276,93 +338,97 @@ def suggest_preset_name():
 
 def create_preset(name,source=None,import_json=None):
     global _config,_config_name
-    if _active:raise RuntimeError('任务运行时请先停止再新建预设')
-    from module.config.config import Config
-    clean=_validate_preset_name(name)
-    config_dir=_root/'config'
-    target=config_dir/f'{clean}.json'
-    if target.exists():raise ValueError('同名预设已存在：'+clean)
-    try:
-        if import_json is not None and str(import_json).strip():
-            raw=json.loads(str(import_json))
-            if not isinstance(raw,dict):raise ValueError('导入 JSON 顶层必须是对象')
-            raw['config_name']=clean
-            device=raw.setdefault('script',{}).setdefault('device',{})
-            device['control_method']='adb'
-            device['screenshot_method']='ADB'
-            device['serial']='android-shizuku'
-            target.write_text(json.dumps(raw,ensure_ascii=False,indent=2),encoding='utf-8')
-        elif source and str(source).strip() and str(source)!='__template__':
-            src_file=config_dir/f'{str(source).strip()}.json'
-            if not src_file.is_file():raise ValueError('来源预设不存在')
-            raw=json.loads(src_file.read_text(encoding='utf-8-sig'))
-            raw['config_name']=clean
-            target.write_text(json.dumps(raw,ensure_ascii=False,indent=2),encoding='utf-8')
-        _config_name=clean;_config=None
-        config()
-    except Exception:
-        if target.exists():target.unlink()
-        _config_name=json.loads(list_presets())[0]['name'] if (_root/'config').exists() else 'android'
-        _config=None
-        raise
-    return json.dumps(dict(active=_config_name,presets=json.loads(list_presets()),dashboard=json.loads(dashboard())),ensure_ascii=False)
+    with _config_lock:
+        if _active or _schedule_active:raise RuntimeError('任务运行时请先停止再新建预设')
+        clean=_validate_preset_name(name)
+        config_dir=_root/'config'
+        config_dir.mkdir(parents=True,exist_ok=True)
+        target=config_dir/f'{clean}.json'
+        if target.exists():raise ValueError('同名预设已存在：'+clean)
+        try:
+            if import_json is not None and str(import_json).strip():
+                raw=json.loads(str(import_json))
+                if not isinstance(raw,dict):raise ValueError('导入 JSON 顶层必须是对象')
+                raw['config_name']=clean
+                device=raw.setdefault('script',{}).setdefault('device',{})
+                device['control_method']='adb'
+                device['screenshot_method']='ADB'
+                device['serial']='android-shizuku'
+                target.write_text(json.dumps(raw,ensure_ascii=False,indent=2),encoding='utf-8')
+            elif source and str(source).strip() and str(source)!='__template__':
+                src_file=config_dir/f'{str(source).strip()}.json'
+                if not src_file.is_file():raise ValueError('来源预设不存在')
+                raw=json.loads(src_file.read_text(encoding='utf-8-sig'))
+                raw['config_name']=clean
+                target.write_text(json.dumps(raw,ensure_ascii=False,indent=2),encoding='utf-8')
+            settings=_load_config(clean)
+        except Exception:
+            if target.exists():target.unlink()
+            raise
+        _config_name=clean;_config=settings
+        return preset_bundle()
 
-def rename_preset(old_name,new_name):
+def rename_preset(old_name,new_name,selected=None):
     global _config,_config_name
-    if _active:raise RuntimeError('任务运行时请先停止再重命名')
-    old_clean=_validate_preset_name(old_name)
-    new_clean=_validate_preset_name(new_name)
-    config_dir=_root/'config'
-    src=config_dir/f'{old_clean}.json'
-    dst=config_dir/f'{new_clean}.json'
-    if not src.is_file():raise ValueError('预设不存在')
-    if dst.exists():raise ValueError('名称已存在：'+new_clean)
-    raw=json.loads(src.read_text(encoding='utf-8-sig'))
-    raw['config_name']=new_clean
-    dst.write_text(json.dumps(raw,ensure_ascii=False,indent=2),encoding='utf-8')
-    src.unlink()
-    if _config_name==old_clean:_config_name=new_clean
-    _config=None;config()
-    return json.dumps(dict(active=_config_name,presets=json.loads(list_presets()),dashboard=json.loads(dashboard())),ensure_ascii=False)
+    with _config_lock:
+        if _active or _schedule_active:raise RuntimeError('任务运行时请先停止再重命名')
+        old_clean=_validate_preset_name(old_name)
+        new_clean=_validate_preset_name(new_name)
+        selected=_config_name if selected is None else _validate_preset_name(selected)
+        config_dir=_root/'config'
+        src=config_dir/f'{old_clean}.json'
+        dst=config_dir/f'{new_clean}.json'
+        if not src.is_file():raise ValueError('预设不存在')
+        if dst.exists():raise ValueError('名称已存在：'+new_clean)
+        raw=json.loads(src.read_text(encoding='utf-8-sig'))
+        raw['config_name']=new_clean
+        dst.write_text(json.dumps(raw,ensure_ascii=False,indent=2),encoding='utf-8')
+        src.unlink()
+        if _config_name==old_clean:_config_name=new_clean;_config=None
+        return preset_bundle(new_clean if selected==old_clean else selected)
 
-def delete_preset(name):
+def delete_preset(name,selected=None):
     global _config,_config_name
-    if _active:raise RuntimeError('任务运行时请先停止再删除预设')
-    clean=_validate_preset_name(name)
-    presets=json.loads(list_presets())
-    if len(presets)<=1:raise ValueError('至少保留一个脚本预设')
-    target=_root/'config'/f'{clean}.json'
-    if target.is_file():target.unlink()
-    if _config_name==clean:
-        remaining=[p['name'] for p in presets if p['name']!=clean]
-        _config_name=remaining[0]
-        _config=None;config()
-    return json.dumps(dict(active=_config_name,presets=json.loads(list_presets()),dashboard=json.loads(dashboard())),ensure_ascii=False)
+    with _config_lock:
+        if _active or _schedule_active:raise RuntimeError('任务运行时请先停止再删除预设')
+        clean=_validate_preset_name(name)
+        selected=_config_name if selected is None else _validate_preset_name(selected)
+        presets=json.loads(list_presets())
+        remaining=[item['name'] for item in presets if item['name']!=clean]
+        if not remaining:raise ValueError('至少保留一个脚本预设')
+        target=_root/'config'/f'{clean}.json'
+        if target.is_file():target.unlink()
+        if _config_name==clean:_config_name=remaining[0];_config=None
+        return preset_bundle(remaining[0] if selected==clean else selected)
 
 def export_preset(name=None):
-    target_name=_validate_preset_name(name or _config_name)
-    if target_name==_config_name:config().save()
-    path=_root/'config'/f'{target_name}.json'
-    if not path.is_file():raise ValueError('预设不存在')
-    return path.read_text(encoding='utf-8-sig')
+    with _config_lock:
+        target_name=_validate_preset_name(name or _config_name)
+        if target_name==_config_name:config().save()
+        path=_root/'config'/f'{target_name}.json'
+        if not path.is_file():raise ValueError('预设不存在')
+        return path.read_text(encoding='utf-8-sig')
 
-def import_task_json(name,json_text):
-    if _active and _running_task==name:raise RuntimeError('当前任务正在运行中，请稍后再导入')
-    entry=next(item for item in json.loads(catalog()) if item['id']==name)
-    key=entry['configKey']
-    if key is None:raise ValueError('该任务没有独立配置')
-    payload=json.loads(str(json_text))
-    if not isinstance(payload,dict):raise ValueError('导入 JSON 必须是对象')
-    if key in payload and isinstance(payload[key],dict):payload=payload[key]
-    save_task_config(name,json.dumps(payload,ensure_ascii=False))
-    return json.dumps(dict(config=json.loads(task_config(name)),dashboard=json.loads(dashboard())),ensure_ascii=False)
+def import_task_json(name,json_text,preset=None):
+    with _config_lock:
+        preset=_config_name if preset is None else _validate_preset_name(preset)
+        if _task_is_running(preset,name):raise RuntimeError('当前任务正在运行中，请稍后再导入')
+        settings=config(preset)
+        entry=next(item for item in json.loads(catalog(settings)) if item['id']==name)
+        key=entry['configKey']
+        if key is None:raise ValueError('该任务没有独立配置')
+        payload=json.loads(str(json_text))
+        if not isinstance(payload,dict):raise ValueError('导入 JSON 必须是对象')
+        if key in payload and isinstance(payload[key],dict):payload=payload[key]
+        definition=_save_task_config(name,json.dumps(payload,ensure_ascii=False),settings)
+        return json.dumps(dict(config=json.loads(definition),dashboard=_dashboard(preset,settings)),ensure_ascii=False)
 
-def export_task_json(name):
-    data=json.loads(task_config(name))['value']
+def export_task_json(name,preset=None):
+    data=json.loads(task_config(name,preset))['value']
     return json.dumps(data,ensure_ascii=False,indent=2)
 
-def catalog():
-    settings=config()
+def catalog(settings=None):
+    if settings is None:settings=config()
     names=json.loads((_root/'runtime-manifest.json').read_text())['tasks']
     translations=json.loads(labels())
     result=[]
@@ -400,10 +466,13 @@ def _entry(name):
         PortraitUIMixin._cleanup_portrait=cleanup
     return entry
 
-def task_config(name):
-    entry=next(item for item in json.loads(catalog()) if item['id']==name)
+def task_config(name,preset=None):
+    with _config_lock:return _task_config(name,config(preset))
+
+def _task_config(name,settings):
+    entry=next(item for item in json.loads(catalog(settings)) if item['id']==name)
     if entry['configKey'] is None:return json.dumps(dict(value={},schema=dict(type='object',properties={})))
-    model=getattr(config().model,entry['configKey'])
+    model=getattr(settings.model,entry['configKey'])
     # Some upstream defaults are stored as old aliases (e.g. green_mark_type).
     # Normalize them with the real validator before presenting an editable form.
     value=type(model).model_validate(model.model_dump()).model_dump(mode='json')
@@ -477,66 +546,78 @@ def labels():
         if path.is_file():result.update(json.loads(path.read_text(encoding='utf-8-sig')))
     return json.dumps(result,ensure_ascii=False)
 
-def dashboard():
+def _task_is_running(preset,name):
+    return preset==_config_name and _active and _running_task==name
+
+def dashboard(preset=None):
+    with _config_lock:
+        name=_config_name if preset is None else _validate_preset_name(preset)
+        return json.dumps(_dashboard(name,config(name)),ensure_ascii=False)
+
+def _dashboard(preset,settings):
     from module.config.config_menu import ConfigMenu
-    with _config_lock:
-        settings=config();result=[];translations=json.loads(labels());locations={}
-        # OASX gets this exact menu from /script_menu. Preserve both levels of order.
-        for group_order,(group,names) in enumerate(ConfigMenu().menu.items()):
-            for task_order,name in enumerate(names):
-                locations.setdefault(name,dict(groupId=group,groupLabel=translations.get(group,group),
-                    menuOrder=group_order*1000+task_order))
-        for entry in json.loads(catalog()):
-            key=entry['configKey'];model=getattr(settings.model,key) if key else None
-            scheduler=getattr(model,'scheduler',None)
-            result.append(dict(entry,**locations.get(entry['id'],dict(groupId='',groupLabel='',menuOrder=1000000)),enabled=bool(scheduler and scheduler.enable),
-                hasScheduler=scheduler is not None,nextRun=str(scheduler.next_run) if scheduler else None,
-                running=(_active and _running_task==entry['id'])))
-        return json.dumps(sorted(result,key=lambda entry:entry['menuOrder']),ensure_ascii=False)
+    result=[];translations=json.loads(labels());locations={}
+    # OASX gets this exact menu from /script_menu. Preserve both levels of order.
+    for group_order,(group,names) in enumerate(ConfigMenu().menu.items()):
+        for task_order,name in enumerate(names):
+            locations.setdefault(name,dict(groupId=group,groupLabel=translations.get(group,group),
+                menuOrder=group_order*1000+task_order))
+    for entry in json.loads(catalog(settings)):
+        key=entry['configKey'];model=getattr(settings.model,key) if key else None
+        scheduler=getattr(model,'scheduler',None)
+        result.append(dict(entry,**locations.get(entry['id'],dict(groupId='',groupLabel='',menuOrder=1000000)),enabled=bool(scheduler and scheduler.enable),
+            hasScheduler=scheduler is not None,nextRun=str(scheduler.next_run) if scheduler else None,
+            running=_task_is_running(preset,entry['id'])))
+    return sorted(result,key=lambda entry:entry['menuOrder'])
 
-def set_task_enabled(name,enabled):
-    if _active and _running_task==name:raise RuntimeError('当前任务正在运行中，暂不可修改其启用状态')
+def set_task_enabled(name,enabled,preset=None):
     with _config_lock:
-        entry=next(item for item in json.loads(catalog()) if item['id']==name)
+        preset=_config_name if preset is None else _validate_preset_name(preset)
+        if _task_is_running(preset,name):raise RuntimeError('当前任务正在运行中，暂不可修改其启用状态')
+        settings=config(preset)
+        entry=next(item for item in json.loads(catalog(settings)) if item['id']==name)
         if not entry['runnable']:raise ValueError('该入口不能加入任务计划')
-        model=getattr(config().model,entry['configKey']) if entry['configKey'] else None
+        model=getattr(settings.model,entry['configKey']) if entry['configKey'] else None
         if model is None or not hasattr(model,'scheduler'):raise ValueError('该任务只能单独运行')
-        model.scheduler.enable=bool(enabled);config().save()
+        model.scheduler.enable=bool(enabled);settings.save()
         _wakeup_event.set();_notify_state()
-        return dashboard()
+        return json.dumps(_dashboard(preset,settings),ensure_ascii=False)
 
-def set_task_next_run(name,next_run,enable=None):
-    if _active and _running_task==name:raise RuntimeError('当前任务正在运行中，暂不可调整调度时间')
+def set_task_next_run(name,next_run,enable=None,preset=None):
     from datetime import datetime
     with _config_lock:
-        entry=next(item for item in json.loads(catalog()) if item['id']==name)
+        preset=_config_name if preset is None else _validate_preset_name(preset)
+        if _task_is_running(preset,name):raise RuntimeError('当前任务正在运行中，暂不可调整调度时间')
+        settings=config(preset)
+        entry=next(item for item in json.loads(catalog(settings)) if item['id']==name)
         if not entry['runnable']:raise ValueError('该入口不能加入任务计划')
-        model=getattr(config().model,entry['configKey']) if entry['configKey'] else None
+        model=getattr(settings.model,entry['configKey']) if entry['configKey'] else None
         if model is None or not hasattr(model,'scheduler'):raise ValueError('该任务没有调度计划')
         model.scheduler.next_run=datetime.fromisoformat(str(next_run).strip().replace(' ','T'))
         if enable is not None:model.scheduler.enable=bool(enable)
-        config().save()
+        settings.save()
         _wakeup_event.set();_notify_state()
-        return dashboard()
+        return json.dumps(_dashboard(preset,settings),ensure_ascii=False)
 
-def quick_run_task(name):
+def quick_run_task(name,preset=None):
     from datetime import datetime,timedelta
     target=(datetime.now().replace(microsecond=0)-timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
-    return set_task_next_run(name,target,enable=True)
+    return set_task_next_run(name,target,enable=True,preset=preset)
 
-def quick_wait_task(name):
+def quick_wait_task(name,preset=None):
     from datetime import datetime,timedelta
     target=(datetime.now().replace(microsecond=0)+timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
-    return set_task_next_run(name,target,enable=True)
+    return set_task_next_run(name,target,enable=True,preset=preset)
 
-def bulk_quick_schedule(run_now):
+def bulk_quick_schedule(run_now,preset=None):
     from datetime import datetime,timedelta
     target=datetime.now().replace(microsecond=0)+(timedelta(days=-1) if run_now else timedelta(days=1))
     with _config_lock:
-        settings=config();changed=False
-        for entry in json.loads(catalog()):
+        preset=_config_name if preset is None else _validate_preset_name(preset)
+        settings=config(preset);changed=False
+        for entry in json.loads(catalog(settings)):
             if not entry['runnable'] or not entry['configKey']:continue
-            if _active and _running_task==entry['id']:continue
+            if _task_is_running(preset,entry['id']):continue
             model=getattr(settings.model,entry['configKey'])
             scheduler=getattr(model,'scheduler',None)
             if scheduler is not None and scheduler.enable:
@@ -544,21 +625,24 @@ def bulk_quick_schedule(run_now):
         if changed:
             settings.save()
             _wakeup_event.set();_notify_state()
-        return dashboard()
+        return json.dumps(_dashboard(preset,settings),ensure_ascii=False)
 
-def save_task_config(name,data):
+def save_task_config(name,data,preset=None):
     with _config_lock:
-        entry=next(item for item in json.loads(catalog()) if item['id']==name)
-        if entry['configKey'] is None:
-            if json.loads(str(data)):raise ValueError('该任务没有独立配置')
-            return task_config(name)
-        settings=config();old=getattr(settings.model,entry['configKey'])
-        replacement=type(old).model_validate(json.loads(str(data)))
-        if name=='AutoCheckinBigGod' and not replacement.checkin_config.manual_claim:
-            raise ValueError('手机版大神签到使用无需 Root 的界面领取模式，请保持“手动领取”开启')
-        setattr(settings.model,entry['configKey'],replacement);settings.save()
-        _wakeup_event.set();_notify_state()
-        return task_config(name)
+        return _save_task_config(name,data,config(preset))
+
+def _save_task_config(name,data,settings):
+    entry=next(item for item in json.loads(catalog(settings)) if item['id']==name)
+    if entry['configKey'] is None:
+        if json.loads(str(data)):raise ValueError('该任务没有独立配置')
+        return _task_config(name,settings)
+    old=getattr(settings.model,entry['configKey'])
+    replacement=type(old).model_validate(json.loads(str(data)))
+    if name=='AutoCheckinBigGod' and not replacement.checkin_config.manual_claim:
+        raise ValueError('手机版大神签到使用无需 Root 的界面领取模式，请保持“手动领取”开启')
+    setattr(settings.model,entry['configKey'],replacement);settings.save()
+    _wakeup_event.set();_notify_state()
+    return _task_config(name,settings)
 
 def _save_error_snapshot(task_name,error_text,tb_text,device=None,settings=None):
     try:
@@ -712,14 +796,16 @@ def income_delete(date_text=None,script_name=None):
     remaining=[d.isoformat() for d in mod.income_dates(name)]
     return json.dumps(dict(script_name=name,deleted=deleted,dates=remaining),ensure_ascii=False)
 
-def run(name,host=None):
+def run(name,host=None,preset=None):
     global _active,_running_task,_last_outcome,_host
     from module.device.device import Device
     from module.exception import GameNotRunningError,TaskEnd
-    if host is not None:_host=host
-    if _host is not None and _host.isRunning():
-        _stop_event.clear()
-    _active=True;_running_task=name;_last_outcome=None
+    with _config_lock:
+        if host is not None:_host=host
+        if preset is not None:_activate_preset_locked(preset)
+        if _host is not None and _host.isRunning():
+            _stop_event.clear()
+        _active=True;_running_task=name;_last_outcome=None
     _notify_state()
     cooperation=None
     device=None
@@ -776,7 +862,8 @@ def run(name,host=None):
         error_id=_save_error_snapshot(name,str(error),tb,device=device,settings=settings)
         return json.dumps(dict(task=name,status='failed',detail=str(error),traceback=tb,errorId=error_id),ensure_ascii=False)
     finally:
-        sys.settrace(None);_active=False;_running_task=None
+        sys.settrace(None)
+        with _config_lock:_active=False;_running_task=None
         _notify_state()
         if cooperation is not None:cooperation.close()
 
@@ -789,14 +876,25 @@ def scheduled_plan():
         waiting=[task for task in settings.waiting_task if task.command in allowed]
         return pending,waiting
 
-def schedule(host):
-    global _host,_guard
+def schedule(host,preset=None):
+    global _host,_schedule_active
+    with _config_lock:
+        _host=host
+        _activate_preset_locked(preset)
+        _schedule_active=True
+    try:
+        return _schedule(host)
+    finally:
+        with _config_lock:_schedule_active=False
+
+def _schedule(host):
+    global _guard
     from datetime import datetime,timedelta
     import copy
     from module.logger import logger
     from module.config.anti_ban import AntiBanGuard
     if _guard is None:_guard=AntiBanGuard()
-    _host=host;history=[];failures={}
+    history=[];failures={}
     if host.isRunning():
         _stop_event.clear();_wakeup_event.clear()
     source=ast.parse((_root/'script.py').read_text(encoding='utf-8-sig'))
@@ -814,7 +912,7 @@ def schedule(host):
             if wake is not None:
                 message='按作息配置休息至 '+str(wake)
                 if message!=wait_message:host.log(message);wait_message=message
-                _wait_schedule(min(1.0,max(0.0,(wake-datetime.now()).total_seconds())));continue
+                _wait_idle(host,(wake-datetime.now()).total_seconds());continue
             if not pending:
                 hoarding.task_hoarding_until=None;hoarding.task_hoarding_released=False
                 from datetime import datetime
@@ -839,9 +937,9 @@ def schedule(host):
                     idle_prepared=True
                 message='等待计划任务：'+waiting[0].command
                 if message!=wait_message:host.log(message);wait_message=message
-                _wait_schedule(min(1.0,delay));continue
+                _wait_idle(host,delay);continue
             candidate=namespace['_hoard_next_task'](hoarding,pending[0],datetime.now())
-            if candidate.next_run>datetime.now():_wait_schedule(min(1.0,(candidate.next_run-datetime.now()).total_seconds()));continue
+            if candidate.next_run>datetime.now():_wait_idle(host,(candidate.next_run-datetime.now()).total_seconds());continue
             if display_released and hasattr(host,'ensureDisplay'):
                 host.log('计划任务到点，自动重建后台虚拟屏')
                 host.ensureDisplay();display_released=False;_wait_schedule(0.8)

@@ -48,8 +48,11 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
     private final Handler frames;
     private final Object frameLock = new Object();
     private VirtualDisplay display;
+    private PrimaryCapture primaryCapture;
+    private long primaryReadAt;
+    private boolean primaryCaptureUnavailable;
     private ImageReader reader;
-    private volatile DisplayRenderer renderer;
+    private volatile FramePipeline renderer;
     private long previewOwner;
     private final ManualTouchController manual=new ManualTouchController();
     private VirtualDeviceDisplay virtualDevice;
@@ -57,12 +60,17 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
     private GameAudio audio;
     private final GameFpsMonitor fps;
     private boolean runtimeActive,keepAwake=true,fpsEnabled=true;
+    private boolean scheduleIdle;
     private int captureFps=30,previewFps=30;
     private String targetPackage;
+    private int absentChecks, moveAttempts;
+    private boolean invalidTarget;
+    private final Runnable inspectDisplay = this::inspectDisplayTarget;
     private final Runnable cancelManual = () -> { try { cancelManualTouch(); } catch(Exception e) { android.util.Log.w("OAS","Cancel manual touch",e); } };
     private RawFrameStore rawStore;
     private long rawEpoch;
     private volatile long frameAt;
+    private long captureSequence;
     private volatile int displayId = -1;
     private volatile boolean closed;
     private int shellChildPid = -1, shellChildFd = -1;
@@ -74,7 +82,7 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
         controlThread.start(); frameThread.start();
         control = new Handler(controlThread.getLooper());
         frames = new Handler(frameThread.getLooper());
-        fps=new GameFpsMonitor(control,()->renderer==null?-1:renderer.compositionFrames);
+        fps=new GameFpsMonitor(control,()-> { FramePipeline current=renderer; return current==null?-1:current.compositionCount(); });
     }
 
     @Override public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
@@ -136,11 +144,17 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
 
     private int createInternal() throws Exception {
         if (display != null) return displayId;
-        reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, 3);
-        reader.setOnImageAvailableListener(this::receiveFrame, frames);
         try {
             rawStore=new RawFrameStore();rawEpoch++;
-            renderer = onFrames(() -> new DisplayRenderer(frames, reader.getSurface(), WIDTH, HEIGHT));
+            try {
+                renderer = onFrames(() -> new HardwareFramePipeline(frames, WIDTH, HEIGHT,
+                    rawStore.mapping, this::framePublished));
+            } catch (Exception unavailable) {
+                android.util.Log.w("OAS", "Native capture unavailable, using EGL capture", unavailable);
+                reader = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, 3);
+                reader.setOnImageAvailableListener(this::receiveFrame, frames);
+                renderer = onFrames(() -> new DisplayRenderer(frames, reader.getSurface(), WIDTH, HEIGHT));
+            }
             if(Build.VERSION.SDK_INT>=34) {
                 try {
                     virtualDevice=VirtualDeviceDisplay.create(renderer.input(),WIDTH,HEIGHT,densityDpi);
@@ -181,16 +195,28 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
             synchronized(frameLock) {
                 if(source!=reader || rawStore==null)return;
                 NativeFrames.publish(rawStore.mapping,plane.getBuffer(),image.getWidth(),image.getHeight(),rowStride,SystemClock.elapsedRealtime());
-                frameAt=SystemClock.elapsedRealtime();frameLock.notifyAll();
+                framePublished();
             }
         } catch (IllegalStateException ignored) { /* reader released while its callback was queued */ }
         catch (RuntimeException error) { android.util.Log.e("OAS", "Frame conversion failed", error); }
+    }
+
+    private void framePublished() {
+        synchronized (frameLock) {
+            frameAt = SystemClock.elapsedRealtime();
+            captureSequence++;
+            frameLock.notifyAll();
+        }
     }
 
     @Override public void releaseDisplay() { call(() -> { releaseInternal(); return null; }); }
 
     private void releaseInternal() throws Exception {
         cancelManualTouch();
+        control.removeCallbacks(inspectDisplay);
+        if (primaryCapture != null) closePrimaryCapture();
+        primaryCaptureUnavailable = false;
+        invalidTarget = false;
         // Releasing a DESTROY_CONTENT display would remove its game task. Restore it first.
         if (display != null && gamePackage != null && displayId >= 0 && TaskController.displayOf(gamePackage) == displayId)
             TaskController.moveExisting(gamePackage, 0);
@@ -216,17 +242,16 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
             if (display == null) throw new IllegalStateException("请先创建虚拟屏");
             if (gamePackage != null && TaskController.displayOf(gamePackage) != displayId)
                 throw new IllegalStateException("游戏已退出或离开虚拟屏，停止使用旧画面");
-            byte[] png;
-            long deadline = SystemClock.elapsedRealtime() + 5000;
+            awaitCapture();
+            byte[] raw;
             synchronized (frameLock) {
-                while (frameAt == 0 && SystemClock.elapsedRealtime() < deadline) frameLock.wait(100);
-                if (frameAt == 0) throw new IllegalStateException("尚未收到画面，请先启动游戏或测试画面");
-                if (SystemClock.elapsedRealtime() - frameAt > 5000) throw new IllegalStateException("截图已超过 5 秒未更新，请检查游戏或虚拟屏状态");
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                Bitmap image=RawFrameReader.bitmap(NativeFrames.read(rawStore.mapping,SystemClock.elapsedRealtime()));
-                try {image.compress(Bitmap.CompressFormat.PNG, 100, out);} finally {image.recycle();}
-                png = out.toByteArray();
+                raw=NativeFrames.read(rawStore.mapping,SystemClock.elapsedRealtime());
             }
+            ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+            Bitmap image = RawFrameReader.bitmap(raw);
+            try { image.compress(Bitmap.CompressFormat.PNG, 100, encoded); }
+            finally { image.recycle(); }
+            byte[] png = encoded.toByteArray();
             ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
             new Thread(() -> {
                 try (ParcelFileDescriptor.AutoCloseOutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])) { out.write(png); }
@@ -238,16 +263,89 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
 
     @Override public Bundle rawFrameBuffer() {
         return call(() -> {
-            if(primaryMode)return null;
+            if (primaryMode) {
+                if (!ensurePrimaryCapture()) return null;
+                try {
+                    awaitCapture(1200);
+                    requireForeground();
+                    primaryReadAt = SystemClock.elapsedRealtime();
+                    return mappedFrame();
+                } catch (IllegalStateException unavailable) {
+                    closePrimaryCapture();
+                    primaryCaptureUnavailable = true;
+                    requireForeground();
+                    android.util.Log.i("OAS", "Primary continuous capture unavailable, using screencap", unavailable);
+                    return null;
+                }
+            }
             if(display==null || rawStore==null)throw new IllegalStateException("请先创建虚拟屏");
             if(gamePackage!=null && TaskController.displayOf(gamePackage)!=displayId)throw new IllegalStateException("游戏已离开虚拟屏");
-            synchronized(frameLock) {
-                long deadline=SystemClock.elapsedRealtime()+5000;
-                while(frameAt==0 && SystemClock.elapsedRealtime()<deadline)frameLock.wait(100);
-                if(frameAt==0 || SystemClock.elapsedRealtime()-frameAt>5000)throw new IllegalStateException("虚拟屏没有有效新画面");
-                Bundle value=new Bundle();value.putParcelable("memory",rawStore.memory);value.putLong("epoch",rawEpoch);return value;
-            }
+            awaitCapture();
+            return mappedFrame();
         });
+    }
+
+    private Bundle mappedFrame() {
+        Bundle value = new Bundle();
+        value.putParcelable("memory", rawStore.memory);
+        value.putLong("epoch", rawEpoch);
+        return value;
+    }
+
+    private void awaitCapture() throws InterruptedException { awaitCapture(5000); }
+
+    private void awaitCapture(long timeoutMs) throws InterruptedException {
+        FramePipeline current = renderer;
+        if (current == null) throw new IllegalStateException("尚未创建取图通道");
+        synchronized (frameLock) {
+            long before = captureSequence;
+            if (!frames.post(current::requestCapture)) throw new IllegalStateException("画面线程已停止");
+            long deadline = SystemClock.elapsedRealtime() + timeoutMs;
+            while (captureSequence == before) {
+                long remaining = deadline - SystemClock.elapsedRealtime();
+                if (remaining <= 0) throw new IllegalStateException("虚拟屏没有有效新画面");
+                frameLock.wait(remaining);
+            }
+        }
+    }
+
+    private boolean ensurePrimaryCapture() throws Exception {
+        if (displayId != 0 || gamePackage == null || primaryCaptureUnavailable) return false;
+        requireForeground();
+        int[] size;
+        try { size = PrimaryCapture.dimensions(); }
+        catch (Exception unavailable) { primaryCaptureUnavailable = true; return false; }
+        if (primaryCapture != null && (primaryCapture.width != size[0] || primaryCapture.height != size[1])) closePrimaryCapture();
+        if (size[0] != WIDTH || size[1] != HEIGHT) return false;
+        if (primaryCapture != null) return true;
+        try {
+            rawStore = new RawFrameStore();
+            renderer = onFrames(() -> new HardwareFramePipeline(frames, size[0], size[1], rawStore.mapping, this::framePublished));
+            renderer.captureIntervalMs = (1000 + captureFps - 1) / captureFps;
+            primaryCapture = new PrimaryCapture(renderer.input(), size[0], size[1]);
+            rawEpoch++;
+            primaryReadAt = SystemClock.elapsedRealtime();
+            control.removeCallbacks(inspectDisplay);
+            control.postDelayed(inspectDisplay, 500);
+            return true;
+        } catch (Exception unavailable) {
+            closePrimaryCapture();
+            primaryCaptureUnavailable = true;
+            android.util.Log.i("OAS", "No persistent primary mirror on this device", unavailable);
+            return false;
+        }
+    }
+
+    private void closePrimaryCapture() throws Exception {
+        if (primaryCapture != null) primaryCapture.close();
+        primaryCapture = null;
+        FramePipeline old = renderer;
+        renderer = null;
+        if (old != null) onFrames(() -> { old.close(); return null; });
+        if (rawStore != null) rawStore.close();
+        rawStore = null;
+        rawEpoch++;
+        frameAt = 0;
     }
 
     @Override public void setPreviewSurface(Surface surface, long owner) {
@@ -257,16 +355,70 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
                 surface.release(); throw new IllegalStateException("实时预览需要后台虚拟屏");
             }
             cancelManualTouch();
-            onFrames(() -> { renderer.setPreview(surface); return null; });
-            previewOwner=owner;if(power!=null)power.update(runtimeActive&&keepAwake,true); return null;
+            if (renderer instanceof HardwareFramePipeline) {
+                Surface fallback = duplicateSurface(surface);
+                try {
+                    if (!renderer.error.isEmpty()) {
+                        surface.release();
+                        useLegacyCapture();
+                        onFrames(() -> { renderer.setPreview(fallback); return null; });
+                    } else {
+                        try { onFrames(() -> { renderer.setPreview(surface); return null; }); }
+                        catch (Exception unavailable) {
+                            android.util.Log.w("OAS", "Native preview rejected by driver, using EGL capture", unavailable);
+                            useLegacyCapture();
+                            onFrames(() -> { renderer.setPreview(fallback); return null; });
+                        }
+                        if (renderer instanceof HardwareFramePipeline) fallback.release();
+                    }
+                } catch (Exception failure) {
+                    fallback.release();
+                    throw failure;
+                }
+            } else onFrames(() -> { renderer.setPreview(surface); return null; });
+            previewOwner=owner;updateDisplayKeepAlive();return null;
         });
+    }
+
+    private static Surface duplicateSurface(Surface surface) {
+        Parcel parcel = Parcel.obtain();
+        try {
+            surface.writeToParcel(parcel, 0);
+            parcel.setDataPosition(0);
+            return Surface.CREATOR.createFromParcel(parcel);
+        } finally { parcel.recycle(); }
+    }
+
+    private void useLegacyCapture() throws Exception {
+        FramePipeline old = renderer;
+        ImageReader nextReader = ImageReader.newInstance(frameWidth, frameHeight, PixelFormat.RGBA_8888, 3);
+        nextReader.setOnImageAvailableListener(this::receiveFrame, frames);
+        DisplayRenderer next;
+        try { next = onFrames(() -> new DisplayRenderer(frames, nextReader.getSurface(), frameWidth, frameHeight)); }
+        catch (Exception failure) { nextReader.close(); throw failure; }
+        try { display.setSurface(next.input()); }
+        catch (Exception failure) {
+            onFrames(() -> { next.close(); return null; });
+            nextReader.close();
+            throw failure;
+        }
+        next.captureIntervalMs = old.captureIntervalMs;
+        next.previewIntervalMs = old.previewIntervalMs;
+        next.previewFrames = old.previewFrames;
+        synchronized (frameLock) {
+            reader = nextReader;
+            renderer = next;
+            frameAt = 0;
+        }
+        onFrames(() -> { old.close(); return null; });
+        if (targetPackage != null && fpsEnabled) fps.start(targetPackage);
     }
     @Override public void clearPreviewSurface(long owner) {
         call(() -> {
             if(previewOwner==owner) {
                 cancelManualTouch();
                 onFrames(() -> { if(renderer!=null) renderer.setPreview(null); return null; });
-                previewOwner=0;if(power!=null)power.update(runtimeActive&&keepAwake,false);
+                previewOwner=0;updateDisplayKeepAlive();
             }
             return null;
         });
@@ -276,9 +428,10 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
         return call(() -> new JSONObject().put("displayId",displayId).put("mode",primaryMode ? "primary" : "virtual")
             .put("width",frameWidth).put("height",frameHeight)
             .put("attached",renderer!=null && renderer.attached)
+            .put("owner",previewOwner)
             .put("frames",renderer==null ? 0 : renderer.previewFrames)
             .put("fps",fps.fps()).put("fpsSource",fps.source()).put("fpsAdvice",fps.advice())
-            .put("ageMs",renderer==null || renderer.previewAt==0 ? -1 : SystemClock.elapsedRealtime()-renderer.previewAt)
+            .put("ageMs",invalidTarget || renderer==null || renderer.previewAt==0 ? -1 : SystemClock.elapsedRealtime()-renderer.previewAt)
             .put("error",renderer==null ? "" : renderer.error).toString());
     }
 
@@ -305,9 +458,9 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
     private void cancelManualTouch() throws Exception {control.removeCallbacks(cancelManual);manual.cancel();}
 
     private void displayReady() throws Exception {
-        renderer.captureIntervalMs=runtimeActive?Math.max(1,1000/captureFps):180;renderer.previewIntervalMs=Math.max(1,1000/previewFps);
+        renderer.captureIntervalMs=(1000+captureFps-1)/captureFps;renderer.previewIntervalMs=Math.max(1,1000/previewFps);
         if(power==null)power=new ScreenPower(control);
-        power.target(displayId,display.getDisplay());power.update(runtimeActive&&keepAwake,previewOwner!=0);
+        power.target(displayId,display.getDisplay());updateDisplayKeepAlive();
         if(display.getDisplay().getRotation()!=Surface.ROTATION_0)try {
             Object window=ShellApis.service("window","android.view.IWindowManager");
             try{ShellApis.invoke(window.getClass().getMethod("freezeDisplayRotation",int.class,int.class,String.class),window,displayId,0,"OASA");}
@@ -315,34 +468,96 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
         }catch(Exception error){android.util.Log.w("OAS","Virtual-display rotation",error);}
     }
     private void monitorTarget(String pkg) {
-        targetPackage=pkg;if(fpsEnabled)fps.start(pkg);
+        targetPackage=pkg;
+        absentChecks = moveAttempts = 0;
+        invalidTarget = primaryCaptureUnavailable = false;
+        control.removeCallbacks(inspectDisplay);
+        if (fpsEnabled && !primaryMode) fps.start(pkg);
+        if (primaryCapture != null) control.postDelayed(inspectDisplay, 500);
+        else if (!primaryMode && gamePackage != null) control.postDelayed(inspectDisplay, 2500);
+    }
+
+    private void inspectDisplayTarget() {
+        if (primaryMode) {
+            if (primaryCapture == null) return;
+            try {
+                if (SystemClock.elapsedRealtime() - primaryReadAt > 3000 || !TaskController.isTopOnDisplay(gamePackage, 0)) {
+                    closePrimaryCapture();
+                    return;
+                }
+            } catch (Exception failure) {
+                try { closePrimaryCapture(); } catch (Exception cleanup) { failure.addSuppressed(cleanup); }
+                android.util.Log.w("OAS", "Primary mirror stopped", failure);
+                return;
+            }
+            control.postDelayed(inspectDisplay, 500);
+            return;
+        }
+        if (display == null || gamePackage == null) return;
+        try {
+            int actual = TaskController.displayOf(gamePackage);
+            if (actual == displayId) {
+                absentChecks = 0;
+                invalidTarget = false;
+            } else if (++absentChecks >= 2) {
+                if (!invalidTarget) {
+                    invalidTarget = true;
+                    FramePipeline current = renderer;
+                    if (current != null) frames.post(current::invalidate);
+                    frameAt = 0;
+                }
+                // A live game can drift to the main screen on some ROMs.
+                // A stopped game still goes through the scheduler's existing Restart path.
+                if (actual == 0 && runtimeActive && !scheduleIdle && moveAttempts < 2) {
+                    moveAttempts++;
+                    if (TaskController.moveExisting(gamePackage, displayId)) {
+                        invalidTarget = false;
+                        absentChecks = 0;
+                    }
+                }
+            }
+        } catch (Exception failure) {
+            android.util.Log.w("OAS", "Virtual display target check failed", failure);
+        }
+        control.postDelayed(inspectDisplay, 2500);
     }
     @Override public String systemStatus() {
         return call(() -> {
             JSONObject value=power==null?new JSONObject():power.status();
             return value.put("backend",primaryMode?"主屏":virtualDevice==null?"VirtualDisplay":"VirtualDevice")
                 .put("displayId",displayId).put("flags",flagsDescription).put("fps",fps.fps()).put("fpsSource",fps.source()).put("fpsAdvice",fps.advice())
-                .put("rawFrames",!primaryMode&&rawStore!=null).put("runtimeActive",runtimeActive)
+                .put("rawFrames",rawStore!=null).put("runtimeActive",runtimeActive)
+                .put("captureBackend",renderer instanceof HardwareFramePipeline ? "NDK ImageReader" : renderer!=null ? "EGL ImageReader" : "")
+                .put("recognitionFrames",captureSequence)
+                .put("scheduleIdle",scheduleIdle)
                 .put("captureFps",captureFps).put("previewFps",previewFps).toString();
         });
     }
     @Override public void configureRuntime(boolean active,boolean awake,boolean monitorFps) {
         call(() -> {
             runtimeActive=active;keepAwake=awake;
-            if(renderer!=null)renderer.captureIntervalMs=active?Math.max(1,1000/captureFps):180;
+            if (!active) scheduleIdle = false;
             if(power==null)power=new ScreenPower(control);
             if(primaryMode)power.target(displayId,null);
-            power.update(active&&awake,previewOwner!=0);
+            updateDisplayKeepAlive();
             if(!active)power.restorePanel();
-            if(fpsEnabled!=monitorFps){fpsEnabled=monitorFps;if(fpsEnabled&&targetPackage!=null)fps.start(targetPackage);else fps.close();}
+            if(fpsEnabled!=monitorFps){fpsEnabled=monitorFps;if(fpsEnabled&&targetPackage!=null&&!primaryMode)fps.start(targetPackage);else fps.close();}
+            if (!active && primaryCapture != null) closePrimaryCapture();
             return null;
         });
+    }
+    @Override public void setScheduleIdle(boolean idle) {
+        call(() -> { scheduleIdle = idle; updateDisplayKeepAlive(); return null; });
+    }
+
+    private void updateDisplayKeepAlive() {
+        if (power != null) power.update(runtimeActive && keepAwake && !scheduleIdle, previewOwner != 0);
     }
     @Override public void configureFrameRates(int capture,int preview) {
         call(() -> {
             if((capture!=15&&capture!=30&&capture!=60)||(preview!=30&&preview!=60))throw new IllegalArgumentException("不支持的帧率");
             captureFps=capture;previewFps=preview;
-            if(renderer!=null){renderer.captureIntervalMs=runtimeActive?Math.max(1,1000/captureFps):180;renderer.previewIntervalMs=Math.max(1,1000/previewFps);}
+            if(renderer!=null){renderer.captureIntervalMs=(1000+captureFps-1)/captureFps;renderer.previewIntervalMs=Math.max(1,1000/previewFps);}
             return null;
         });
     }
@@ -372,6 +587,7 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
             if (displayId < 0) throw new IllegalStateException("请先创建虚拟屏");
             if (packageName == null || !packageName.matches("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+"))
                 throw new IllegalArgumentException("包名无效");
+            if (primaryCapture != null && !packageName.equals(gamePackage)) closePrimaryCapture();
             boolean restartAfterMove = false;
             if (!packageName.equals("com.oas.android")) {
                 try {
@@ -517,6 +733,11 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
             if(!((width==1280&&height==720)||(width==720&&height==1280)))throw new IllegalArgumentException("仅支持标准横屏或竖屏");
             if(primaryMode||display==null)throw new IllegalStateException("竖屏任务需要虚拟屏，不修改手机主屏设置");
             if(width==frameWidth&&height==frameHeight)return null;
+            if (renderer instanceof HardwareFramePipeline) {
+                resizeHardware(width, height);
+                return null;
+            }
+            DisplayRenderer legacy = (DisplayRenderer)renderer;
             ImageReader replacement=ImageReader.newInstance(width,height,PixelFormat.RGBA_8888,3);
             replacement.setOnImageAvailableListener(this::receiveFrame,frames);
             ImageReader previous=reader;
@@ -524,17 +745,54 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
             try{replacementStore=new RawFrameStore();}catch(Exception failure){replacement.close();throw failure;}
             int oldWidth=frameWidth,oldHeight=frameHeight;
             try{
-                onFrames(() -> { renderer.setCapture(replacement.getSurface(),width,height); return null; });
+                onFrames(() -> { legacy.setCapture(replacement.getSurface(),width,height); return null; });
                 display.resize(width,height,densityDpi);
                 synchronized(frameLock){reader=replacement;frameWidth=width;frameHeight=height;RawFrameStore old=rawStore;rawStore=replacementStore;rawEpoch++;frameAt=0;if(old!=null)old.close();}
                 if(previous!=null)previous.close();
             }catch(Exception error){
-                try{onFrames(()->{renderer.setCapture(previous.getSurface(),oldWidth,oldHeight);return null;});display.resize(oldWidth,oldHeight,densityDpi);}
+                try{onFrames(()->{legacy.setCapture(previous.getSurface(),oldWidth,oldHeight);return null;});display.resize(oldWidth,oldHeight,densityDpi);}
                 catch(Exception rollback){error.addSuppressed(rollback);}
                 replacementStore.close();replacement.close();throw error;
             }
             return null;
         });
+    }
+    private void resizeHardware(int width, int height) throws Exception {
+        HardwareFramePipeline previous = (HardwareFramePipeline) renderer;
+        RawFrameStore nextStore = new RawFrameStore();
+        HardwareFramePipeline next;
+        try {
+            next = onFrames(() -> new HardwareFramePipeline(frames, width, height,
+                nextStore.mapping, this::framePublished));
+        } catch (Exception error) { nextStore.close(); throw error; }
+        try {
+            display.resize(width, height, densityDpi);
+            display.setSurface(next.input());
+        } catch (Exception error) {
+            display.resize(frameWidth, frameHeight, densityDpi);
+            display.setSurface(previous.input());
+            onFrames(() -> { next.close(); return null; });
+            nextStore.close();
+            throw error;
+        }
+        RawFrameStore oldStore = rawStore;
+        next.captureIntervalMs = previous.captureIntervalMs;
+        next.previewIntervalMs = previous.previewIntervalMs;
+        next.previewFrames = previous.previewFrames;
+        renderer = next;
+        rawStore = nextStore;
+        rawEpoch++;
+        frameAt = 0;
+        frameWidth = width;
+        frameHeight = height;
+        onFrames(() -> {
+            Surface preview = previous.detachPreviewForResize();
+            previous.close();
+            oldStore.close();
+            if (preview != null) next.setPreview(preview);
+            return null;
+        });
+        if (targetPackage != null && fpsEnabled) fps.start(targetPackage);
     }
     @Override public String shell(String[] arguments){
         return call(()->{

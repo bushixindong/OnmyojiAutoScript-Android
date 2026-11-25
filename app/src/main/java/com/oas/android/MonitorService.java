@@ -54,14 +54,17 @@ public final class MonitorService extends Service {
         int rounds = getSharedPreferences("tasks", 0).getInt("rounds", 1);
         boolean prepare = getSharedPreferences("tasks", 0).getBoolean("prepare", false);
         String engineTask=intent.getStringExtra("engineTask");
-        worker.submit(() -> execute(action, packageName, rounds, prepare,engineTask));
+        String requestedPreset = intent.getStringExtra("preset");
+        String preset = requestedPreset != null ? requestedPreset
+            : getSharedPreferences("MainActivity", 0).getString("activePreset", "android");
+        worker.submit(() -> execute(action, packageName, rounds, prepare, engineTask, preset));
         return START_NOT_STICKY;
     }
-    private void execute(String action, String packageName, int rounds, boolean prepare,String engineTask) {
+    private void execute(String action, String packageName, int rounds, boolean prepare, String engineTask, String preset) {
         TaskRuntime task = null;
         long powerTimeout=action.equals("engine-schedule")?0L:7800000L;
         try (RuntimePowerGuard power=new RuntimePowerGuard(this,session,packageName,powerTimeout);
-             ScreenRecognizer recognizer = new ScreenRecognizer(this)) {
+             ScreenRecognizer recognizer = action.startsWith("engine") ? null : new ScreenRecognizer(this)) {
             DungeonConfig dungeon=null;
             if(action.equals("dungeon")||action.equals("dungeon-check")){
                 android.content.SharedPreferences options=getSharedPreferences("tasks",0);
@@ -73,7 +76,14 @@ public final class MonitorService extends Service {
             task = new TaskRuntime(this, session, recognizer, running::get, timeout<=0?Long.MAX_VALUE/2:timeout);
             task.report.put("package", packageName);
             task.check();
-            if (session.primaryMode) { session.requireBridge().launch(packageName); task.pause(700); }
+            if (getSharedPreferences("MainActivity", 0).getBoolean("floatingBallEnabled", true)
+                    && FloatingOverlayController.canDrawOverlays(this)) {
+                FloatingOverlayController.show(this);
+            }
+            if (session.primaryMode) {
+                session.requireBridge().launch(packageName);
+                task.pause(700);
+            }
             String detail,status="finished";
             switch (action) {
                 case "recognize": detail = recognize(recognizer); break;
@@ -87,11 +97,17 @@ public final class MonitorService extends Service {
                 case "ocr-text": detail=readText(task);break;
                 case "engine":case "engine-schedule":
                     int dpi=getSharedPreferences("MainActivity",0).getInt("dpi",240);
-                    PythonHost host=new PythonHost(session,packageName,dpi);host.begin(running::get,timeout);
+                    PythonHost host=new PythonHost(session,packageName,dpi) {
+                        @Override public boolean beginIdleWait(long millis) { return running.get() && power.beginIdleWait(millis); }
+                        @Override public void endIdleWait() { power.endIdleWait(); }
+                    };
+                    host.begin(running::get,timeout);
                     org.json.JSONObject result;
                     try{
                         com.chaquo.python.PyObject engine=TaskEngine.initialize(this,host);
-                        result=new org.json.JSONObject((action.equals("engine-schedule")?engine.callAttr("schedule",host):engine.callAttr("run",engineTask,host)).toString());
+                        result=new org.json.JSONObject((action.equals("engine-schedule")
+                            ? engine.callAttr("schedule",host,preset)
+                            : engine.callAttr("run",engineTask,host,preset)).toString());
                     }
                     finally{host.restoreOrientation();host.close();}
                     task.report.put("engine",result).put("engineTouches",host.touches());
@@ -150,6 +166,10 @@ public final class MonitorService extends Service {
     }
     private void write(String filename, String value) throws Exception {
         try (java.io.FileOutputStream output = openFileOutput(filename, 0)) { output.write(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+    }
+    @Override public void onTaskRemoved(Intent rootIntent) {
+        FloatingOverlayController.hide();
+        super.onTaskRemoved(rootIntent);
     }
     @Override public void onDestroy() {
         running.set(false);

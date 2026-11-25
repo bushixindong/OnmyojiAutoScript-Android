@@ -34,4 +34,5 @@ interface IDeviceBridge {
     void selectAllText();
     void spawnShellBridge(String apkPath, String token);
     void destroy();
+    void setScheduleIdle(boolean idle);
 }
