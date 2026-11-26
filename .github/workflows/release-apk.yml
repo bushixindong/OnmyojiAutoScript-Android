@@ -181,7 +181,7 @@ jobs:
             dist/update/oas-runtime.zip
             dist/update/manifest.json
 
-      - name: Mirror Release Assets to GitCode (if GITCODE_TOKEN is set)
+      - name: Mirror Hot-Update Assets to GitCode (if GITCODE_TOKEN is set)
         env:
           GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
         run: |
@@ -189,5 +189,4 @@ jobs:
             --update-json dist/update/update.json \
             --runtime-zip dist/update/oas-runtime.zip \
             --manifest-json dist/update/manifest.json \
-            --apk "${{ steps.meta.outputs.apk }}" \
-            --apk-sha "${{ steps.meta.outputs.apk_sha }}"
+            --app-download-url "https://kongdr.bbs0.cc/"

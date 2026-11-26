@@ -75,6 +75,7 @@ def main() -> int:
     parser.add_argument("--update-json", required=True)
     parser.add_argument("--runtime-zip", required=True)
     parser.add_argument("--manifest-json", required=True)
+    parser.add_argument("--app-download-url", default="https://kongdr.bbs0.cc/")
     parser.add_argument("--apk", default="")
     parser.add_argument("--apk-sha", default="")
     args = parser.parse_args()
@@ -95,7 +96,7 @@ def main() -> int:
     upload_asset(token, args.owner, args.repo, args.tag, runtime_zip, "oas-runtime.zip")
     upload_asset(token, args.owner, args.repo, args.tag, manifest_json, "manifest.json")
 
-    apk_download_url = f"https://gitcode.com/{args.owner}/{args.repo}/releases/tag/{args.tag}"
+    apk_download_url = args.app_download_url.strip() or f"https://gitcode.com/{args.owner}/{args.repo}/releases/tag/{args.tag}"
     if args.apk:
         apk_path = Path(args.apk)
         if apk_path.is_file():
