@@ -43,9 +43,24 @@ jobs:
           python-version: '3.10'
 
       - name: Install pure-python runtime packages for export
+        env:
+          REPO_NAME: ${{ github.repository }}
         run: |
           mkdir -p upstream-oas/toolkit/Lib/site-packages
-          pip install --no-deps --target upstream-oas/toolkit/Lib/site-packages ppocronnx paho-mqtt onepush
+          pip install --no-deps --target upstream-oas/toolkit/Lib/site-packages paho-mqtt onepush
+          curl -fsSL "https://github.com/${REPO_NAME}/releases/latest/download/oas-runtime.zip" -o /tmp/prev-runtime.zip
+          python - << 'PY'
+          import zipfile
+          from pathlib import Path
+          dest = Path('upstream-oas/toolkit/Lib/site-packages')
+          with zipfile.ZipFile('/tmp/prev-runtime.zip') as zf:
+              for member in zf.infolist():
+                  if member.filename.startswith('ppocronnx/') and not member.is_dir():
+                      target = dest / member.filename
+                      target.parent.mkdir(parents=True, exist_ok=True)
+                      target.write_bytes(zf.read(member.filename))
+          PY
+          rm -f /tmp/prev-runtime.zip
 
       - name: Export oas-runtime.zip and update.json
         env:
