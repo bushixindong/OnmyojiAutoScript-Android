@@ -61,10 +61,10 @@ def upload_asset(token: str, owner: str, repo: str, tag: str, local_path: Path, 
     with local_path.open("rb") as f:
         req = urllib.request.Request(put_url, data=f, headers=headers, method="PUT")
         with urllib.request.urlopen(req, timeout=600) as resp:
-            resp.read()
-            if resp.status not in (200, 201, 204):
-                raise RuntimeError(f"Upload failed for {remote_name}: HTTP {resp.status}")
-    print(f"[gitcode] uploaded {remote_name}")
+            body = resp.read().decode("utf-8", errors="replace").strip()
+            if not (200 <= resp.status < 300):
+                raise RuntimeError(f"Upload failed for {remote_name}: HTTP {resp.status} {body[:200]}")
+    print(f"[gitcode] uploaded {remote_name} (HTTP {resp.status})")
 
 
 def main() -> int:
