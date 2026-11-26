@@ -30,7 +30,7 @@ data class RemoteUpdateInfo(
 
 object RuntimeUpdater {
     const val DEFAULT_MANIFEST_URL =
-        "https://github.com/kongdr418/OnmyojiAutoScript-Android/releases/latest/download/update.json"
+        "https://github.com/bushixindong/OnmyojiAutoScript-Android/releases/latest/download/update.json"
 
     fun localRuntimeInfo(context: Context): LocalRuntimeInfo {
         val root = File(context.filesDir, "oas-engine")
@@ -83,7 +83,7 @@ object RuntimeUpdater {
             val rtNotes = json.optString("runtimeNotes", "").trim()
             val appVer = json.optString("appVersion", "").trim()
             val appCode = json.optInt("appVersionCode", 0)
-            val appUrl = json.optString("appDownloadUrl", "https://github.com/kongdr418/OnmyojiAutoScript-Android/releases/latest").trim()
+            val appUrl = json.optString("appDownloadUrl", "https://github.com/bushixindong/OnmyojiAutoScript-Android/releases/latest").trim()
             val appNotes = json.optString("appNotes", "").trim()
             val hasRt = rtUrl.isNotEmpty() && rtSha.length == 64 && !rtSha.equals(local.sha256, ignoreCase = true)
             val hasApp = appCode > BuildConfig.VERSION_CODE

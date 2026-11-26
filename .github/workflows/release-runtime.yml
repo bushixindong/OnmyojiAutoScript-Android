@@ -6,7 +6,7 @@ on:
       oas_repo:
         description: 'Upstream OAS repository (owner/repo)'
         required: true
-        default: 'kongdr418/OnmyojiAutoScript'
+        default: 'bushixindong/OnmyojiAutoScript'
       oas_ref:
         description: 'Upstream OAS branch or tag'
         required: true

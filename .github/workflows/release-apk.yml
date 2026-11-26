@@ -6,7 +6,7 @@ on:
       oas_repo:
         description: 'Upstream OAS repository (owner/repo)'
         required: true
-        default: 'kongdr418/OnmyojiAutoScript'
+        default: 'bushixindong/OnmyojiAutoScript'
       oas_ref:
         description: 'Upstream OAS branch or tag'
         required: true
@@ -32,7 +32,7 @@ jobs:
 
       - name: Clone upstream OAS
         env:
-          OAS_REPO: ${{ github.event.inputs.oas_repo || 'kongdr418/OnmyojiAutoScript' }}
+          OAS_REPO: ${{ github.event.inputs.oas_repo || 'bushixindong/OnmyojiAutoScript' }}
           OAS_REF: ${{ github.event.inputs.oas_ref || 'mine' }}
         run: |
           git clone --depth=1 --branch "$OAS_REF" "https://github.com/${OAS_REPO}.git" upstream-oas
