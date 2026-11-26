@@ -64,13 +64,13 @@
     "WeeklyTrifles"
   ],
   "taskCount": 62,
-  "fileCount": 4188,
-  "unpackedBytes": 75743797,
+  "fileCount": 4189,
+  "unpackedBytes": 75748995,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "1f0c5075055247492b65673c65932326fc69a59a2680a2b099758f07736ff0c8",
+  "archiveSha256": "ad947a4b431e627c06ea9d6027abfe710e19e3a409615707635f557a1679c2bc",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -874,8 +874,8 @@
     },
     {
       "path": "module/server/annotator_rule_schema.py",
-      "size": 8445,
-      "sha256": "24b3e003acdbb4512c2305e1002e16a28d3faa1fa8bacaed1ea746596ae81fce"
+      "size": 9130,
+      "sha256": "aa1652559c702f99dd81e69ffac3c2bfe1e9f0f4843782813f54b3512e9720f1"
     },
     {
       "path": "module/server/api_logger.py",
@@ -11304,8 +11304,8 @@
     },
     {
       "path": "tasks/DailyTrifles/assets.py",
-      "size": 14991,
-      "sha256": "c3c5537caf43ded45fc030c539beb37bfe32801ae3c19937fcee266ef7fe54a1"
+      "size": 15209,
+      "sha256": "ffa7407e0229f9293a00f2cf6c1d8b10e4b6bef99f5637f3d2c05ba2c3ce2d91"
     },
     {
       "path": "tasks/DailyTrifles/config.py",
@@ -11484,8 +11484,13 @@
     },
     {
       "path": "tasks/DailyTrifles/dt/dt_harvest_mail_copy2.png",
-      "size": 1063,
-      "sha256": "88d7831791963bc1cc5ef18b652a707307139536c782b55ab12cfb7b6a016a36"
+      "size": 1261,
+      "sha256": "997cd3f2a625957014db0264c2023f9ddc44f6b1017c0f229c57ca7218b54c1d"
+    },
+    {
+      "path": "tasks/DailyTrifles/dt/dt_harvest_mail_new_confirm.png",
+      "size": 4954,
+      "sha256": "e928022f1df54bd4ffcf178de11371cd39e1d8ca56490f22738870dd899bc964"
     },
     {
       "path": "tasks/DailyTrifles/dt/dt_one_complete.png",
@@ -11509,8 +11514,8 @@
     },
     {
       "path": "tasks/DailyTrifles/dt/image_pickup_email.json",
-      "size": 1524,
-      "sha256": "de7499a8f46e15feb12f1bd64dca733803c564a57d71d9fab1a3aa684c1eb756"
+      "size": 1869,
+      "sha256": "16402fad13916c745a6f817fbb6f74f0a54362f858432c46994241e8bec9f5cf"
     },
     {
       "path": "tasks/DailyTrifles/dt/ocr.json",
@@ -11589,8 +11594,8 @@
     },
     {
       "path": "tasks/DailyTrifles/script_task.py",
-      "size": 31801,
-      "sha256": "fb62bbe4bf4fabb911ff5795b70e00903187281530825321f0d81ca880ce32ba"
+      "size": 31920,
+      "sha256": "1a22bb2c1484d403d359d5a2dd0cc00a80461bb8a577ecee8e1e7dc1422e04bc"
     },
     {
       "path": "tasks/DailyTrifles/store/image.json",
@@ -14664,8 +14669,8 @@
     },
     {
       "path": "tasks/GlobalGame/assets.py",
-      "size": 5593,
-      "sha256": "59f44e96a88e1a8416ea44191c3eb54d01f555a7c7381c6d4ffdbe7aec2df984"
+      "size": 5594,
+      "sha256": "411adf48024ec136c4c402025a00daae6020993ac96dac89a2534af41cca08fa"
     },
     {
       "path": "tasks/GlobalGame/config.py",
@@ -14779,8 +14784,8 @@
     },
     {
       "path": "tasks/GlobalGame/ui/image.json",
-      "size": 3144,
-      "sha256": "25e417e57e48295c9ed58d5cf844e7e8983fd17376d533338d37174af7d584a7"
+      "size": 3145,
+      "sha256": "b0d66e5d8697004d41b5d4f37a01b92618c654d13013c27f1ba9112c52588a4e"
     },
     {
       "path": "tasks/GlobalGame/ui/ui_ui_award.png",
@@ -14809,8 +14814,8 @@
     },
     {
       "path": "tasks/GlobalGame/ui/ui_ui_cancel.png",
-      "size": 5019,
-      "sha256": "e43723dd8ac8550b215718d6b6d3d1b5e2458dc5912877d3c67186b7d3767071"
+      "size": 3462,
+      "sha256": "6bc8a84c7db561d92b8c7959ad371f49d71c1716efdcc1961edcd61b0e749a6f"
     },
     {
       "path": "tasks/GlobalGame/ui/ui_ui_cancel_samll.png",
@@ -19030,7 +19035,7 @@
     {
       "path": "tasks/SixRealms/assets.py",
       "size": 26518,
-      "sha256": "b83801de4f6e35cbd0c734c8a602fc2ef326e5bcde3824c0ce40597724a2d46b"
+      "sha256": "cdfad8b3c6542004a0288c56280d33d05fbf36f25cb15561421d0bc144c7b0f6"
     },
     {
       "path": "tasks/SixRealms/common.py",
@@ -19690,7 +19695,7 @@
     {
       "path": "tasks/SixRealms/sr/image.json",
       "size": 4460,
-      "sha256": "abb113fa885aaf9595675c011bb34739e0171254aef87b57d0a840d3dd2ff185"
+      "sha256": "e1bb704f78386a67432c5b74c63feedfb5ad9f140ee2306671ac7b6c850a7f60"
     },
     {
       "path": "tasks/SixRealms/sr/sr_sr_check_buy_box.png",
@@ -19724,8 +19729,8 @@
     },
     {
       "path": "tasks/SixRealms/sr/sr_sr_not_tip.png",
-      "size": 1492,
-      "sha256": "ba49a610a290d3e7845f8f54b465d3d465c68e60dbf362114943f18ff498b79d"
+      "size": 1726,
+      "sha256": "f0b85ca79514f8fc03fe67d43e501a905c4fc6aa8341f4c29f5451d3b73005e8"
     },
     {
       "path": "tasks/SixRealms/sr/sr_sr_peacock_kingdom_info.png",
