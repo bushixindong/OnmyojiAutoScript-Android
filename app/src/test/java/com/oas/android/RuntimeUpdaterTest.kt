@@ -32,10 +32,11 @@ class RuntimeUpdaterTest {
     @Test
     fun fallbackProtectionAppliesForBothAutoSwitchAndManualFallbackUrl() {
         assertTrue(RuntimeUpdater.shouldProtectAgainstDowngrade(RuntimeUpdater.FALLBACK_MANIFEST_URL, autoSwitchedToFallback = false))
-        assertTrue(RuntimeUpdater.shouldProtectAgainstDowngrade("https://kongdr.bbs0.cc/update.json", autoSwitchedToFallback = false))
+        assertTrue(RuntimeUpdater.shouldProtectAgainstDowngrade("https://gitcode.com/kongdr418/oasa-releases/releases/download/latest/update.json", autoSwitchedToFallback = false))
+        assertTrue(RuntimeUpdater.shouldProtectAgainstDowngrade("https://file-cdn.gitcode.com/11492580/releases/abc/update.json", autoSwitchedToFallback = false))
         assertTrue(RuntimeUpdater.shouldProtectAgainstDowngrade(RuntimeUpdater.DEFAULT_MANIFEST_URL, autoSwitchedToFallback = true))
         assertFalse(RuntimeUpdater.shouldProtectAgainstDowngrade(RuntimeUpdater.DEFAULT_MANIFEST_URL, autoSwitchedToFallback = false))
-        assertFalse(RuntimeUpdater.isFallbackSiteUrl("https://kongdr.bbs0.cc.evil.com/update.json"))
+        assertFalse(RuntimeUpdater.isFallbackSiteUrl("https://gitcode.com.evil.com/kongdr418/oasa-releases/releases/download/latest/update.json"))
     }
 
     @Test
