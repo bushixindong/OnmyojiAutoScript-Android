@@ -840,11 +840,12 @@ class OasController(private val activity: Activity) {
         Thread({
             try {
                 val info = RuntimeUpdater.checkUpdate(activity, url, mirror)
+                val suffix = if(info.usedFallback) "（已自动切换备用加速源）" else ""
                 val status = when {
-                    info.hasRuntimeUpdate && info.hasAppUpdate -> "发现新脚本 (${info.runtimeVersion}) 与新版 APK (${info.appVersion})"
-                    info.hasRuntimeUpdate -> "发现新脚本版本：${info.runtimeVersion}"
-                    info.hasAppUpdate -> "发现新版 APK：${info.appVersion}"
-                    else -> "当前脚本与客户端均为最新版本"
+                    info.hasRuntimeUpdate && info.hasAppUpdate -> "发现新脚本 (${info.runtimeVersion}) 与新版 APK (${info.appVersion})$suffix"
+                    info.hasRuntimeUpdate -> "发现新脚本版本：${info.runtimeVersion}$suffix"
+                    info.hasAppUpdate -> "发现新版 APK：${info.appVersion}$suffix"
+                    else -> "当前脚本与客户端均为最新版本$suffix"
                 }
                 ui { remoteUpdate = info; updateStatus = status; updateBusy = false }
             } catch(problem: Throwable) {
