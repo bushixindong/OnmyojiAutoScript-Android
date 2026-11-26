@@ -119,9 +119,12 @@ class OasController(private val activity: Activity) {
     var updateProgress by mutableFloatStateOf(0f); private set
     var updateStatus by mutableStateOf(""); private set
     var updateNeedsRestart by mutableStateOf(false); private set
+    var capturingScreenshot by mutableStateOf(false); private set
+    var exportingErrorMarkdown by mutableStateOf(false); private set
     var lastResult by mutableStateOf(activity.getSharedPreferences("task_records", 0).getString("last", "") ?: ""); private set
     var onPickJsonFile: (((String, String) -> Unit) -> Unit)? = null
     var onSaveJsonFile: ((String, ByteArray) -> Unit)? = null
+    var onSaveMarkdownFile: ((String, ByteArray) -> Unit)? = null
     private val listener = Runnable { sync() }
 
     init {
@@ -889,6 +892,115 @@ class OasController(private val activity: Activity) {
         } catch(problem: Throwable) {
             notify(problem.message ?: "无法打开链接")
         }
+    }
+    fun captureVirtualScreen() {
+        if(capturingScreenshot) return
+        if(mode) {
+            notify("前台兼容模式不支持在画面页截取虚拟屏")
+            return
+        }
+        if(!connected || !environmentReady) {
+            notify("请先连接 Shizuku 并准备后台虚拟屏")
+            return
+        }
+        capturingScreenshot = true
+        val preset = activePreset
+        Thread({
+            var bitmap: android.graphics.Bitmap? = null
+            try {
+                bitmap = session.captureDisplay()
+                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                val fileName = ErrorLogMarkdownExporter.buildScreenshotFileName(preset, timestamp)
+                val savedLocation = saveScreenshotBitmap(bitmap, fileName)
+                ui {
+                    capturingScreenshot = false
+                    notify("虚拟屏截图已保存：$savedLocation")
+                }
+            } catch(problem: Throwable) {
+                ui {
+                    capturingScreenshot = false
+                    notify("截图失败：${problem.message ?: "未知错误"}")
+                }
+            } finally {
+                bitmap?.recycle()
+            }
+        }, "oas-capture-screen").start()
+    }
+    private fun saveScreenshotBitmap(bitmap: android.graphics.Bitmap, fileName: String): String {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = activity.contentResolver
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "${android.os.Environment.DIRECTORY_PICTURES}/OASA")
+                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                ?: throw IllegalStateException("无法创建相册图片条目")
+            try {
+                resolver.openOutputStream(uri)?.use { out ->
+                    if(!bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)) {
+                        throw IllegalStateException("PNG 编码失败")
+                    }
+                } ?: throw IllegalStateException("无法写入相册文件")
+                val publish = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+                }
+                resolver.update(uri, publish, null, null)
+                return "Pictures/OASA/$fileName"
+            } catch(problem: Throwable) {
+                try { resolver.delete(uri, null, null) } catch(_: Throwable) { }
+                throw problem
+            }
+        }
+        val baseDir = activity.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES) ?: activity.filesDir
+        val dir = java.io.File(baseDir, "OASA").apply { mkdirs() }
+        val target = java.io.File(dir, fileName)
+        java.io.FileOutputStream(target).use { out ->
+            if(!bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)) {
+                throw IllegalStateException("PNG 编码失败")
+            }
+        }
+        return target.absolutePath
+    }
+    fun exportErrorLogMarkdown(detail: ErrorLogDetail) {
+        if(exportingErrorMarkdown) return
+        val saver = onSaveMarkdownFile
+        if(saver == null) {
+            notify("当前页面不支持导出文件")
+            return
+        }
+        exportingErrorMarkdown = true
+        Thread({
+            try {
+                val encodedImages = mutableListOf<EmbeddedErrorImage>()
+                val missing = mutableListOf<String>()
+                for(path in detail.imagePaths) {
+                    val encoded = ErrorLogMarkdownExporter.encodeImageFile(path)
+                    if(encoded != null) encodedImages.add(encoded)
+                    else missing.add(java.io.File(path).name.ifBlank { path })
+                }
+                val exportedAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+                val markdown = ErrorLogMarkdownExporter.buildMarkdown(
+                    detail = detail,
+                    images = encodedImages,
+                    appVersion = BuildConfig.VERSION_NAME,
+                    exportedAt = exportedAt,
+                    missingImageNames = missing
+                )
+                val fileName = ErrorLogMarkdownExporter.buildErrorLogFileName(detail.item)
+                val bytes = markdown.toByteArray(Charsets.UTF_8)
+                ui {
+                    exportingErrorMarkdown = false
+                    saver(fileName, bytes)
+                }
+            } catch(problem: Throwable) {
+                ui {
+                    exportingErrorMarkdown = false
+                    notify("生成报错 MD 失败：${problem.message ?: "未知错误"}")
+                }
+            }
+        }, "oas-export-error-md").start()
     }
     fun notify(text: String) { Toast.makeText(activity, text, Toast.LENGTH_LONG).show() }
     fun installedGames(): List<Pair<String,String>> = candidates.mapNotNull { pkg ->

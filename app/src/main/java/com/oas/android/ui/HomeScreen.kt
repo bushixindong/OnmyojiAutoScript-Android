@@ -765,7 +765,9 @@ private fun LogCenterPanel(controller: OasController) {
                 ErrorLogDetailPanel(
                     detail = selectedError,
                     wrapLines = wrapLines,
+                    exporting = controller.exportingErrorMarkdown,
                     onBack = controller::closeErrorLog,
+                    onExportMarkdown = { controller.exportErrorLogMarkdown(selectedError) },
                     onOpenImage = { previewImagePath = it }
                 )
             } else {
@@ -839,7 +841,9 @@ private fun ErrorLogListPanel(controller: OasController) {
 private fun ErrorLogDetailPanel(
     detail: ErrorLogDetail,
     wrapLines: Boolean,
+    exporting: Boolean,
     onBack: () -> Unit,
+    onExportMarkdown: () -> Unit,
     onOpenImage: (String) -> Unit
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -853,6 +857,15 @@ private fun ErrorLogDetailPanel(
             Column(Modifier.weight(1f)) {
                 Text(detail.item.taskLabel.ifBlank { "错误详情" }, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(detail.item.timeText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            OutlinedButton(
+                onClick = onExportMarkdown,
+                enabled = !exporting,
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                modifier = Modifier.height(32.dp).padding(end = 6.dp)
+            ) {
+                Text(if(exporting) "导出中…" else "导出 MD", style = MaterialTheme.typography.labelMedium, maxLines = 1)
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -1064,10 +1077,11 @@ fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
                             enabled = !controller.stopping,
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(painterResource(R.drawable.ic_oasx_power), null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
+                            Icon(painterResource(R.drawable.ic_oasx_power), null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
                             Text(
                                 if(controller.stopping) "正在停止…" else "停止 · ${controller.activePreset}",
                                 maxLines = 1,
@@ -1079,20 +1093,32 @@ fun ScreenDestination(controller: OasController, onDevice: () -> Unit) {
                             onClick = controller::release,
                             enabled = !controller.busy,
                             shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                             modifier = Modifier.weight(1f)
-                        ) { Text("释放虚拟屏", maxLines = 1) }
+                        ) { Text("释放虚拟屏", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     } else {
                         OutlinedButton(
                             onClick = onDevice,
                             shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                             modifier = Modifier.weight(1f)
-                        ) { Text("设备与游戏", maxLines = 1) }
+                        ) { Text("设备与游戏", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    }
+                    if(!controller.mode) {
+                        OutlinedButton(
+                            onClick = controller::captureVirtualScreen,
+                            enabled = controller.connected && controller.environmentReady && !controller.capturingScreenshot,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) { Text(if(controller.capturingScreenshot) "截图中…" else "截图", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
                     OutlinedButton(
                         onClick = controller::toggleFloatingBall,
                         shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                         modifier = Modifier.weight(1f)
-                    ) { Text(if(controller.floatingBallVisible) "关闭悬浮球" else "打开悬浮球", maxLines = 1) }
+                    ) { Text(if(controller.floatingBallVisible) "关闭悬浮球" else "打开悬浮球", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(

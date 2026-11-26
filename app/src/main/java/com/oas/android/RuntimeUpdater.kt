@@ -32,10 +32,10 @@ data class RemoteUpdateInfo(
 object RuntimeUpdater {
     const val DEFAULT_MANIFEST_URL =
         "https://github.com/kongdr418/OnmyojiAutoScript-Android/releases/latest/download/update.json"
-    const val FALLBACK_SITE_BASE = "https://kongdr.bbs0.cc"
+    const val FALLBACK_SITE_BASE = "https://gitcode.com/kongdr418/oasa-releases/releases/download/latest"
     const val FALLBACK_MANIFEST_URL = "$FALLBACK_SITE_BASE/update.json"
-    const val FALLBACK_RUNTIME_ARCHIVE_URL = "$FALLBACK_SITE_BASE/downloads/oas-runtime.zip"
-    const val FALLBACK_RUNTIME_MANIFEST_URL = "$FALLBACK_SITE_BASE/downloads/manifest.json"
+    const val FALLBACK_RUNTIME_ARCHIVE_URL = "$FALLBACK_SITE_BASE/oas-runtime.zip"
+    const val FALLBACK_RUNTIME_MANIFEST_URL = "$FALLBACK_SITE_BASE/manifest.json"
 
     private const val PRIMARY_CONNECT_TIMEOUT_MS = 8_000
     private const val PRIMARY_READ_TIMEOUT_MS = 12_000
@@ -73,7 +73,10 @@ object RuntimeUpdater {
     internal fun isFallbackSiteUrl(url: String): Boolean {
         val lower = url.trim().lowercase(Locale.ROOT)
         val base = FALLBACK_SITE_BASE.lowercase(Locale.ROOT)
-        return lower == base || lower.startsWith("$base/")
+        return lower == base ||
+            lower.startsWith("$base/") ||
+            lower.startsWith("https://file-cdn.gitcode.com/") ||
+            lower.startsWith("https://file.gitcode.com/")
     }
 
     internal fun shouldProtectAgainstDowngrade(effectiveManifestUrl: String, autoSwitchedToFallback: Boolean): Boolean {

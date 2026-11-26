@@ -89,3 +89,12 @@ jobs:
             dist/update/update.json
             dist/update/oas-runtime.zip
             dist/update/manifest.json
+
+      - name: Mirror Hot-Update Assets to GitCode (if GITCODE_TOKEN is set)
+        env:
+          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+        run: |
+          python tools/sync-gitcode-release.py \
+            --update-json dist/update/update.json \
+            --runtime-zip dist/update/oas-runtime.zip \
+            --manifest-json dist/update/manifest.json

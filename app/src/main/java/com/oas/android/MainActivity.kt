@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var controller: OasController
     private var pendingImport: ((String, String) -> Unit)? = null
     private var pendingExport: ByteArray? = null
+    private var pendingMarkdownExport: ByteArray? = null
 
     private val openJsonLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val callback = pendingImport
@@ -44,6 +45,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val saveMarkdownLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+        val payload = pendingMarkdownExport
+        pendingMarkdownExport = null
+        if(uri != null && payload != null) {
+            try {
+                contentResolver.openOutputStream(uri)?.use { it.write(payload) } ?: error("无法写入目标文件")
+                controller.notify("报错日志 MD 已导出")
+            } catch(problem: Throwable) {
+                controller.notify("导出 MD 失败：" + (problem.message ?: "未知错误"))
+            }
+        }
+    }
+
     private fun displayNameOf(uri: Uri): String {
         contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if(cursor.moveToFirst()) return cursor.getString(0) ?: "config.json"
@@ -66,6 +80,10 @@ class MainActivity : ComponentActivity() {
             onSaveJsonFile = { fileName, bytes ->
                 pendingExport = bytes
                 saveJsonLauncher.launch(fileName)
+            }
+            onSaveMarkdownFile = { fileName, bytes ->
+                pendingMarkdownExport = bytes
+                saveMarkdownLauncher.launch(fileName)
             }
         }
         setContent { OasAppScreen(controller) }

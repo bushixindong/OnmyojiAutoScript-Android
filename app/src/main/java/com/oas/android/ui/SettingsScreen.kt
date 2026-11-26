@@ -161,7 +161,7 @@ private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
                 ) { Text(if(showSourceConfig) "收起更新源设置" else "配置更新源 / 镜像加速") }
                 if(showSourceConfig) {
                     Text(
-                        "默认优先使用 GitHub 官方源；若连接超时或下载过慢，将自动切换至 ${RuntimeUpdater.FALLBACK_SITE_BASE} 备用加速源。",
+                        "默认优先使用 GitHub 官方源；若连接超时或下载过慢，将自动切换至 GitCode 国内备用源。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
