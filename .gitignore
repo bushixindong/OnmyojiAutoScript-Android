@@ -1,6 +1,7 @@
 .gradle/
 .idea/
 local.properties
+gradle/gradle-daemon-jvm.properties
 **/build/
 captures/
 *.iml
@@ -35,3 +36,6 @@ __pycache__/
 *.pyo
 .DS_Store
 Thumbs.db
+
+# WorkBuddy 本地工作目录
+.workbuddy/
