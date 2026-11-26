@@ -64,13 +64,13 @@
     "WeeklyTrifles"
   ],
   "taskCount": 62,
-  "fileCount": 4192,
-  "unpackedBytes": 75749510,
+  "fileCount": 4188,
+  "unpackedBytes": 75743797,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "e217f558540ac00656d1f88ef722c864194ae7d33324faa69501873e24857de4",
+  "archiveSha256": "1f0c5075055247492b65673c65932326fc69a59a2680a2b099758f07736ff0c8",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -799,8 +799,8 @@
     },
     {
       "path": "module/scrolls/client.py",
-      "size": 12988,
-      "sha256": "914f702431aa603a2536d32c04b504998e4f3432b931bab33a1df77b5eb1a0f9"
+      "size": 12720,
+      "sha256": "ff220477a127c43843a1b87b844a885c263d1a135b7cccfa91800fcf04e27e64"
     },
     {
       "path": "module/scrolls/codec.py",
@@ -849,8 +849,8 @@
     },
     {
       "path": "module/scrolls/saved_accounts.py",
-      "size": 11064,
-      "sha256": "9c8774862f139c66cd41efd522c4aa6b5f2d955e4fac2784bfbcf4b7354e7dda"
+      "size": 10797,
+      "sha256": "3b23ee1c5b1acc1515436aa5d7f86dc11bd688bae4f9151ff55e7704d8512c0e"
     },
     {
       "path": "module/scrolls/servers.py",
@@ -859,8 +859,8 @@
     },
     {
       "path": "module/scrolls/service.py",
-      "size": 23389,
-      "sha256": "05aeac4ce9e2be13c3579b4ff5aca7af73522e723b6bbadef1be33299e8cae91"
+      "size": 22971,
+      "sha256": "dba5a012e1e94d990b1b4b457d211d5e2d581aad04fd3362797924e4f41eece1"
     },
     {
       "path": "module/scrolls/storage.py",
@@ -10999,8 +10999,8 @@
     },
     {
       "path": "tasks/Component/SwitchAccount/res/image.json",
-      "size": 4122,
-      "sha256": "3d0dfb22ac06890f00a49c0b7af970f364d51c8e4ea9e00ce4c1d3eab366bbe6"
+      "size": 4004,
+      "sha256": "d6ce333dd32b3a1014d85f906308b270f114561f85568fd47ea9c42ea6638a2f"
     },
     {
       "path": "tasks/Component/SwitchAccount/res/res_sa_check_select_svr_1.png",
@@ -12729,13 +12729,13 @@
     },
     {
       "path": "tasks/DraftDuel/draft_duel/frame.json",
-      "size": 3688,
-      "sha256": "971d29babf3f83752902da1af3998c6ad0da8260b5e244f5c88501ae93e14013"
+      "size": 3522,
+      "sha256": "929922a2314e24a0406c8592eab4ef761628dbfdf6b81e35414d34f9ad69ef61"
     },
     {
       "path": "tasks/DraftDuel/draft_duel/image.json",
-      "size": 8631,
-      "sha256": "0f405b2806f59cd61ae69d78b3fb8ca30a892fba0909ba3d568c1b2d2b0de8b1"
+      "size": 8325,
+      "sha256": "931ededdf9417305c04049b05de3255b5b1855b530e1ea44dfa3f3de0adfb348"
     },
     {
       "path": "tasks/DraftDuel/draft_duel/ocr.json",
@@ -12784,8 +12784,8 @@
     },
     {
       "path": "tasks/DraftDuel/models/recommended-model.json",
-      "size": 61804,
-      "sha256": "1ae221f9d98079c8023626c4335b6d645e835b34f8a72fb45159ee7b88adc3d3"
+      "size": 58975,
+      "sha256": "20c3f63d3a7da10b4e7391548153d471b681942f4adbf901022019f3f6e477bd"
     },
     {
       "path": "tasks/DraftDuel/runtime/__init__.py",
@@ -14779,8 +14779,8 @@
     },
     {
       "path": "tasks/GlobalGame/ui/image.json",
-      "size": 3262,
-      "sha256": "449e8dca9f81404b97260d5b5b96669e585ec66a821fb285bf89d2d4e0c7c743"
+      "size": 3144,
+      "sha256": "25e417e57e48295c9ed58d5cf844e7e8983fd17376d533338d37174af7d584a7"
     },
     {
       "path": "tasks/GlobalGame/ui/ui_ui_award.png",
@@ -17929,8 +17929,8 @@
     },
     {
       "path": "tasks/Restart/login/image.json",
-      "size": 5235,
-      "sha256": "a1f3e2df7eeab5ba9903ef21e50246e21f6a9927401395c72627cdcb8823c5b6"
+      "size": 5063,
+      "sha256": "f8d140d641625b42a50b7977ec557ab083e2e22d8b30ce1667694eec493e3df1"
     },
     {
       "path": "tasks/Restart/login/login_cancel_battle.png",
@@ -20259,8 +20259,8 @@
     },
     {
       "path": "tasks/WantedQuests/invite/image.json",
-      "size": 8747,
-      "sha256": "1e9e3eb869e9b172788b30933c8c974ea332cd1b46b7da2578c0e63ef5cec610"
+      "size": 8476,
+      "sha256": "a48a1e7786d2a11d336715cc38e796d1a02b8abca5ab3f40f94edc9a3fb5629c"
     },
     {
       "path": "tasks/WantedQuests/invite/invite_wq_invite_1.png",
@@ -20354,8 +20354,8 @@
     },
     {
       "path": "tasks/WantedQuests/wq/image.json",
-      "size": 4751,
-      "sha256": "15f3a7dd6ab9c99b14ca0c9d9cca13dad468fce5f89b687e601fbf7a2f75d659"
+      "size": 4588,
+      "sha256": "befc836770ab082384834d88684fb9d646f41a26cfe25b25f6a75a26beefcd54"
     },
     {
       "path": "tasks/WantedQuests/wq/ocr.json",
@@ -20721,26 +20721,6 @@
       "path": "assets/DraftDuel/catalog.json",
       "size": 69656,
       "sha256": "78682fb75f899fbbe77d443f9d8fa2e84ea39de338541e2d6a15260a7b9de5ea"
-    },
-    {
-      "path": "assets/DraftDuel/duel_share/draft_progress_captain.json",
-      "size": 171,
-      "sha256": "4a347cbba31c67fcf1f202c504daa3163f48d3deb9da9231a5b26c5ce6f4bd2f"
-    },
-    {
-      "path": "assets/DraftDuel/duel_share/draft_progress_member.json",
-      "size": 161,
-      "sha256": "371f2a11b4b12606964e870cfb5f666c8c7c03776b374ff6365c5757f66e96af"
-    },
-    {
-      "path": "assets/DraftDuel/duel_share/draft_share_captain.json",
-      "size": 147,
-      "sha256": "4ae6712c44c685284f1063951775f5bb3a6ebf69feb048e76c3cce70e881bb5c"
-    },
-    {
-      "path": "assets/DraftDuel/duel_share/draft_share_member.json",
-      "size": 138,
-      "sha256": "92a82555a96408bed667115e002034d3faf3c083db2f3d55572ba25475cca3e1"
     },
     {
       "path": "assets/DraftDuel/encyclopedia.json",
