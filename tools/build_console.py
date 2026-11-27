@@ -214,7 +214,8 @@ def parse_phone_log(path: Path) -> dict:
         return {"name": path.name, "meta": [], "images": [], "text": raw}
     images = []
     def repl(m):
-        images.append(f"data:image/{m.group(1)};base64,{re.sub(r'\\s+', '', m.group(2))}")
+        b64 = re.sub(r"\s+", "", m.group(2))
+        images.append(f"data:image/{m.group(1)};base64,{b64}")
         return ""
     cleaned = re.sub(r"!\[[^\]]*\]\(data:image/([^;]+);base64,([A-Za-z0-9+/=\s]+)\)", repl, raw)
     meta = [ln.lstrip("- ").strip() for ln in cleaned.splitlines()[:20] if ln.startswith("- **")]
