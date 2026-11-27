@@ -64,13 +64,13 @@
     "WeeklyTrifles"
   ],
   "taskCount": 62,
-  "fileCount": 4189,
-  "unpackedBytes": 75750257,
+  "fileCount": 4192,
+  "unpackedBytes": 75756257,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "0ac738b76926a604a75313244ddf0e457ad6f7b967f3f4fd9e05b2fd4153b66c",
+  "archiveSha256": "c833410f33333a5888fb2d17a9c9dbb11d41631b590f4592b371581ed080224e",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -680,7 +680,22 @@
     {
       "path": "module/hyakkiyakou/debugger.py",
       "size": 8395,
-      "sha256": "abed03666f2316bbe1b628df899a45905b6f94270c0a81b858bf812371e1e15f"
+      "sha256": "0df8aa4502947842dd9c0e3262067a369a549e6102a68aa6577e56b9de82ec74"
+    },
+    {
+      "path": "module/hyakkiyakou/labels.py",
+      "size": 3292,
+      "sha256": "6b7f51070435a7cd7f49550bd03284bda0871d9ec66abfda221d25595bbb7f40"
+    },
+    {
+      "path": "module/hyakkiyakou/tracker.py",
+      "size": 7041,
+      "sha256": "9fbfecd245c6509a397ea3a66a1acdc67dbdcf4472f09d761adb889b9a11103c"
+    },
+    {
+      "path": "module/hyakkiyakou/tracker_labels.py",
+      "size": 4292,
+      "sha256": "7629196fbb25489d182958108be035378666447e33be6e4e31cf74ec645d5df3"
     },
     {
       "path": "module/image/__init__.py",
@@ -8690,12 +8705,12 @@
     {
       "path": "tasks/Component/CostumeShikigami/assets.py",
       "size": 54164,
-      "sha256": "ab19d66e8ecfe0156ae841520e86b31db8312ca0d9220e419754699b80c131a3"
+      "sha256": "53cf726ccc4800734d4b82aad028b72f53c221711e0688a665745e2d0f0675bb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk1/image.json",
       "size": 5019,
-      "sha256": "253a1765634566699a709408d9b45d2d10d14558bf243b32ffc4b5266610f169"
+      "sha256": "b1a3e333f097b7c8b26ae339270bdd8cf7f093fb0e5de91324ec1ec501949cf6"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk1/sk1_check_records_1.png",
@@ -8774,8 +8789,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk1/sk1_sou_switch_sure_1.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk1/sk1_sou_team_present_1.png",
@@ -8800,7 +8815,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk10/image.json",
       "size": 5164,
-      "sha256": "c196255dd9842a1fc6328391d1bf4f4c8369765e9a2fb9135a1d32ebe16fb16a"
+      "sha256": "b0a96ac8851d36b0a08c503136efac7773f9a775630686c24a02215d981f11d6"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk10/sk10_check_records_10.png",
@@ -8879,8 +8894,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk10/sk10_sou_switch_sure_10.png",
-      "size": 10178,
-      "sha256": "b40e2b807214098edcd44c20487aaac27ff072192985bb5f4a579489f4241204"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk10/sk10_sou_team_present_10.png",
@@ -8905,7 +8920,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk11/image.json",
       "size": 4977,
-      "sha256": "901596c9026c36509d241172bafeb0cb1860b6172d4e413813e91cd0e883056f"
+      "sha256": "92e657603f984fd95172f041508d15ab2316dd373025323926056c0ca932f1f7"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk11/sk11_check_records_11.png",
@@ -8984,8 +8999,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk11/sk11_sou_switch_sure_11.png",
-      "size": 5575,
-      "sha256": "d7f421a87a726bba51e95894c790df056b85baf7dc2e8ee9405d43621ea1c468"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk11/sk11_sou_team_present_11.png",
@@ -9010,7 +9025,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk12/image.json",
       "size": 4977,
-      "sha256": "7a1f00cc89785ff0455b295515b8036baaa2fd2ada2e1fb1d2e354fda739b1d2"
+      "sha256": "033930dcaffb93eea38a5be77aead2ea055ea04bd89c4ca7a88c73751ed81c16"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk12/sk12_check_records_12.png",
@@ -9089,8 +9104,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk12/sk12_sou_switch_sure_12.png",
-      "size": 3513,
-      "sha256": "68f6b78494603dcfe0f63859c236c8e6f56ff401290e1e9c834e6bd0fac91705"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk12/sk12_sou_team_present_12.png",
@@ -9115,7 +9130,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk2/image.json",
       "size": 5014,
-      "sha256": "595d5cc3e64f84e19c20aca1a3a9711692905a6576d92aa09b87cfccd4b377f9"
+      "sha256": "4cf343f1219a9dfad426a1d61a68c36090bbffb4088fc39d7561b25a7359bbd3"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk2/sk2_check_records_2.png",
@@ -9194,8 +9209,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk2/sk2_sou_switch_sure_2.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk2/sk2_sou_team_present_2.png",
@@ -9220,7 +9235,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk3/image.json",
       "size": 5014,
-      "sha256": "4c2380da8d775132ffe05f0d4d04bf823271199e8385daf0218a17e58c339e73"
+      "sha256": "655140ea5e749633a655b6a247da2e241a37d024d3c63326257d71a1912faba7"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk3/sk3_check_records_3.png",
@@ -9299,8 +9314,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk3/sk3_sou_switch_sure_3.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk3/sk3_sou_team_present_3.png",
@@ -9325,7 +9340,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk4/image.json",
       "size": 5014,
-      "sha256": "3117257dc87b522f37207473fb5283d2907646bc540eca7a929dfa669d068061"
+      "sha256": "f24df1daab5e9bffe74b6944b2ec9b886844349d5bd017a9500a300a72eba348"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk4/sk4_check_records_4.png",
@@ -9404,8 +9419,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk4/sk4_sou_switch_sure_4.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk4/sk4_sou_team_present_4.png",
@@ -9430,7 +9445,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk5/image.json",
       "size": 5014,
-      "sha256": "066d8eac5e945eb533e9327c70dcb3000c785d0c66996d8ee873c319bf9d512e"
+      "sha256": "28170e8490ff823bc6167fe77c5fac0a4c5b3af3076fd1e1dc5f1fd020ccaf9f"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk5/sk5_check_records_5.png",
@@ -9509,8 +9524,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk5/sk5_sou_switch_sure_5.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk5/sk5_sou_team_present_5.png",
@@ -9535,7 +9550,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk6/image.json",
       "size": 5019,
-      "sha256": "c9dc0e206f1286367694bb43e4bec2c7d46a02f2a999415ff702c6e89563dcbc"
+      "sha256": "6c451b569830dea9d51ce8895541fb72051ab4061fb512cd185556c39cdfcb7b"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk6/sk6_check_records_6.png",
@@ -9614,8 +9629,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk6/sk6_sou_switch_sure_6.png",
-      "size": 10035,
-      "sha256": "3dd686d450b869b0d47f9e9e0f0d946b29e8e125db09d6dc0787402dfa8fc891"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk6/sk6_sou_team_present_6.png",
@@ -9640,7 +9655,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk7/image.json",
       "size": 5015,
-      "sha256": "3bbf7ff5d7f0825bb1fbef4fd0d7673a0b3050fe3251fcccf9953d6c55cca2e3"
+      "sha256": "119af9fd688448c71fe5f34aa0a4eb7ee50df9d54171d29239cd79288e33b0a7"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk7/sk7_check_records_7.png",
@@ -9719,8 +9734,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk7/sk7_sou_switch_sure_7.png",
-      "size": 5144,
-      "sha256": "fcf38a4cb315cf67fec1f2f7d6b767d68bdf7efd1d776ae89027a2b301179ade"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk7/sk7_sou_team_present_7.png",
@@ -9745,7 +9760,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk8/image.json",
       "size": 5103,
-      "sha256": "1aa58920971afff1e1c86ea4969fc94841975520b3328fa7713d85bccf8bcfe0"
+      "sha256": "239aeb4f2c57b684119a1ea9b5a7a52f3a8a5d33b190729c7c6d14e59c4e7f28"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk8/sk8_check_records_8.png",
@@ -9824,8 +9839,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk8/sk8_sou_switch_sure_8.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk8/sk8_sou_team_preset_8.png",
@@ -9850,7 +9865,7 @@
     {
       "path": "tasks/Component/CostumeShikigami/sk9/image.json",
       "size": 5103,
-      "sha256": "71edcc898afc14586dc583e12ce795cf59390ba6957a1db864831b4dc7b3bfc4"
+      "sha256": "2416ce6356b0338ead3c224fe60a432d580c364fb5e53daeb6396033abf9cd65"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk9/sk9_check_records_9.png",
@@ -9929,8 +9944,8 @@
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk9/sk9_sou_switch_sure_9.png",
-      "size": 9726,
-      "sha256": "1b2fd92e7e357d3febfbb3888822961e4b7267bae271e2ccc4317b5617acadd7"
+      "size": 7784,
+      "sha256": "9020fe2fec727ecb5608177cc6a1357c1dc8587a51f4281ab646de4729937deb"
     },
     {
       "path": "tasks/Component/CostumeShikigami/sk9/sk9_sou_team_preset_9.png",
@@ -14004,8 +14019,8 @@
     },
     {
       "path": "tasks/GameUi/chess_battle.py",
-      "size": 9815,
-      "sha256": "4fa1117c355aa05d8acaa2b83562607a3691b12b23fd269ba49bec296fa436fb"
+      "size": 10471,
+      "sha256": "8250c449967a33dfaafd63e3e8b788c4cdc269859b473db77e0dabdb23012d90"
     },
     {
       "path": "tasks/GameUi/common.py",
@@ -15464,13 +15479,13 @@
     },
     {
       "path": "tasks/Hyakkiyakou/agent/agent.py",
-      "size": 6444,
-      "sha256": "981fd87d90b51966c5f5bc06a136f59348ce57c964ff4e0282febd0f41ec2610"
+      "size": 6396,
+      "sha256": "6e6d2ed1e7f19288d96a27c46e5719109f179dc59e8223d610a61783a323ad74"
     },
     {
       "path": "tasks/Hyakkiyakou/agent/focus.py",
-      "size": 7199,
-      "sha256": "e1646ac99661ac3736ed0aba9110e68d7f623aa256541e99faf17149ed9e6ea5"
+      "size": 7186,
+      "sha256": "a7dc464f1692595584f25e79f4364dd8f763f07ed15fcdefdc61efc82b1b5092"
     },
     {
       "path": "tasks/Hyakkiyakou/agent/utils.py",
@@ -15804,8 +15819,8 @@
     },
     {
       "path": "tasks/Hyakkiyakou/script_task.py",
-      "size": 13398,
-      "sha256": "54e400bc3d7f52a558909cf34d674b68b6cf53d34d3f3623749c222da79d7526"
+      "size": 12956,
+      "sha256": "e52d6fcace90241b411f72735a5aebb745a6c9700e15b1fb760a02246ad23a92"
     },
     {
       "path": "tasks/Hyakkiyakou/slave/hya_color.py",
@@ -15814,8 +15829,8 @@
     },
     {
       "path": "tasks/Hyakkiyakou/slave/hya_device.py",
-      "size": 5638,
-      "sha256": "38a48a9a542c6e1b7388f6d1111b531b53c5d7fffd2405352e0fe0e353994848"
+      "size": 5573,
+      "sha256": "9a83881058b385f7069f2797e013b8add25baa1aa735edd5335bdc8008534b98"
     },
     {
       "path": "tasks/Hyakkiyakou/slave/hya_slave.py",
@@ -20629,8 +20644,8 @@
     },
     {
       "path": "tasks/WeeklyTrifles/script_task.py",
-      "size": 13149,
-      "sha256": "b11f99bd75f6b02a44d98043015336e7845095fe921b0ae220c2a7e842ddee6e"
+      "size": 13555,
+      "sha256": "bbddaf147fa43bdb14a70ef535f4e791ebb41e442943676f51e7245459cedf0b"
     },
     {
       "path": "tasks/WeeklyTrifles/secret/image.json",
