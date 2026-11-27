@@ -215,6 +215,24 @@ public final class DeviceSession {
         main.post(() -> { for (Runnable listener : listeners) listener.run(); });
     }
 
+    public Bitmap captureDisplay() throws Exception {
+        byte[] raw=rawReader.read(requireBridge());
+        if(raw!=null){
+            Bitmap image=com.oas.android.bridge.RawFrameReader.bitmap(raw);
+            if(image.getWidth()>0&&image.getHeight()>0)return image;
+            image.recycle();
+        }
+        try (ParcelFileDescriptor descriptor = requireBridge().screenshot();
+             ParcelFileDescriptor.AutoCloseInputStream stream = new ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {
+            Bitmap frame = BitmapFactory.decodeStream(stream);
+            if (frame == null || frame.getWidth() <= 0 || frame.getHeight() <= 0) {
+                if (frame != null) frame.recycle();
+                throw new IllegalStateException("未收到有效的屏幕截图");
+            }
+            return frame;
+        }
+    }
+
     public Bitmap screenshot() throws Exception {
         byte[] raw=rawReader.read(requireBridge());
         if(raw!=null){

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.oas.android.BuildConfig
+import com.oas.android.RuntimeUpdater
 
 @Composable
 fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (String) -> Unit, onInfo: (String, String) -> Unit) {
@@ -159,6 +160,11 @@ private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
                     contentPadding = PaddingValues(0.dp)
                 ) { Text(if(showSourceConfig) "收起更新源设置" else "配置更新源 / 镜像加速") }
                 if(showSourceConfig) {
+                    Text(
+                        "默认使用自有 GitHub 更新源；如访问较慢，可在此配置镜像加速前缀或自定义更新清单地址。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     OutlinedTextField(
                         value = manifestInput,
                         onValueChange = { manifestInput = it },
