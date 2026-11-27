@@ -72,8 +72,9 @@ jobs:
           REPO_NAME: ${{ github.repository }}
         run: |
           mkdir -p upstream-oas/toolkit/Lib/site-packages
-          pip install --no-deps --target upstream-oas/toolkit/Lib/site-packages paho-mqtt onepush
-          curl -fsSL "https://github.com/${REPO_NAME}/releases/latest/download/oas-runtime.zip" -o /tmp/prev-runtime.zip
+          pip install --no-deps --target upstream-oas/toolkit/Lib/site-packages paho-mqtt==1.6.1 onepush==1.3.0
+          curl -fsSL "https://github.com/${REPO_NAME}/releases/latest/download/oas-runtime.zip" -o /tmp/prev-runtime.zip \
+            || curl -fsSL "https://github.com/kongdr418/OnmyojiAutoScript-Android/releases/latest/download/oas-runtime.zip" -o /tmp/prev-runtime.zip
           python3 - << 'PY'
           import zipfile
           from pathlib import Path

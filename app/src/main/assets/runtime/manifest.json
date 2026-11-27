@@ -65,12 +65,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4189,
-  "unpackedBytes": 75748995,
+  "unpackedBytes": 75750257,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "ad947a4b431e627c06ea9d6027abfe710e19e3a409615707635f557a1679c2bc",
+  "archiveSha256": "0ac738b76926a604a75313244ddf0e457ad6f7b967f3f4fd9e05b2fd4153b66c",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -19054,8 +19054,8 @@
     },
     {
       "path": "tasks/SixRealms/moon_sea/moon_sea.py",
-      "size": 8413,
-      "sha256": "21b3ee5616a37f7fac54d6376792e402b34d4ab283756e7c5cf127509cede4be"
+      "size": 8480,
+      "sha256": "10edd0028803d47f935ab59e11a73e4b250734572e6485f0827b98023aa72f19"
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/animate.json",
@@ -20629,8 +20629,8 @@
     },
     {
       "path": "tasks/WeeklyTrifles/script_task.py",
-      "size": 11954,
-      "sha256": "f8f8616cf37fc857b4d3e0676b894a51df33050769685cd14463d823f540c728"
+      "size": 13149,
+      "sha256": "b11f99bd75f6b02a44d98043015336e7845095fe921b0ae220c2a7e842ddee6e"
     },
     {
       "path": "tasks/WeeklyTrifles/secret/image.json",

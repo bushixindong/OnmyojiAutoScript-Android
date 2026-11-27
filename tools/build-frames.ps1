@@ -4,7 +4,7 @@ $taskRoot=Split-Path $PSScriptRoot
 $taskSource=Join-Path $taskRoot 'app\src\main\native\raw_frames.cpp'
 $taskHardwareSource=Join-Path $taskRoot 'app\src\main\native\hardware_capture.cpp'
 $taskCompiler=Join-Path $NdkPath 'toolchains\llvm\prebuilt\windows-x86_64\bin\clang++.exe'
-$taskDigest=(@($taskSource,$taskHardwareSource) | Get-FileHash -Algorithm SHA256 | ForEach-Object Hash) -join ':'
+$taskDigest=(@($taskSource,$taskHardwareSource) | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }) -join ':'
 if(-not(Test-Path -LiteralPath $taskCompiler)){
     $taskStale=$false
     foreach($taskAbi in @('arm64-v8a','x86_64')){

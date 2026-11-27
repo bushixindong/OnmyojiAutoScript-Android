@@ -11,7 +11,13 @@ android {
         targetSdk = 35
         versionCode = 14
         versionName = "1.0.4"
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        val requestedAbis = providers.gradleProperty("abiFilters").orNull
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.takeIf { it.isNotEmpty() }
+            ?: listOf("arm64-v8a", "x86_64")
+        ndk { abiFilters += requestedAbis }
     }
     signingConfigs {
         val propsFile = rootProject.file("keystore/keystore.properties")
