@@ -15,6 +15,7 @@ import types
 import traceback
 
 _root=None
+_error_mirror_dir=None
 _host=None
 _config=None
 _config_name='android'
@@ -83,12 +84,19 @@ def _wait_idle(host, seconds):
 def _module(name,**values):
     module=types.ModuleType(name);module.__dict__.update(values);sys.modules[name]=module;return module
 
-def initialize(root,host):
-    global _root,_host,_ready
+def initialize(root,host,mirror_dir=''):
+    global _root,_error_mirror_dir,_host,_ready
     with _config_lock:
         if not (_active or _schedule_active):_host=host
+    if mirror_dir:
+        try:
+            _error_mirror_dir=Path(str(mirror_dir))
+            _error_mirror_dir.mkdir(parents=True,exist_ok=True)
+        except Exception:
+            _error_mirror_dir=None
     if _ready:return
     _root=Path(str(root));os.chdir(_root);sys.path.insert(0,str(_root));sys.dont_write_bytecode=True
+    _sync_existing_error_mirrors()
     os.environ.setdefault('OPENBLAS_NUM_THREADS','2');os.environ.setdefault('OMP_NUM_THREADS','2')
     time.sleep=sleep
     _install_image()
@@ -644,6 +652,92 @@ def _save_task_config(name,data,settings):
     _wakeup_event.set();_notify_state()
     return _task_config(name,settings)
 
+def _mirror_md_name(meta):
+    import re
+    def clean(val, fb):
+        s = re.sub(r'[\\/:*?"<>|\s]+', '_', str(val or '').strip()).strip('_.')[:48]
+        return s or fb
+    cfg = clean(meta.get('config'), 'android')
+    task = clean(meta.get('task') or meta.get('taskLabel'), 'error')
+    ts = clean(meta.get('timeText') or meta.get('id'), 'log')
+    return f'OASA-error-{cfg}-{task}-{ts}.md'
+
+def _write_error_mirror(folder, meta, full_log):
+    if _error_mirror_dir is None:
+        return
+    try:
+        import base64
+        _error_mirror_dir.mkdir(parents=True, exist_ok=True)
+        dst = _error_mirror_dir / _mirror_md_name(meta)
+        parts = [
+            '# OASA 报错日志报告',
+            '',
+            f"- **配置名称**：`{meta.get('config', 'android')}`",
+            f"- **报错任务**：{meta.get('taskLabel', '')} (`{meta.get('task', '')}`)",
+            f"- **发生时间**：{meta.get('timeText', '')}",
+            f"- **异常摘要**：{meta.get('summary', '')}",
+            f"- **记录编号**：`{meta.get('id', '')}`",
+            '',
+        ]
+        pngs = sorted(folder.glob('*.png'))
+        if pngs:
+            parts.append('## 现场截图')
+            parts.append('')
+            for idx, p in enumerate(pngs, 1):
+                try:
+                    raw = p.read_bytes()
+                    mime = 'image/png'
+                    try:
+                        import cv2, numpy as np
+                        arr = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
+                        if arr is not None:
+                            ok, jbuf = cv2.imencode('.jpg', arr, [int(cv2.IMWRITE_JPEG_QUALITY), 82])
+                            if ok:
+                                raw = jbuf.tobytes()
+                                mime = 'image/jpeg'
+                    except Exception:
+                        pass
+                    b64 = base64.b64encode(raw).decode('ascii')
+                    parts.append(f'### 截图 {idx} · `{p.name}`')
+                    parts.append('')
+                    parts.append(f'![{p.name}](data:{mime};base64,{b64})')
+                    parts.append('')
+                except Exception:
+                    pass
+        parts.append('## 完整报错日志')
+        parts.append('')
+        parts.append('```text')
+        parts.append(full_log)
+        parts.append('```')
+        dst.write_text('\n'.join(parts), encoding='utf-8')
+        existing = sorted([p for p in _error_mirror_dir.glob('OASA-error-*.md')], key=lambda p: p.stat().st_mtime, reverse=True)
+        for stale in existing[30:]:
+            try:
+                stale.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+def _sync_existing_error_mirrors():
+    if _error_mirror_dir is None or _root is None:
+        return
+    try:
+        err_root = _root / 'log' / 'error'
+        if not err_root.is_dir():
+            return
+        for folder in sorted([p for p in err_root.iterdir() if p.is_dir()], key=lambda p: p.name, reverse=True)[:30]:
+            meta_file = folder / 'meta.json'
+            log_file = folder / 'log.txt'
+            if not meta_file.is_file() or not log_file.is_file():
+                continue
+            meta = json.loads(meta_file.read_text(encoding='utf-8'))
+            dst = _error_mirror_dir / _mirror_md_name(meta)
+            if not dst.is_file():
+                _write_error_mirror(folder, meta, log_file.read_text(encoding='utf-8', errors='replace'))
+    except Exception:
+        pass
+
 def _save_error_snapshot(task_name,error_text,tb_text,device=None,settings=None):
     try:
         err_cfg=getattr(getattr(settings,'model',None),'script',None)
@@ -686,6 +780,7 @@ def _save_error_snapshot(task_name,error_text,tb_text,device=None,settings=None)
         log_body='\n'.join(list(_recent_logs))
         full_log=f"{log_body}\n\n=== ERROR ({meta['timeText']} · {meta['taskLabel']}) ===\n{error_text}\n{tb_text}".strip()
         (folder/'log.txt').write_text(full_log,encoding='utf-8')
+        _write_error_mirror(folder,meta,full_log)
         # Keep at most 30 error folders to avoid filling phone storage.
         import shutil
         existing=sorted([p for p in err_root.iterdir() if p.is_dir()],key=lambda p:p.name,reverse=True)
@@ -731,10 +826,21 @@ def delete_error_log(error_id=None):
     if not err_root.is_dir():return '[]'
     if error_id is None or not str(error_id).strip():
         shutil.rmtree(err_root,ignore_errors=True)
+        if _error_mirror_dir is not None and _error_mirror_dir.is_dir():
+            for f in _error_mirror_dir.glob('OASA-error-*.md'):
+                try:f.unlink()
+                except Exception:pass
     else:
         clean=str(error_id).strip()
         if clean.isdigit():
-            shutil.rmtree(err_root/clean,ignore_errors=True)
+            folder=err_root/clean
+            if _error_mirror_dir is not None and (folder/'meta.json').is_file():
+                try:
+                    meta=json.loads((folder/'meta.json').read_text(encoding='utf-8'))
+                    md=_error_mirror_dir/_mirror_md_name(meta)
+                    if md.is_file():md.unlink()
+                except Exception:pass
+            shutil.rmtree(folder,ignore_errors=True)
     return list_error_logs()
 
 def _stats_service():

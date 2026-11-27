@@ -663,7 +663,8 @@ HTML_PAGE = r"""<!doctype html>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <h2 style="margin:0">手机报错日志（ADB 拉取与图文查看）</h2>
       <div class="inline">
-        <button class="btn-primary btn-sm" onclick="syncPhoneLogs()">从手机同步报错 MD</button>
+        <label class="chk" style="margin:0 6px 0 0;font-size:12px"><input type="checkbox" id="autoSyncLogs" checked /> 自动同步(10s)</label>
+        <button class="btn-primary btn-sm" onclick="syncPhoneLogs(false)">立即同步</button>
         <button class="btn-ghost btn-sm" onclick="grabLogcat()">抓实时 logcat</button>
       </div>
     </div>
@@ -840,15 +841,20 @@ async function viewLog(buildId){
   document.getElementById('buildMeta').textContent = `历史日志: ${buildId}`;
 }
 
-async function syncPhoneLogs(){
+async function syncPhoneLogs(silent){
   const serial = document.getElementById('serial').value;
-  if (!serial) { alert('请先连接并选择一台 ADB 设备'); return; }
-  document.getElementById('phoneLogMeta').textContent = '正在从手机同步报错日志...';
+  if (!serial) {
+    if (!silent) alert('请先连接并选择一台 ADB 设备');
+    return;
+  }
+  if (!silent) document.getElementById('phoneLogMeta').textContent = '正在从手机同步报错日志...';
   const r = await fetch('/api/phone-logs/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({serial})});
   const d = await r.json();
-  document.getElementById('phoneLogMeta').textContent = d.message || (d.ok ? '同步完成' : '同步失败');
-  await refreshMeta();
-  if (d.latest) openPhoneLog(d.latest);
+  if (!silent || d.newCount > 0) {
+    document.getElementById('phoneLogMeta').textContent = d.message || (d.ok ? '同步完成' : '同步失败');
+    await refreshMeta();
+    if (d.latest && (!silent || d.newCount > 0)) openPhoneLog(d.latest);
+  }
 }
 
 async function grabLogcat(){
@@ -877,6 +883,10 @@ refreshMeta();
 pollBuild();
 setInterval(pollBuild, 1000);
 setInterval(refreshMeta, 12000);
+setInterval(() => {
+  const cb = document.getElementById('autoSyncLogs');
+  if (cb && cb.checked && document.getElementById('serial').value) syncPhoneLogs(true);
+}, 10000);
 </script>
 </body>
 </html>
@@ -1076,21 +1086,38 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             if not serial:
                 self._send_json({"ok": False, "message": "未选择 ADB 设备"}, 400)
                 return
-            code, out = run_capture(
-                [adb_path(), "-s", serial, "shell", "find /storage/emulated/0 -maxdepth 4 -iname 'OASA-error-*.md' 2>/dev/null"],
-                timeout=20,
+            shell_cmd = (
+                "find /storage/emulated/0/Android/data/com.oas.android/files/error-logs "
+                "/storage/emulated/0 -maxdepth 3 -iname 'OASA-error-*.md' 2>/dev/null"
             )
-            remote_files = [ln.strip() for ln in out.splitlines() if ln.strip().endswith(".md")]
-            pulled = []
-            for rf in remote_files:
+            code, out = run_capture([adb_path(), "-s", serial, "shell", shell_cmd], timeout=20)
+            remote_files = []
+            seen_names = set()
+            for ln in out.splitlines():
+                rf = ln.strip()
+                if not rf.endswith(".md"):
+                    continue
                 fname = Path(rf).name
+                if fname not in seen_names:
+                    seen_names.add(fname)
+                    remote_files.append((rf, fname))
+            pulled_new = []
+            for rf, fname in remote_files:
                 dst = PHONE_LOG_ROOT / fname
+                if dst.is_file() and dst.stat().st_size > 0:
+                    continue
                 c2, _ = run_capture([adb_path(), "-s", serial, "pull", rf, str(dst)], timeout=30)
                 if c2 == 0 and dst.is_file():
-                    pulled.append(fname)
-            latest = sorted(pulled)[-1] if pulled else ""
-            msg = f"已同步 {len(pulled)} 份报错日志到电脑" if pulled else "手机里未找到已导出的 OASA-error-*.md（请先在 App 报错日志页点导出 MD）"
-            self._send_json({"ok": True, "count": len(pulled), "latest": latest, "message": msg})
+                    pulled_new.append(fname)
+            all_names = [fname for _, fname in remote_files]
+            latest = sorted(pulled_new)[-1] if pulled_new else (sorted(all_names)[-1] if all_names else "")
+            if pulled_new:
+                msg = f"自动同步新增 {len(pulled_new)} 份报错日志（共 {len(all_names)} 份）"
+            elif all_names:
+                msg = f"已是最新（共 {len(all_names)} 份报错日志）"
+            else:
+                msg = "手机里暂无报错日志"
+            self._send_json({"ok": True, "count": len(all_names), "newCount": len(pulled_new), "latest": latest, "message": msg})
             return
 
         if parsed.path == "/api/phone-logs/logcat":

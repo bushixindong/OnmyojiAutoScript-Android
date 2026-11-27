@@ -52,7 +52,8 @@ public final class TaskEngine {
         }
         if(!Python.isStarted())Python.start(new AndroidPlatform(context.getApplicationContext()));
         if(module==null)module=Python.getInstance().getModule("android_oas.bootstrap");
-        module.callAttr("initialize",root.getAbsolutePath(),host);return module;
+        File mirrorDir=context.getExternalFilesDir("error-logs");
+        module.callAttr("initialize",root.getAbsolutePath(),host,mirrorDir!=null?mirrorDir.getAbsolutePath():"");return module;
     }
     public static void requestStop(){
         PyObject current=module;
