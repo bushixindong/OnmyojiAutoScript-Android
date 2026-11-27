@@ -67,7 +67,7 @@ public final class EngineActivity extends Activity {
                     engine.callAttr("save_task_config",task,data,preset);
                     if(run){
                         boolean runnable=false;for(int i=0;i<catalog.length();i++)if(catalog.getJSONObject(i).getString("id").equals(task))runnable=catalog.getJSONObject(i).getBoolean("runnable");
-                        if(!runnable){message(task.equals("Hyakkiyakou")?"百鬼夜行暂缓适配，未启动":"全局设置已保存");return;}
+                        if(!runnable){message("全局设置已保存");return;}
                         session.requireBridge();startForegroundService(new Intent(this,MonitorService.class).setAction("engine").putExtra("package",gamePackage).putExtra("engineTask",task).putExtra("preset",preset));
                         message("已启动任务，随时可以停止");
                     }else message("配置已校验并保存");

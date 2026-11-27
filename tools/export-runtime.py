@@ -20,11 +20,13 @@ destination=root/'app/src/main/assets/runtime'
 destination.mkdir(parents=True,exist_ok=True)
 allowed={'.py','.json','.png','.webp','.jpg','.jpeg','.gif','.yaml','.yml','.txt','.ttf','.otf','.onnx','.npy','.npz','.csv'}
 excluded={'__pycache__','.git','log','logs','real_matches','records','captures'}
+excluded_paths={'tasks/Hyakkiyakou/model/tracker.onnx'}
 entries={}
 for folder in ('module','tasks','assets','deploy'):
     for path in sorted((source/folder).rglob('*')):
-        if path.is_file() and path.suffix.lower() in allowed and not excluded.intersection(path.relative_to(source).parts):
-            entries[path.relative_to(source).as_posix()]=path
+        rel=path.relative_to(source).as_posix()
+        if path.is_file() and path.suffix.lower() in allowed and rel not in excluded_paths and not excluded.intersection(path.relative_to(source).parts):
+            entries[rel]=path
 for filename in ('LICENSE','LICENSE.txt','script.py','config/deploy.template.yaml'):
     if (source/filename).is_file():entries[filename]=source/filename
 entries['dev_tools/assets_test.py']=source/'dev_tools/assets_test.py'

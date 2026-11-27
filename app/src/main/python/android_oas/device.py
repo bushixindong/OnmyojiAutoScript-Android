@@ -73,9 +73,10 @@ def install(root,host,check):
             self._last_screenshot=0;self._screenshot_seconds=.3;self.screenshot_interval_set()
             self.is_mumu_family=False;self.is_nox_family=False;self.is_bluestacks_family=False
             self.is_network_device=False;self.is_over_http=False
-        def screenshot(self):
+        def screenshot(self,min_interval=None):
             check();self.stuck_record_check()
-            time.sleep(max(0,self._last_screenshot+self._screenshot_seconds-time.monotonic()))
+            interval=self._screenshot_seconds if min_interval is None else min_interval
+            time.sleep(max(0,self._last_screenshot+interval-time.monotonic()))
             raw_reader=getattr(host,'screenshotRgb',None)
             raw=raw_reader() if raw_reader is not None else None
             self._last_screenshot=time.monotonic()

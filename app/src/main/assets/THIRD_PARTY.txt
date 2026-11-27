@@ -35,7 +35,8 @@ NumPy、SciPy、Pandas、Pillow、OpenCV Python、Shapely/GEOS、requests、cryp
 
 参考网址：[Chaquopy](https://github.com/chaquo/chaquopy)、[Python](https://www.python.org/psf/license/)、[Pydantic Core](https://github.com/pydantic/pydantic-core)、[Shapely](https://github.com/shapely/shapely)。
 
-百鬼夜行跟踪库和模型按用户要求暂缓，不随本版运行时接入。
+百鬼夜行：式神标签及绘图工具来自 runhey 的 oashya 0.0.7（MIT，见 hyakkiyakou/OASHYA-LICENSE.txt）。
+随包 FP32 整帧模型来自用户提供的 tracker.onnx。模型内标注 Ultralytics AGPL-3.0，见 LICENSE.txt。OASA 使用自己的 Android 跟踪适配层。
 
 ## 0.4.0 OASX 风格前端
 

@@ -1,23 +1,44 @@
 package com.oas.android.engine;
 
 import ai.onnxruntime.*;
+import android.content.res.AssetFileDescriptor;
 import android.util.Base64;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
 import org.json.*;
+import java.io.FileInputStream;
 import java.nio.*;
+import java.nio.channels.FileChannel;
 import java.util.*;
 
 /** Real ONNX inference for the original Python models, backed by Android's native ORT. */
 public final class PythonOnnxSession implements AutoCloseable {
     private final OrtEnvironment environment=OrtEnvironment.getEnvironment();
     private final OrtSession session;
+    private ByteBuffer floatInput;
     public PythonOnnxSession(String path)throws Exception{
         try(OrtSession.SessionOptions options=options()){session=environment.createSession(path,options);}
     }
     public PythonOnnxSession(byte[] model)throws Exception{
         try(OrtSession.SessionOptions options=options()){session=environment.createSession(model,options);}
     }
+    private PythonOnnxSession(ByteBuffer model) throws OrtException {
+        try (OrtSession.SessionOptions options = options()) {
+            session = environment.createSession(model, options);
+        }
+    }
+    public static PythonOnnxSession openAsset(String path) throws Exception {
+        AndroidPlatform platform = (AndroidPlatform) Python.getPlatform();
+        try (AssetFileDescriptor asset = platform.getApplication().getAssets().openFd(path);
+             FileInputStream input = asset.createInputStream()) {
+            ByteBuffer model = input.getChannel().map(FileChannel.MapMode.READ_ONLY, asset.getStartOffset(), asset.getLength());
+            return new PythonOnnxSession(model);
+        }
+    }
     private static OrtSession.SessionOptions options()throws OrtException{
-        OrtSession.SessionOptions result=new OrtSession.SessionOptions();result.setIntraOpNumThreads(2);return result;
+        OrtSession.SessionOptions result=new OrtSession.SessionOptions();
+        result.setIntraOpNumThreads(Math.min(4,Math.max(1,Runtime.getRuntime().availableProcessors())));
+        return result;
     }
     public String metadata()throws Exception{
         return new JSONObject().put("inputs",describe(session.getInputInfo())).put("outputs",describe(session.getOutputInfo())).toString();
@@ -31,6 +52,48 @@ public final class PythonOnnxSession implements AutoCloseable {
             result.put(new JSONObject().put("name",entry.getKey()).put("shape",shape).put("type","tensor("+pyType+")"));
         }
         return result;
+    }
+    public synchronized byte[] runYolo(String inputName, byte[] raw, long[] shape, float threshold) throws OrtException {
+        if (floatInput == null || floatInput.capacity() != raw.length) {
+            floatInput = ByteBuffer.allocateDirect(raw.length).order(ByteOrder.LITTLE_ENDIAN);
+        }
+        floatInput.clear();
+        floatInput.put(raw).flip();
+        try (OnnxTensor tensor = OnnxTensor.createTensor(environment, floatInput.asFloatBuffer(), shape);
+             OrtSession.Result result = session.run(Collections.singletonMap(inputName, tensor))) {
+            OnnxTensor detections = (OnnxTensor) result.get(0);
+            long[] dimensions = detections.getInfo().getShape();
+            if (dimensions.length != 3 || dimensions[0] != 1 || dimensions[1] <= 4) {
+                throw new IllegalStateException("需要 YOLO [1,4+类别数,候选框数] 输出");
+            }
+            return decodeYolo(detections.getFloatBuffer(), (int) dimensions[1], (int) dimensions[2], threshold);
+        }
+    }
+
+    static byte[] decodeYolo(FloatBuffer values, int channels, int anchors, float threshold) {
+        float[] best = new float[anchors];
+        int[] labels = new int[anchors];
+        Arrays.fill(best, threshold);
+        Arrays.fill(labels, -1);
+        for (int channel = 4; channel < channels; channel++) {
+            int offset = channel * anchors;
+            for (int anchor = 0; anchor < anchors; anchor++) {
+                float score = values.get(offset + anchor);
+                if (score > best[anchor]) {
+                    best[anchor] = score;
+                    labels[anchor] = channel - 4;
+                }
+            }
+        }
+        int count = 0;
+        for (int label : labels) if (label >= 0) count++;
+        ByteBuffer output = ByteBuffer.allocate(count * 6 * Float.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+        for (int anchor = 0; anchor < anchors; anchor++) {
+            if (labels[anchor] < 0) continue;
+            for (int field = 0; field < 4; field++) output.putFloat(values.get(field * anchors + anchor));
+            output.putFloat(best[anchor]).putFloat(labels[anchor]);
+        }
+        return output.array();
     }
     public synchronized String run(String request)throws Exception{
         JSONObject data=new JSONObject(request),response=new JSONObject();Map<String,OnnxTensor> inputs=new LinkedHashMap<>();

@@ -77,19 +77,22 @@ def run(fixtures):
     try:
         def dashboard():
             entries=json.loads(engine.dashboard())
-            assert sum(item['runnable'] for item in entries)==61
+            assert sum(item['runnable'] for item in entries)==62
             assert next(item for item in entries if item['id']=='DailyTrifles')['label']=='每日琐事'
             old=engine._config.model.daily_trifles.scheduler.enable
+            old_hya=engine._config.model.hyakkiyakou.scheduler.enable
             try:
                 changed=json.loads(engine.set_task_enabled('DailyTrifles',not old))
                 assert next(item for item in changed if item['id']=='DailyTrifles')['enabled']==(not old)
                 engine._config.reload()
                 assert engine._config.model.daily_trifles.scheduler.enable==(not old)
-                try:engine.set_task_enabled('Hyakkiyakou',True)
-                except ValueError:pass
-                else:raise AssertionError('Deferred task could be enabled')
-            finally:engine.set_task_enabled('DailyTrifles',old)
-            return dict(runnable=61,labels='Chinese',toggle='persisted',deferred='rejected')
+                changed=json.loads(engine.set_task_enabled('Hyakkiyakou',not old_hya))
+                hya=next(item for item in changed if item['id']=='Hyakkiyakou')
+                assert hya['runnable'] and hya['enabled']==(not old_hya)
+            finally:
+                engine.set_task_enabled('DailyTrifles',old)
+                engine.set_task_enabled('Hyakkiyakou',old_hya)
+            return dict(runnable=62,labels='Chinese',toggle='persisted')
         probe('ui-dashboard-enable-roundtrip',dashboard)
         def original_menu():
             from module.config.config_menu import ConfigMenu
@@ -101,10 +104,45 @@ def run(fixtures):
             assert by_id['WeeklyTrifles']['groupId']=='Weekly Task'
             assert by_id['DraftDuel']['groupId']=='Weekly Task'
             assert by_id['RealmRaid']['groupId']=='Guild'
-            assert by_id['Hyakkiyakou']['groupId']=='Liver Emperor Exclusive' and by_id['Hyakkiyakou']['deferred']
+            assert by_id['Hyakkiyakou']['groupId']=='Liver Emperor Exclusive' and by_id['Hyakkiyakou']['runnable']
             groups=list(dict.fromkeys(group for group,_ in actual))
             return dict(groups=groups,entryCount=len(actual),source='ConfigMenu',order='exact')
         probe('original-task-menu-groups',original_menu)
+        def hyakkiyakou():
+            from module.device.device import Device
+            from module.exception import GameStuckError
+            from oashya.labels import MODEL_CLASS_IDS, id2label, id2name, label2id
+            settings=engine._config
+            task=engine._entry('Hyakkiyakou')(config=settings,device=Device(settings))
+            tracker=task.tracker
+            assert label2id('sr_001')==MODEL_CLASS_IDS[4] and id2name(MODEL_CLASS_IDS[4])=='桃花妖'
+            assert task._rarity_score(MODEL_CLASS_IDS[3]) > task._rarity_score(MODEL_CLASS_IDS[2])
+            assert task._rarity_score(MODEL_CLASS_IDS[174])==6
+            assert id2label(MODEL_CLASS_IDS[178])=='buff_006' and MODEL_CLASS_IDS[187] is None
+            tracker.detect(np.zeros((720,1280,3),dtype=np.uint8))
+            first=tracker.update([(5,.9,(500,300,80,100))],now=1.0)
+            second=tracker.update([(5,.9,(470,300,80,100))],now=1.3)
+            assert len(first)==len(second)==1 and second[0][0]==first[0][0]
+            assert second[0][-1]<0 and len(second[0])==8
+            previous_host=engine._host
+            host=FakeHost()
+            host.page='main'
+            try:
+                engine._host=host
+                task.device.stuck_timer.clear()
+                task.hya_fs_check_timer.reset()
+                task.fast_screenshot(None)
+                task.device.screenshot()
+                assert host.frames==2
+                task.hya_fs_check_timer.clear()
+                try:task.fast_screenshot(None)
+                except GameStuckError as error:assert str(error)=='百鬼夜行对局超时'
+                else:raise AssertionError('Expected the round watchdog to stop an overdue round')
+            finally:
+                task.hya_fs_check_timer.reset()
+                engine._host=previous_host
+            return dict(model='FP32 CPU',trackId=second[0][0],x=second[0][3])
+        probe('hyakkiyakou-model-and-tracker',hyakkiyakou)
         def navigation():
             host=FakeHost();result=json.loads(engine.run('GotoMain',host))
             assert result['status']=='finished',result

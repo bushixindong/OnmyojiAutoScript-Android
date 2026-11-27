@@ -29,14 +29,19 @@ def get_available_providers():return ['CPUExecutionProvider']
 def get_device():return 'CPU'
 
 class InferenceSession:
-    def __init__(self,path_or_bytes,sess_options=None,providers=None,**kwargs):
+    def __init__(self,path_or_bytes,sess_options=None,providers=None,asset=False,**kwargs):
         bridge=jclass('com.oas.android.engine.PythonOnnxSession')
-        self._session=bridge(path_or_bytes if isinstance(path_or_bytes,(str,bytes,bytearray)) else str(path_or_bytes))
+        if asset:self._session=bridge.openAsset(str(path_or_bytes))
+        else:self._session=bridge(path_or_bytes if isinstance(path_or_bytes,(str,bytes,bytearray)) else str(path_or_bytes))
         self._info=json.loads(str(self._session.metadata()))
         self._finalizer=weakref.finalize(self,self._session.close)
     def get_inputs(self):return [Node(item) for item in self._info['inputs']]
     def get_outputs(self):return [Node(item) for item in self._info['outputs']]
     def get_providers(self):return ['CPUExecutionProvider']
+    def run_yolo(self,input_name,value,threshold):
+        array=np.ascontiguousarray(value,dtype=np.float32)
+        result=self._session.runYolo(input_name,array.tobytes(),list(array.shape),float(threshold))
+        return np.frombuffer(bytes(result),dtype=np.float32).reshape(-1,6)
     def run(self,output_names,input_feed,**kwargs):
         payload={}
         for name,value in input_feed.items():
