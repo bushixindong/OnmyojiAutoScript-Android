@@ -42,6 +42,24 @@ DEFAULT_ENGINE_DIR = r"E:\OnmyojiAutoScript"
 
 
 def detect_lan_ip() -> str:
+    # 优先挑真实的局域网 IPv4（避开 VPN/代理虚拟网卡如 28.0.0.1 / 198.18.x.x）
+    try:
+        candidates = []
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if ip.startswith(("192.168.", "10.")):
+                candidates.append(ip)
+            elif ip.startswith("172."):
+                second = int(ip.split(".")[1])
+                if 16 <= second <= 31:
+                    candidates.append(ip)
+        if candidates:
+            for ip in candidates:
+                if ip.startswith("192.168."):
+                    return ip
+            return candidates[0]
+    except Exception:
+        pass
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.connect(("8.8.8.8", 80))
@@ -620,7 +638,7 @@ async function refreshMeta(){
     ? `分支: <b>${esc(d.engine.branch)}</b> (改动 ${d.engine.dirty})<br/>提交: ${esc(d.engine.commit)}`
     : `未找到: ${esc(d.engine.path)}`;
   document.getElementById('rtInfo').innerHTML = d.runtime.exists
-    ? `任务: <b>${d.runtime.taskCount}</b> / 文件: <b>${d.runtime.fileCount}</b> / ${d.runtime.zipSizeMb} MB<br/>SHA: ${esc(d.runtime.archiveSha256.slice(0,16))}...`
+    ? `任务: <b>${d.runtime.taskCount}</b> / 文件: <b>${d.runtime.fileCount}</b> / ${d.runtime.zipSizeMb} MB<br/>SHA: ${esc(d.runtime.archiveSha256.slice(0,16))}...<br/>局域网热更地址: <a href="/update/update.json" target="_blank">${esc(d.lanUrl)}/update/update.json</a>`
     : `未找到 manifest.json`;
 
   const sel = document.getElementById('serial');
@@ -815,6 +833,50 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+            return
+
+        if parsed.path == "/update/update.json":
+            zip_path = ROOT / "app" / "src" / "main" / "assets" / "runtime" / "oas-runtime.zip"
+            if not zip_path.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            host_hdr = self.headers.get("Host") or f"{detect_lan_ip()}:{self.server_port}"
+            base = f"http://{host_hdr}/update"
+            h = hashlib.sha256()
+            with zip_path.open("rb") as f:
+                for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                    h.update(chunk)
+            gradle_txt = (ROOT / "app" / "build.gradle.kts").read_text(encoding="utf-8")
+            m_ver = re.search(r'versionName\s*=\s*"([^"]+)"', gradle_txt)
+            m_code = re.search(r'versionCode\s*=\s*(\d+)', gradle_txt)
+            mtime = datetime.fromtimestamp(zip_path.stat().st_mtime)
+            self._send_json({
+                "runtimeVersion": mtime.strftime("%Y.%m.%d.%H%M"),
+                "runtimeArchiveUrl": f"{base}/oas-runtime.zip",
+                "runtimeSha256": h.hexdigest(),
+                "runtimeManifestUrl": f"{base}/manifest.json",
+                "runtimeNotes": "局域网本地实时热更新包",
+                "appVersion": m_ver.group(1) if m_ver else "1.0.4",
+                "appVersionCode": int(m_code.group(1)) if m_code else 14,
+                "appDownloadUrl": f"http://{host_hdr}/",
+                "appNotes": "",
+            })
+            return
+
+        if parsed.path in ("/update/oas-runtime.zip", "/update/manifest.json"):
+            fname = parsed.path.rsplit("/", 1)[-1]
+            target = ROOT / "app" / "src" / "main" / "assets" / "runtime" / fname
+            if not target.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            st = target.stat()
+            ctype = "application/zip" if fname.endswith(".zip") else "application/json; charset=utf-8"
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(st.st_size))
+            self.end_headers()
+            with target.open("rb") as f:
+                shutil.copyfileobj(f, self.wfile, length=256 * 1024)
             return
 
         if parsed.path == "/download":
