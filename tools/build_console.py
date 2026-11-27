@@ -33,7 +33,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LOG_ROOT = ROOT / ".workbuddy" / "build-console"
+PHONE_LOG_ROOT = LOG_ROOT / "phone-logs"
 LOG_ROOT.mkdir(parents=True, exist_ok=True)
+PHONE_LOG_ROOT.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_JAVA_HOME = os.environ.get("JAVA_HOME") or r"E:\toolchains\jdk21"
 DEFAULT_ANDROID_HOME = os.environ.get("ANDROID_HOME") or r"E:\toolchains\android-sdk"
@@ -177,6 +179,48 @@ def list_artifacts() -> list[dict]:
             "sha256": sha,
         })
     return items[:20]
+
+
+def list_phone_logs() -> list[dict]:
+    items = []
+    if not PHONE_LOG_ROOT.is_dir():
+        return items
+    for p in sorted(PHONE_LOG_ROOT.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if not p.is_file() or p.suffix.lower() not in (".md", ".txt", ".log"):
+            continue
+        st = p.stat()
+        summary = ""
+        if p.suffix.lower() == ".md":
+            try:
+                head = p.read_text(encoding="utf-8", errors="ignore")[:1200]
+                m = re.search(r"\*\*异常摘要\*\*[：:]\s*(.+)", head)
+                if m:
+                    summary = m.group(1).strip()
+            except OSError:
+                pass
+        items.append({
+            "name": p.name,
+            "sizeKb": round(st.st_size / 1024, 1),
+            "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+            "summary": summary,
+            "isMd": p.suffix.lower() == ".md",
+        })
+    return items[:30]
+
+
+def parse_phone_log(path: Path) -> dict:
+    raw = path.read_text(encoding="utf-8", errors="replace")
+    if path.suffix.lower() != ".md":
+        return {"name": path.name, "meta": [], "images": [], "text": raw}
+    images = []
+    def repl(m):
+        images.append(f"data:image/{m.group(1)};base64,{re.sub(r'\\s+', '', m.group(2))}")
+        return ""
+    cleaned = re.sub(r"!\[[^\]]*\]\(data:image/([^;]+);base64,([A-Za-z0-9+/=\s]+)\)", repl, raw)
+    meta = [ln.lstrip("- ").strip() for ln in cleaned.splitlines()[:20] if ln.startswith("- **")]
+    m_code = re.search(r"```[^\n]*\n(.*?)```", cleaned, re.S)
+    text = m_code.group(1).strip() if m_code else cleaned
+    return {"name": path.name, "meta": meta, "images": images, "text": text}
 
 
 class BuildManager:
@@ -613,6 +657,29 @@ HTML_PAGE = r"""<!doctype html>
       </table>
     </div>
   </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <h2 style="margin:0">手机报错日志（ADB 拉取与图文查看）</h2>
+      <div class="inline">
+        <button class="btn-primary btn-sm" onclick="syncPhoneLogs()">从手机同步报错 MD</button>
+        <button class="btn-ghost btn-sm" onclick="grabLogcat()">抓实时 logcat</button>
+      </div>
+    </div>
+    <div class="main" style="grid-template-columns: 380px 1fr;">
+      <div style="max-height:460px;overflow:auto">
+        <table>
+          <thead><tr><th>日志文件</th><th>时间</th><th>操作</th></tr></thead>
+          <tbody id="phoneLogBody"></tbody>
+        </table>
+      </div>
+      <div>
+        <div id="phoneLogMeta" style="font-size:12px;color:var(--muted);margin-bottom:8px">点击左侧日志查看详情与现场截图</div>
+        <div id="phoneLogImgs" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <pre class="log" id="phoneLogText" style="height:360px">暂未选择手机日志...</pre>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -661,6 +728,16 @@ async function refreshMeta(){
         · <a href="javascript:void(0)" onclick="installApk('${esc(a.rel)}')">装到手机</a>
       </td>
     </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">暂无产物</td></tr>';
+
+  document.getElementById('phoneLogBody').innerHTML = (d.phoneLogs || []).map(l => `
+    <tr>
+      <td><b>${esc(l.name)}</b>${l.summary ? `<div style="color:#f87171;font-size:11px">${esc(l.summary)}</div>` : ''}</td>
+      <td style="white-space:nowrap">${esc(l.mtime.slice(5))}</td>
+      <td style="white-space:nowrap">
+        <a href="javascript:void(0)" onclick="openPhoneLog('${esc(l.name)}')">查看</a>
+        · <a href="/api/phone-logs/raw?name=${encodeURIComponent(l.name)}">下载</a>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">暂无日志，请点击上方「从手机同步报错 MD」</td></tr>';
 }
 
 async function pollBuild(){
@@ -762,6 +839,39 @@ async function viewLog(buildId){
   document.getElementById('buildMeta').textContent = `历史日志: ${buildId}`;
 }
 
+async function syncPhoneLogs(){
+  const serial = document.getElementById('serial').value;
+  if (!serial) { alert('请先连接并选择一台 ADB 设备'); return; }
+  document.getElementById('phoneLogMeta').textContent = '正在从手机同步报错日志...';
+  const r = await fetch('/api/phone-logs/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({serial})});
+  const d = await r.json();
+  document.getElementById('phoneLogMeta').textContent = d.message || (d.ok ? '同步完成' : '同步失败');
+  await refreshMeta();
+  if (d.latest) openPhoneLog(d.latest);
+}
+
+async function grabLogcat(){
+  const serial = document.getElementById('serial').value;
+  if (!serial) { alert('请先连接并选择一台 ADB 设备'); return; }
+  document.getElementById('phoneLogMeta').textContent = '正在抓取手机实时 logcat...';
+  const r = await fetch('/api/phone-logs/logcat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({serial})});
+  const d = await r.json();
+  document.getElementById('phoneLogMeta').textContent = d.message || (d.ok ? '抓取完成' : '抓取失败');
+  await refreshMeta();
+  if (d.name) openPhoneLog(d.name);
+}
+
+async function openPhoneLog(name){
+  const r = await fetch(`/api/phone-logs/view?name=${encodeURIComponent(name)}`);
+  if (!r.ok) return;
+  const d = await r.json();
+  document.getElementById('phoneLogMeta').innerHTML = `<b>${esc(d.name)}</b>` + (d.meta.length ? '<br/>' + d.meta.map(esc).join(' · ') : '');
+  document.getElementById('phoneLogImgs').innerHTML = d.images.map(src =>
+    `<a href="${src}" target="_blank"><img src="${src}" style="max-height:200px;border-radius:8px;border:1px solid var(--border)" /></a>`
+  ).join('');
+  document.getElementById('phoneLogText').innerHTML = d.text.split('\n').map(fmtLine).join('\n');
+}
+
 refreshMeta();
 pollBuild();
 setInterval(pollBuild, 1000);
@@ -813,7 +923,32 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 "runtime": runtime_info(),
                 "devices": list_adb_devices(),
                 "artifacts": list_artifacts(),
+                "phoneLogs": list_phone_logs(),
             })
+            return
+
+        if parsed.path == "/api/phone-logs/view":
+            name = Path((qs.get("name") or [""])[0]).name
+            target = (PHONE_LOG_ROOT / name).resolve()
+            if not name or target.parent != PHONE_LOG_ROOT.resolve() or not target.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            self._send_json(parse_phone_log(target))
+            return
+
+        if parsed.path == "/api/phone-logs/raw":
+            name = Path((qs.get("name") or [""])[0]).name
+            target = (PHONE_LOG_ROOT / name).resolve()
+            if not name or target.parent != PHONE_LOG_ROOT.resolve() or not target.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            raw = target.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="{target.name}"')
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
             return
 
         if parsed.path == "/api/build":
@@ -932,6 +1067,44 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 return
             code, out = run_capture([adb_path(), "-s", serial, "install", "-r", str(target)], timeout=180)
             self._send_json({"ok": code == 0, "output": out})
+            return
+
+        if parsed.path == "/api/phone-logs/sync":
+            body = self._read_json()
+            serial = (body.get("serial") or "").strip()
+            if not serial:
+                self._send_json({"ok": False, "message": "未选择 ADB 设备"}, 400)
+                return
+            code, out = run_capture(
+                [adb_path(), "-s", serial, "shell", "find /storage/emulated/0 -maxdepth 4 -iname 'OASA-error-*.md' 2>/dev/null"],
+                timeout=20,
+            )
+            remote_files = [ln.strip() for ln in out.splitlines() if ln.strip().endswith(".md")]
+            pulled = []
+            for rf in remote_files:
+                fname = Path(rf).name
+                dst = PHONE_LOG_ROOT / fname
+                c2, _ = run_capture([adb_path(), "-s", serial, "pull", rf, str(dst)], timeout=30)
+                if c2 == 0 and dst.is_file():
+                    pulled.append(fname)
+            latest = sorted(pulled)[-1] if pulled else ""
+            msg = f"已同步 {len(pulled)} 份报错日志到电脑" if pulled else "手机里未找到已导出的 OASA-error-*.md（请先在 App 报错日志页点导出 MD）"
+            self._send_json({"ok": True, "count": len(pulled), "latest": latest, "message": msg})
+            return
+
+        if parsed.path == "/api/phone-logs/logcat":
+            body = self._read_json()
+            serial = (body.get("serial") or "").strip()
+            if not serial:
+                self._send_json({"ok": False, "message": "未选择 ADB 设备"}, 400)
+                return
+            code, out = run_capture(
+                [adb_path(), "-s", serial, "logcat", "-d", "-s", "python.stdout", "python.stderr", "AndroidRuntime"],
+                timeout=15,
+            )
+            fname = f"logcat-{datetime.now().strftime('%Y%m%d-%H%M%S')}.txt"
+            (PHONE_LOG_ROOT / fname).write_text(out or "(logcat 为空)", encoding="utf-8")
+            self._send_json({"ok": code == 0, "name": fname, "message": f"已抓取实时 logcat -> {fname}"})
             return
 
         self.send_error(HTTPStatus.NOT_FOUND)
