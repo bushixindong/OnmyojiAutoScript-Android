@@ -189,22 +189,38 @@ def list_phone_logs() -> list[dict]:
         if not p.is_file() or p.suffix.lower() not in (".md", ".txt", ".log"):
             continue
         st = p.stat()
+        title = p.name
+        config_name = ""
+        occurred = datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
         summary = ""
         if p.suffix.lower() == ".md":
             try:
-                head = p.read_text(encoding="utf-8", errors="ignore")[:1200]
-                m = re.search(r"\*\*异常摘要\*\*[：:]\s*(.+)", head)
-                if m:
-                    summary = m.group(1).strip()
+                head = p.read_text(encoding="utf-8", errors="ignore")[:1500]
+                m_task = re.search(r"\*\*报错任务\*\*[：:]\s*(.+)", head)
+                m_cfg = re.search(r"\*\*配置名称\*\*[：:]\s*`?([^`\r\n]+)`?", head)
+                m_time = re.search(r"\*\*发生时间\*\*[：:]\s*(.+)", head)
+                m_sum = re.search(r"\*\*异常摘要\*\*[：:]\s*(.+)", head)
+                if m_task:
+                    title = m_task.group(1).strip().replace("`", "")
+                if m_cfg:
+                    config_name = m_cfg.group(1).strip()
+                if m_time:
+                    occurred = m_time.group(1).strip()
+                if m_sum:
+                    summary = m_sum.group(1).strip()
             except OSError:
                 pass
+        elif p.name.startswith("logcat-"):
+            title = "实时 logcat 快照"
         items.append({
             "name": p.name,
+            "title": f"{title} · {config_name}" if config_name else title,
             "sizeKb": round(st.st_size / 1024, 1),
-            "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+            "mtime": occurred,
             "summary": summary,
             "isMd": p.suffix.lower() == ".md",
         })
+    items.sort(key=lambda x: x["mtime"], reverse=True)
     return items[:30]
 
 
@@ -671,7 +687,7 @@ HTML_PAGE = r"""<!doctype html>
     <div class="main" style="grid-template-columns: 380px 1fr;">
       <div style="max-height:460px;overflow:auto">
         <table>
-          <thead><tr><th>日志文件</th><th>时间</th><th>操作</th></tr></thead>
+          <thead><tr><th>报错标题 / 摘要</th><th>发生时间</th><th>操作</th></tr></thead>
           <tbody id="phoneLogBody"></tbody>
         </table>
       </div>
@@ -733,13 +749,17 @@ async function refreshMeta(){
 
   document.getElementById('phoneLogBody').innerHTML = (d.phoneLogs || []).map(l => `
     <tr>
-      <td><b>${esc(l.name)}</b>${l.summary ? `<div style="color:#f87171;font-size:11px">${esc(l.summary)}</div>` : ''}</td>
+      <td>
+        <b>${esc(l.title || l.name)}</b>
+        ${l.summary ? `<div style="color:#f87171;font-size:11px">${esc(l.summary)}</div>` : ''}
+        <div style="color:var(--muted);font-size:10px">${esc(l.name)}</div>
+      </td>
       <td style="white-space:nowrap">${esc(l.mtime.slice(5))}</td>
       <td style="white-space:nowrap">
         <a href="javascript:void(0)" onclick="openPhoneLog('${esc(l.name)}')">查看</a>
         · <a href="/api/phone-logs/raw?name=${encodeURIComponent(l.name)}">下载</a>
       </td>
-    </tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">暂无日志，请点击上方「从手机同步报错 MD」</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">暂无日志，请点击上方「立即同步」</td></tr>';
 }
 
 async function pollBuild(){
