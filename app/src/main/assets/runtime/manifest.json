@@ -65,12 +65,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75756257,
+  "unpackedBytes": 75739542,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "c833410f33333a5888fb2d17a9c9dbb11d41631b590f4592b371581ed080224e",
+  "archiveSha256": "b2217c0e5a1c797a314d66695a031b2ab7cd0c25e0237e247947e4674508866e",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -14015,7 +14015,7 @@
     {
       "path": "tasks/GameUi/assets.py",
       "size": 21279,
-      "sha256": "792cc07945fc5baf5b05e251ecb8ebfccb0b49e298b0455515c74875276bc13a"
+      "sha256": "da1da71c6775f2cbe15137b554d0ef982371e58f6633e5e9cd61eeb71f2d3037"
     },
     {
       "path": "tasks/GameUi/chess_battle.py",
@@ -14074,8 +14074,8 @@
     },
     {
       "path": "tasks/GameUi/page/image_main.json",
-      "size": 7081,
-      "sha256": "dbfd33b4ea02c07033b68f9263d5a66b7997efae1546a34480e3212686a6456d"
+      "size": 7333,
+      "sha256": "b474a7d28e60e10e02ce5b549c06fe18ed597683511c14147152d1375bbcbf2d"
     },
     {
       "path": "tasks/GameUi/page/image_name.png",
@@ -14314,8 +14314,8 @@
     },
     {
       "path": "tasks/GameUi/page/page_check_onmyodo.png",
-      "size": 75834,
-      "sha256": "fd701ec3479f58c85597634bbfa64796e077ed3dd77424c0392487cc59f0c2fd"
+      "size": 58867,
+      "sha256": "59a9761c4950cb5bb5c5f57034e1f0d1c2692662efc0354ea442fe53732457da"
     },
     {
       "path": "tasks/GameUi/page/page_check_peacock_kingdom.png",

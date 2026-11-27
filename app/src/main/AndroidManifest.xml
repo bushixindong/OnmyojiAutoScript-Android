@@ -13,7 +13,7 @@
         <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
     </queries>
     <application android:name=".OasApp" android:label="OASA" android:theme="@style/OasNativeTheme"
-        android:allowBackup="false" android:supportsRtl="true" android:icon="@drawable/oasx_logo">
+        android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="true" android:icon="@drawable/oasx_logo">
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop"
             android:screenOrientation="portrait">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
