@@ -9,8 +9,8 @@ android {
         applicationId = "com.oas.android"
         minSdk = 28
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.0.4"
+        versionCode = 15
+        versionName = "1.0.5"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
     signingConfigs {
@@ -32,6 +32,7 @@ android {
         }
     }
     buildFeatures { aidl = true; buildConfig = true; compose = true }
+    androidResources { noCompress += "onnx" }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

@@ -290,7 +290,7 @@ def _preset_preview(raw,translations,key_to_task):
         sched=section.get('scheduler')
         if not isinstance(sched,dict) or not sched.get('enable'):continue
         task_id=key_to_task.get(key)
-        if not task_id or task_id=='Hyakkiyakou':continue
+        if not task_id:continue
         nr=str(sched.get('next_run') or '')
         title=translations.get(task_id,task_id)
         try:dt=datetime.fromisoformat(nr.replace(' ','T'))
@@ -434,8 +434,7 @@ def catalog(settings=None):
     result=[]
     for name in names:
         key=next((key for key in type(settings.model).model_fields if type(settings.model).type(key)==name),None)
-        deferred=name=='Hyakkiyakou'
-        result.append(dict(id=name,label=translations.get(name,name)+('（暂缓）' if deferred else ''),configKey=key,runnable=not deferred,deferred=deferred))
+        result.append(dict(id=name,label=translations.get(name,name),configKey=key,runnable=True,deferred=False))
     for name,key in (('GlobalGame','global_game'),('Script','script')):
         result.append(dict(id=name,label=translations.get(name,name),configKey=key,runnable=False))
     return json.dumps(result,ensure_ascii=False)
@@ -445,6 +444,9 @@ def _entry(name):
     if name not in allowed:raise ValueError('未知任务：'+name)
     entry=importlib.import_module('tasks.'+name+'.script_task').ScriptTask
     if not callable(getattr(entry,'run',None)):raise TypeError('任务没有执行入口：'+name)
+    if name=='Hyakkiyakou':
+        from android_oas.hyakkiyakou import adapt_task
+        return adapt_task(entry)
     if name=='DraftDuel':
         from tasks.DraftDuel.runtime import deployment
         def drag_to_field(device,p1,p2,hold_duration=.2,point_random=(-2,-2,2,2),swipe_duration=.45,name='draft_battle_field'):
@@ -477,6 +479,10 @@ def _task_config(name,settings):
     # Normalize them with the real validator before presenting an editable form.
     value=type(model).model_validate(model.model_dump()).model_dump(mode='json')
     schema=type(model).model_json_schema()
+    desktop_fields={}
+    if name=='Hyakkiyakou':
+        from android_oas.hyakkiyakou import DESKTOP_FIELDS
+        desktop_fields=DESKTOP_FIELDS
     # Respect OAS dynamic_hide (0xABCDEF sentinel) and ui_hidden markers, matching desktop config_model.py.
     try:
         visible=model.model_dump(context={'hide':True})
@@ -489,6 +495,7 @@ def _task_config(name,settings):
                 continue
             gval=visible.get(gkey)
             if not isinstance(gval,dict):continue
+            hidden=desktop_fields.get(gkey,())
             ref=gprop.get('$ref')
             if isinstance(ref,str) and ref.startswith('#/$defs/'):
                 dname=ref[len('#/$defs/'):]
@@ -498,7 +505,7 @@ def _task_config(name,settings):
                     sub_props=cloned['properties']
                     for fkey in list(sub_props.keys()):
                         fprop=sub_props.get(fkey) or {}
-                        if gval.get(fkey)==0xABCDEF or fprop.get('ui_hidden') is True:
+                        if fkey in hidden or gval.get(fkey)==0xABCDEF or fprop.get('ui_hidden') is True:
                             sub_props.pop(fkey,None)
                     new_name=f'{dname}__{gkey}'
                     defs[new_name]=cloned
@@ -507,7 +514,7 @@ def _task_config(name,settings):
                 sub_props=gprop['properties']
                 for fkey in list(sub_props.keys()):
                     fprop=sub_props.get(fkey) or {}
-                    if gval.get(fkey)==0xABCDEF or fprop.get('ui_hidden') is True:
+                    if fkey in hidden or gval.get(fkey)==0xABCDEF or fprop.get('ui_hidden') is True:
                         sub_props.pop(fkey,None)
     except Exception:pass
     if name=='CustomTask':

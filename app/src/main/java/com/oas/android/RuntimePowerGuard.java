@@ -36,7 +36,8 @@ public final class RuntimePowerGuard implements AutoCloseable {
         }
     };
     RuntimePowerGuard(Context context,DeviceSession session,String pkg,long timeout) throws Exception {
-        this.context=context;this.session=session;this.pkg=pkg;this.timeout=timeout;
+        // The worker closes this guard after the foreground service can be destroyed.
+        this.context=context.getApplicationContext();this.session=session;this.pkg=pkg;this.timeout=timeout;
         options=context.getSharedPreferences("MainActivity",0);
         alarms=context.getSystemService(AlarmManager.class);
         try {
