@@ -65,12 +65,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75739542,
+  "unpackedBytes": 75742299,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "b2217c0e5a1c797a314d66695a031b2ab7cd0c25e0237e247947e4674508866e",
+  "archiveSha256": "5d630ef6da5f956df2bd352e0d37866ed8e6526651869509e145464460718963",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -7675,7 +7675,7 @@
     {
       "path": "tasks/Component/Costume/assets.py",
       "size": 20219,
-      "sha256": "0b1f96ecd084da17daa7518d738940acce1856b9ebe2bc0dcf9991cbaba33f48"
+      "sha256": "5262dd8c0b1bab9ce83a670f433be5148b2548abe7a86e8d3224dd133e61a080"
     },
     {
       "path": "tasks/Component/Costume/config.py",
@@ -7975,7 +7975,7 @@
     {
       "path": "tasks/Component/Costume/main17/image.json",
       "size": 1266,
-      "sha256": "6859f3481f882f453438965b63a28db8fa7ca27ad56b96817f6ded2ea85cd512"
+      "sha256": "ffff8b47022035078d1725921a58ff2ff06e6efadabeffea529bfc1b179831f9"
     },
     {
       "path": "tasks/Component/Costume/main17/main17_check_main_17.png",
@@ -7994,8 +7994,8 @@
     },
     {
       "path": "tasks/Component/Costume/main17/main17_main_goto_town_17.png",
-      "size": 3028,
-      "sha256": "dbe5ac573a32d85cb073c993a0c40df2281fdd7246082e1c783664dce49d04e6"
+      "size": 5785,
+      "sha256": "8d9495a3c4183a11298ca0eaf68877af5d5751e95ec057837554523ccc351531"
     },
     {
       "path": "tasks/Component/Costume/main17/main17_pet_house_17.png",
