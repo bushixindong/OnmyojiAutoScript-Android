@@ -196,10 +196,10 @@ def list_phone_logs() -> list[dict]:
         if p.suffix.lower() == ".md":
             try:
                 head = p.read_text(encoding="utf-8", errors="ignore")[:1500]
-                m_task = re.search(r"\*\*报错任务\*\*[：:]\s*(.+)", head)
-                m_cfg = re.search(r"\*\*配置名称\*\*[：:]\s*`?([^`\r\n]+)`?", head)
-                m_time = re.search(r"\*\*发生时间\*\*[：:]\s*(.+)", head)
-                m_sum = re.search(r"\*\*异常摘要\*\*[：:]\s*(.+)", head)
+                m_task = re.search(r"\*\*报错任务\*\*[：:][ \t]*([^\r\n]+)", head)
+                m_cfg = re.search(r"\*\*配置名称\*\*[：:][ \t]*`?([^`\r\n]+)`?", head)
+                m_time = re.search(r"\*\*发生时间\*\*[：:][ \t]*([^\r\n]+)", head)
+                m_sum = re.search(r"\*\*异常摘要\*\*[：:][ \t]*([^\r\n]+)", head)
                 if m_task:
                     title = m_task.group(1).strip().replace("`", "")
                 if m_cfg:
