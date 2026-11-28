@@ -9,8 +9,8 @@ android {
         applicationId = "com.oas.android"
         minSdk = 28
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.0.5.4"
+        versionCode = 20
+        versionName = "1.0.5.5"
         val requestedAbis = providers.gradleProperty("abiFilters").orNull
             ?.split(",")
             ?.map { it.trim() }

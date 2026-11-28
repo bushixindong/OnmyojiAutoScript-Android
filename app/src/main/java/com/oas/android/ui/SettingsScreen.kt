@@ -256,12 +256,14 @@ private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
                 ) {
                     if(info.runtimeNotes.isNotBlank()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                "脚本包 ${info.runtimeVersion.ifBlank { "" }}".trim(),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            if(info.appNotes.isNotBlank()) {
+                                Text(
+                                    "脚本更新内容",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Text(
                                 info.runtimeNotes,
                                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 21.sp),
