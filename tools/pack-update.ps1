@@ -30,7 +30,7 @@ $payload = [ordered]@{
     runtimeNotes       = $RuntimeNotes
     appVersion         = $AppVersion
     appVersionCode     = $AppVersionCode
-    appDownloadUrl     = "https://github.com/$Repo/releases/latest"
+    appDownloadUrl     = "https://github.com/$Repo/releases/download/v$AppVersion/OASA-$AppVersion-arm64.apk"
     appNotes           = ""
 }
 $jsonText = $payload | ConvertTo-Json -Depth 4

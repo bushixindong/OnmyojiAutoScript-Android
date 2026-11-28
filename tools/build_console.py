@@ -1653,15 +1653,21 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     rt_ver = ""
             if not rt_ver:
                 rt_ver = m_ver.group(1) if m_ver else datetime.fromtimestamp(zip_path.stat().st_mtime).strftime("%Y.%m.%d.%H%M")
+            app_ver_str = m_ver.group(1) if m_ver else "1.0.4"
+            direct_apk = ROOT / "dist" / f"OASA-{app_ver_str}-arm64.apk"
+            if direct_apk.is_file():
+                app_dl_url = f"http://{host_hdr}/download?path={urllib.parse.quote('dist/' + direct_apk.name)}"
+            else:
+                app_dl_url = f"http://{host_hdr}/"
             self._send_json({
                 "runtimeVersion": rt_ver,
                 "runtimeArchiveUrl": f"{base}/oas-runtime.zip",
                 "runtimeSha256": h.hexdigest(),
                 "runtimeManifestUrl": f"{base}/manifest.json",
                 "runtimeNotes": read_changelog_section("更新日志") or read_changelog_section("脚本包更新日志") or "最新脚本包更新",
-                "appVersion": m_ver.group(1) if m_ver else "1.0.4",
+                "appVersion": app_ver_str,
                 "appVersionCode": int(m_code.group(1)) if m_code else 14,
-                "appDownloadUrl": f"http://{host_hdr}/",
+                "appDownloadUrl": app_dl_url,
                 "appNotes": "",
             })
             return
