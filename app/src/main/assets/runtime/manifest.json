@@ -1,5 +1,5 @@
 {
-  "runtimeVersion": "1.0.5.3",
+  "runtimeVersion": "1.0.5.8",
   "tasks": [
     "AbyssShadows",
     "ActivityShikigami",
@@ -66,12 +66,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75746335,
+  "unpackedBytes": 75750395,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "83ed987c41293074427c5012033f5bd41431426ad3ef7397b2ba425179d3dfc9",
+  "archiveSha256": "0a4d6bd4e03ce6ecb36ca6f0ee10427dee168ed5c837ade883fe76bdb90634d1",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -19055,8 +19055,8 @@
     },
     {
       "path": "tasks/SixRealms/common.py",
-      "size": 8529,
-      "sha256": "c920d6a6483e7a8a14f2979f4c86a4224f3e362319be8c95322dbdc39e97a2d1"
+      "size": 8865,
+      "sha256": "7701757f48a55ec120db4abede012e90c400bc63130d98bc0428f8d174bf5e83"
     },
     {
       "path": "tasks/SixRealms/config.py",
@@ -19065,13 +19065,13 @@
     },
     {
       "path": "tasks/SixRealms/moon_sea/base_moon_sea.py",
-      "size": 4026,
-      "sha256": "70b60f642bf9d65b2b43cc5f3074ebc329b6100b00d00de7c561581a277e26d3"
+      "size": 6048,
+      "sha256": "3fd4ebeaa02d09d691af2182a65164a0105438ae0d16f55429cc907bf084ac84"
     },
     {
       "path": "tasks/SixRealms/moon_sea/moon_sea.py",
-      "size": 8480,
-      "sha256": "10edd0028803d47f935ab59e11a73e4b250734572e6485f0827b98023aa72f19"
+      "size": 10182,
+      "sha256": "7c193499be61da9ef29829a2dd88cb2fc62ff0339a37dc6b07ced1e4378dec4e"
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/animate.json",
