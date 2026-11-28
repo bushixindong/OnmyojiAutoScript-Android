@@ -526,387 +526,990 @@ HTML_PAGE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>OASA 本地构建控制台</title>
 <style>
-  :root {
-    --bg:#0f172a; --card:#1e293b; --border:#334155; --text:#e2e8f0; --muted:#94a3b8;
-    --accent:#38bdf8; --ok:#22c55e; --err:#ef4444; --warn:#f59e0b;
+  :root{
+    --bg:#0c0e12; --card:#141820; --surface:#1c222d; --surface-2:#0f131a;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.15);
+    --text:#eef2f6; --muted:#9aa5b5; --dim:#6b7688;
+    --accent:#38bdf8; --accent-2:#0ea5e9; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    --topbar-bg:rgba(12,14,18,.88); --log-bg:#0b0f17; --log-text:#e2e8f0;
+    --radius:12px; --shadow:0 8px 28px rgba(0,0,0,.28);
   }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); }
-  .wrap { max-width:1280px; margin:0 auto; padding:20px; }
-  header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:18px; }
-  h1 { margin:0; font-size:20px; display:flex; align-items:center; gap:10px; }
-  .pill { font-size:12px; padding:3px 10px; border-radius:999px; background:#0ea5e922; color:var(--accent); border:1px solid #0ea5e955; }
-  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-bottom:16px; }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
-  .card h2 { margin:0 0 10px; font-size:14px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
-  .kv { font-size:13px; line-height:1.7; word-break:break-all; }
-  .kv b { color:#fff; }
-  .main { display:grid; grid-template-columns: 360px 1fr; gap:16px; align-items:start; }
-  @media (max-width: 960px) { .main { grid-template-columns: 1fr; } }
-  .row { margin-bottom:12px; }
-  label.lbl { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
-  select, input[type=text] { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:#0b1220; color:var(--text); font-size:13px; }
-  .chk { display:flex; align-items:center; gap:8px; font-size:13px; margin:7px 0; cursor:pointer; }
-  .chk input { width:16px; height:16px; accent-color:var(--accent); }
-  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
-  button { cursor:pointer; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; transition:.15s; }
-  .btn-primary { background:#0284c7; color:#fff; }
-  .btn-primary:hover { background:#0369a1; }
-  .btn-primary:disabled { opacity:.45; cursor:not-allowed; }
-  .btn-danger { background:#dc2626; color:#fff; }
-  .btn-ghost { background:#334155; color:var(--text); }
-  .btn-ghost:hover { background:#475569; }
-  .btn-sm { padding:5px 10px; font-size:12px; }
-  .progress-wrap { background:#0b1220; border-radius:999px; height:10px; overflow:hidden; margin:10px 0 12px; border:1px solid var(--border); }
-  .progress-bar { height:100%; width:0%; background:linear-gradient(90deg, #0284c7, #38bdf8); transition:width .3s; }
-  .progress-bar.ok { background:var(--ok); }
-  .progress-bar.err { background:var(--err); }
-  .steps { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-  .step { font-size:12px; padding:4px 10px; border-radius:8px; background:#0b1220; border:1px solid var(--border); color:var(--muted); }
-  .step.running { border-color:var(--accent); color:var(--accent); }
-  .step.done { border-color:#16a34a; color:#4ade80; }
-  .step.failed { border-color:var(--err); color:#f87171; }
-  pre.log { margin:0; height:420px; overflow:auto; background:#020617; border:1px solid var(--border); border-radius:10px; padding:12px; font-family:Consolas, "Cascadia Mono", monospace; font-size:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
-  .ln-err { color:#f87171; }
-  .ln-ok { color:#4ade80; font-weight:600; }
-  .ln-task { color:#38bdf8; }
-  .ln-sec { color:#fbbf24; font-weight:600; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
-  th { color:var(--muted); font-weight:600; }
-  a { color:var(--accent); text-decoration:none; }
-  a:hover { text-decoration:underline; }
-  .badge { padding:2px 7px; border-radius:6px; font-size:11px; font-weight:600; }
-  .b-success { background:#16a34a33; color:#4ade80; }
-  .b-failed { background:#dc262633; color:#f87171; }
-  .b-cancelled { background:#f59e0b33; color:#fbbf24; }
-  .b-running { background:#0284c733; color:#38bdf8; }
-  .inline { display:flex; gap:6px; align-items:center; }
+  html[data-theme="light"]{
+    --bg:#f3f5f8; --card:#ffffff; --surface:#f1f5f9; --surface-2:#f8fafc;
+    --border:rgba(15,23,42,.09); --border-2:rgba(15,23,42,.16);
+    --text:#0f172a; --muted:#475569; --dim:#64748b;
+    --accent:#0284c7; --accent-2:#0369a1; --ok:#16a34a; --warn:#d97706; --err:#dc2626;
+    --topbar-bg:rgba(255,255,255,.88); --log-bg:#0f172a; --log-text:#e2e8f0;
+    --shadow:0 4px 20px rgba(15,23,42,.05);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;font-variant-numeric:tabular-nums;transition:background .18s,color .18s}
+  .mono{font-family:Consolas,'Cascadia Mono',Menlo,monospace;font-variant-numeric:tabular-nums}
+  .num{font-variant-numeric:tabular-nums}
+  .ico{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+  .spin{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- 顶部全局导航栏 ---------- */
+  .topbar{position:sticky;top:0;z-index:60;background:var(--topbar-bg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+  .topbar-inner{width:100%;max-width:1920px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .brand-logo{width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:8px;background:linear-gradient(135deg,var(--accent),#0369a1);color:#fff;box-shadow:0 3px 12px rgba(14,165,233,.28)}
+  .brand-logo .ico{width:18px;height:18px}
+  .brand-name{font-size:15.5px;font-weight:750;letter-spacing:.01em;white-space:nowrap}
+  .brand-sub{font-size:11px;color:var(--dim);letter-spacing:.04em;margin-top:-2px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.26);color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pill .dot{width:7px;height:7px;flex:none;border-radius:50%;background:var(--dim)}
+  .pill.running{color:var(--accent);border-color:rgba(56,189,248,.45)}
+  .pill.running .dot{background:var(--accent);animation:dotPulse 1.4s infinite}
+  .pill.success{color:var(--ok);background:rgba(34,197,94,.11);border-color:rgba(34,197,94,.30)}
+  .pill.success .dot{background:var(--ok)}
+  .pill.failed{color:var(--err);background:rgba(239,68,68,.11);border-color:rgba(239,68,68,.32)}
+  .pill.failed .dot{background:var(--err)}
+  .pill.cancelled{color:var(--warn);background:rgba(245,158,11,.11);border-color:rgba(245,158,11,.32)}
+  .pill.cancelled .dot{background:var(--warn)}
+  @keyframes dotPulse{0%{box-shadow:0 0 0 0 rgba(56,189,248,.55)}70%{box-shadow:0 0 0 7px rgba(56,189,248,0)}100%{box-shadow:0 0 0 0 rgba(56,189,248,0)}}
+  .tabs{display:flex;gap:3px;padding:3px;background:var(--surface);border:1px solid var(--border);border-radius:10px;max-width:100%;overflow-x:auto}
+  .tab-btn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid transparent;background:transparent;color:var(--muted);padding:7px 14px;border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;transition:.16s}
+  .tab-btn:hover{color:var(--text);background:rgba(148,163,184,.10)}
+  .tab-btn.active{color:var(--text);background:var(--card);border-color:var(--border-2);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+  .tab-badge{font-size:11px;font-weight:700;min-width:19px;text-align:center;padding:1px 6px;border-radius:6px;background:rgba(148,163,184,.16);color:var(--muted);font-variant-numeric:tabular-nums}
+  .tab-btn.active .tab-badge{background:rgba(14,165,233,.16);color:var(--accent)}
+  .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .dev-chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+  .dev-chip.ok{color:var(--ok)}
+  .dev-chip .ico{width:15px;height:15px}
+  .top-actions select{width:auto;min-width:165px;max-width:260px;padding:7px 10px;font-size:12.5px}
+  .conn-box{display:flex;align-items:center;gap:6px}
+  .conn-box input{width:190px;padding:7px 10px;font-size:12.5px}
+  select,input[type=text]{border-radius:8px;border:1px solid var(--border-2);background:var(--surface-2);color:var(--text);font-size:13.5px;padding:9px 12px;outline:none;transition:.15s}
+  select:focus,input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.14)}
+  .lan-btn{display:inline-flex;align-items:center;gap:6px;max-width:235px;padding:7px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--accent);font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .lan-btn:hover{border-color:var(--border-2)}
+  .lan-btn span{overflow:hidden;text-overflow:ellipsis}
+
+  /* ---------- 页面骨架 ---------- */
+  .page{flex:1;width:100%;max-width:1920px;margin:0 auto;padding:16px 24px 24px;display:flex;flex-direction:column}
+  .tab-panel{display:none;animation:fade .18s ease;flex:1}
+  .tab-panel.active{display:flex;flex-direction:column}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+  .card-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .card-title{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;letter-spacing:.01em;margin:0}
+  .card-title .ico{color:var(--accent)}
+  .card-sub{font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .hint{font-size:12.5px;color:var(--dim)}
+
+  /* ---------- 紧凑环境状态条 ---------- */
+  .status-strip{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:11px 18px;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .strip-seg{display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 280px}
+  .strip-seg.rt-seg{flex:1.25 1 360px}
+  .strip-div{width:1px;height:22px;background:var(--border-2);flex:none}
+  .strip-lbl{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;flex:none}
+  .strip-lbl .ico{color:var(--accent);width:15px;height:15px}
+  .strip-branch{font-size:12.5px;font-weight:700;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 8px;white-space:nowrap;flex:none}
+  .strip-dirty{font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap;flex:none}
+  .strip-dirty.has-dirty{color:var(--warn)}
+  .strip-commit{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+  .strip-kv{font-size:13px;color:var(--text);font-weight:600;white-space:nowrap;flex:none}
+  .strip-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}
+
+  /* ---------- 构建台 ---------- */
+  .console-grid{flex:1;display:grid;grid-template-columns:400px minmax(0,1fr);gap:16px;align-items:stretch}
+  .config-card{display:flex;flex-direction:column}
+  .log-card{display:flex;flex-direction:column;min-height:calc(100vh - 160px)}
+  .field{margin-bottom:13px}
+  .field>label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);font-weight:700;margin-bottom:6px}
+  .field select{width:100%}
+  .presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+  .preset{display:flex;flex-direction:column;align-items:flex-start;gap:5px;width:100%;text-align:left;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);color:var(--text);padding:10px 11px;cursor:pointer;transition:.15s;min-width:0}
+  .preset:hover{background:var(--surface);border-color:var(--border-2);transform:translateY(-1px)}
+  .preset.active{border-color:var(--accent);background:rgba(14,165,233,.11)}
+  .preset .p-top{display:flex;align-items:center;gap:6px;width:100%}
+  .preset .p-ico{width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:6px;background:rgba(56,189,248,.14);color:var(--accent)}
+  .preset .p-ico .ico{width:14px;height:14px}
+  .preset[data-preset=hot] .p-ico{background:rgba(245,158,11,.15);color:var(--warn)}
+  .preset b{display:block;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .preset small{display:block;font-size:11.5px;color:var(--dim);line-height:1.35}
+  .divider{height:1px;background:var(--border);margin:14px 0}
+  .chk{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;line-height:1.5;margin:9px 0;cursor:pointer;color:var(--text)}
+  .chk input{appearance:none;-webkit-appearance:none;width:17px;height:17px;flex:none;border:1px solid var(--border-2);border-radius:5px;background:var(--surface-2);position:relative;cursor:pointer;margin:2px 0 0;transition:.15s}
+  .chk input:checked{background:var(--accent-2);border-color:var(--accent-2)}
+  .chk input:checked::after{content:'';position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .target-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--dim);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-top:auto}
+  .target-line>span{white-space:nowrap;flex:none}
+  .target-line b{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:right}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:8px;padding:9px 14px;font-size:13.5px;font-weight:650;color:var(--text);background:var(--surface);cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
+  .btn:hover:not(:disabled){border-color:var(--border-2);filter:brightness(1.06)}
+  .btn:active:not(:disabled){transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,var(--accent-2),#0284c7);color:#fff;box-shadow:0 3px 12px rgba(14,165,233,.24)}
+  .btn-primary:hover:not(:disabled){filter:brightness(1.08);border-color:transparent}
+  .btn-danger{background:rgba(239,68,68,.13);border-color:rgba(239,68,68,.34);color:var(--err)}
+  .btn-danger:hover:not(:disabled){background:rgba(239,68,68,.20)}
+  .btn-ghost{background:var(--surface);border-color:var(--border)}
+  .btn-sm{padding:6px 11px;font-size:12.5px;border-radius:7px}
+  .btn-icon{padding:0;width:33px;height:33px}
+  .btn.hl{animation:hi 1s ease-in-out 3;border-color:var(--warn)!important}
+  @keyframes hi{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.0)}50%{box-shadow:0 0 0 4px rgba(245,158,11,.28)}}
+  .progress-shell{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .progress-wrap{flex:1;background:var(--surface-2);border-radius:999px;height:9px;overflow:hidden;border:1px solid var(--border)}
+  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#0284c7,var(--accent));transition:width .3s;border-radius:999px}
+  .progress-bar.ok{background:linear-gradient(90deg,#16a34a,var(--ok))}
+  .progress-bar.err{background:linear-gradient(90deg,#b91c1c,var(--err))}
+  .progress-bar.warn{background:linear-gradient(90deg,#b45309,var(--warn))}
+  .steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:26px}
+  .step{font-size:12.5px;padding:4px 10px;border-radius:7px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-variant-numeric:tabular-nums}
+  .step.running{border-color:rgba(56,189,248,.5);color:var(--accent);background:rgba(56,189,248,.08)}
+  .step.done{border-color:rgba(34,197,94,.35);color:var(--ok);background:rgba(34,197,94,.08)}
+  .step.failed{border-color:rgba(239,68,68,.42);color:var(--err);background:rgba(239,68,68,.08)}
+  .step-hint{font-size:12.5px;color:var(--dim)}
+  .hist-banner{display:none;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid rgba(245,158,11,.34);background:rgba(245,158,11,.10);color:var(--warn);border-radius:9px;margin-bottom:10px;font-size:12.5px;flex-wrap:wrap}
+  .hist-banner.show{display:flex}
+  .log-shell{flex:1;display:flex;flex-direction:column;min-height:420px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--log-bg)}
+  .log-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;background:var(--surface);border-bottom:1px solid var(--border)}
+  .log-tools .input{width:210px;padding:6px 10px;font-size:12.5px}
+  .log-tools .chk{font-size:12.5px;margin:0;color:var(--muted)}
+  .log-tools .chk input{width:15px;height:15px;margin:0}
+  .log-tools .chk input:checked::after{left:4.5px;top:1.5px;width:4px;height:7px}
+  .log-sep{width:1px;height:18px;background:var(--border-2)}
+  .log-count{margin-left:auto;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+  pre.log{margin:0;flex:1;min-height:360px;overflow:auto;padding:14px 16px;background:var(--log-bg);color:var(--log-text);font-family:Consolas,'Cascadia Mono',Menlo,monospace;font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;scrollbar-color:#334155 transparent}
+  .phone-log-pre{height:calc(100vh - 340px);min-height:360px;flex:none}
+  .ln-err{color:#f87171}
+  .ln-ok{color:#4ade80;font-weight:600}
+  .ln-task{color:#38bdf8}
+  .ln-sec{color:#fbbf24;font-weight:600}
+  .log-empty{color:#64748b}
+
+  /* ---------- 产物与历史 ---------- */
+  .stack{display:flex;flex-direction:column;gap:16px}
+  .table-scroll{overflow-x:auto}
+  .data-table{width:100%;border-collapse:collapse;min-width:600px;font-size:13.5px}
+  .data-table th{text-align:left;color:var(--dim);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:9px 10px;border-bottom:1px solid var(--border-2);white-space:nowrap}
+  .data-table td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .data-table tr:last-child td{border-bottom:0}
+  .data-table tbody tr:hover{background:rgba(148,163,184,.04)}
+  .file-name{display:flex;align-items:center;gap:6px;font-weight:650;color:var(--text);white-space:nowrap}
+  .file-name .ico{color:var(--accent)}
+  .file-rel{font-size:12px;color:var(--dim);margin-top:3px;white-space:nowrap}
+  .sha-chip{display:inline-block;font-size:12px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;cursor:pointer;white-space:nowrap}
+  .sha-chip:hover{color:var(--accent);border-color:rgba(56,189,248,.4)}
+  .ops{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .ops a{text-decoration:none;color:inherit}
+  .badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap}
+  .b-success{background:rgba(34,197,94,.14);color:#4ade80}
+  .b-failed{background:rgba(239,68,68,.14);color:#f87171}
+  .b-cancelled{background:rgba(245,158,11,.14);color:#fbbf24}
+  .b-running{background:rgba(56,189,248,.14);color:#38bdf8}
+  .b-idle{background:rgba(148,163,184,.14);color:var(--muted)}
+  .empty-row{color:var(--dim);text-align:center;padding:22px!important}
+  .sum-link{color:var(--muted);cursor:pointer;text-decoration:none;border-bottom:1px dashed var(--border-2)}
+  .sum-link:hover{color:var(--accent)}
+
+  /* ---------- 手机日志 ---------- */
+  .phone-grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:16px;align-items:start}
+  .phone-list{max-height:calc(100vh - 260px);min-height:360px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+  .log-item{display:block;width:100%;text-align:left;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);color:var(--text);padding:9px 11px;cursor:pointer;transition:.15s}
+  .log-item:hover{background:var(--surface);border-color:var(--border-2)}
+  .log-item.active{border-color:var(--accent);background:rgba(14,165,233,.10)}
+  .li-title{display:block;font-size:13.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .li-sum{font-size:12px;color:var(--err);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .li-foot{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--dim);margin-top:5px;font-variant-numeric:tabular-nums}
+  .sync-status{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sync-status.ok{color:var(--ok)}
+  .sync-status.err{color:var(--err)}
+  .phone-title{font-size:14px;color:var(--text)}
+  .meta-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .tag{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px}
+  .img-grid{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}
+  .thumb{position:relative;width:112px;height:78px;padding:0;border:1px solid var(--border-2);border-radius:9px;overflow:hidden;background:var(--surface-2);cursor:zoom-in}
+  .thumb:hover{border-color:var(--accent)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .ico{position:absolute;right:4px;bottom:4px;width:13px;height:13px;color:#fff;filter:drop-shadow(0 1px 2px #000)}
+  .thumb-empty{font-size:11px;color:var(--dim);padding:4px 0}
+
+  /* ---------- Toast / Modal / Lightbox ---------- */
+  .toast-wrap{position:fixed;top:78px;right:18px;z-index:200;display:flex;flex-direction:column;gap:9px;width:min(350px,calc(100vw - 32px));pointer-events:none}
+  .toast{pointer-events:auto;display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);border-left:3px solid var(--accent);box-shadow:0 14px 34px rgba(0,0,0,.45);font-size:13px;line-height:1.5;animation:toastIn .22s ease}
+  .toast.success{border-left-color:var(--ok)}
+  .toast.error{border-left-color:var(--err)}
+  .toast.info{border-left-color:var(--accent)}
+  .toast .t-ico{margin-top:2px;color:var(--accent)}
+  .toast.success .t-ico{color:var(--ok)}
+  .toast.error .t-ico{color:var(--err)}
+  .toast .t-body{flex:1;min-width:0;word-break:break-word}
+  .toast .t-close{border:0;background:transparent;color:var(--dim);cursor:pointer;padding:0;line-height:1}
+  .toast .t-close:hover{color:var(--text)}
+  .toast.out{opacity:0;transform:translateX(18px);transition:.22s}
+  @keyframes toastIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+  .mask{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,7,18,.74);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  .mask.show{display:flex}
+  .modal{width:min(430px,100%);background:var(--card);border:1px solid var(--border-2);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:20px;animation:modalIn .2s ease}
+  @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  .modal h3{margin:0 0 10px;font-size:16px}
+  .modal p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.65;word-break:break-word}
+  .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:19px}
+  .lightbox{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;padding:28px;background:rgba(2,6,16,.93)}
+  .lightbox.show{display:flex}
+  .lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;box-shadow:0 20px 70px rgba(0,0,0,.8)}
+  .lb-close{position:absolute;top:16px;right:18px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border-2);color:var(--text);cursor:pointer}
+
+  /* ---------- 窄屏适配 ---------- */
+  @media(max-width:1180px){
+    .strip-div{display:none}
+    .console-grid{grid-template-columns:1fr}
+    .log-card{min-height:520px}
+    .phone-grid{grid-template-columns:1fr}
+    .phone-list{max-height:280px;min-height:140px}
+    .phone-log-pre{height:380px}
+    .tabs{order:3;width:100%;justify-content:flex-start}
+    .top-actions{margin-left:0}
+  }
+  @media(max-width:720px){
+    .topbar-inner{padding:9px 12px;gap:9px}
+    .brand-sub{display:none}
+    .top-actions{width:100%}
+    .conn-box{flex:1}
+    .conn-box input{width:100%;min-width:0}
+    .top-actions select{max-width:160px}
+    .page{padding:12px 12px 24px}
+    .presets{grid-template-columns:1fr}
+    .card{padding:13px}
+    .log-tools .input{width:100%}
+    .log-count{margin-left:0}
+    pre.log{min-height:320px}
+    .toast-wrap{top:auto;bottom:14px;right:12px}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>OASA 本地构建控制台 <span class="pill" id="lanUrl">加载中...</span></h1>
-    <button class="btn-ghost btn-sm" onclick="refreshMeta()">刷新状态</button>
-  </header>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-brand" viewBox="0 0 24 24"><path d="M12 2.6 20 7v10l-8 4.4L4 17V7z"/><path d="M12 7.5v9M7.8 10l8.4 4M16.2 10l-8.4 4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.7"/><path d="M20 4v7h-7"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 8.5a15 15 0 0 1 19 0"/><path d="M5.5 12a10 10 0 0 1 13 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r=".9" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 9v5M12 17.2v.1"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></symbol>
+  <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="m12 2.8 8 4.3v9.8l-8 4.3-8-4.3V7.1z"/><path d="M4 7.1 12 11.5l8-4.4M12 11.5V21"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></symbol>
+  <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 7.5v9M8.5 6.5h4A4 4 0 0 1 16.5 10.5v2"/></symbol>
+  <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></symbol>
+  <symbol id="i-spinner" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a6.8 6.8 0 0 0 11 11z"/></symbol>
+</svg>
 
-  <div class="grid">
-    <div class="card">
-      <h2>App 仓库</h2>
-      <div class="kv" id="appRepo">加载中...</div>
+<header class="topbar">
+ <div class="topbar-inner">
+  <div class="brand">
+    <div class="brand-logo"><svg class="ico"><use href="#i-brand"/></svg></div>
+    <div>
+      <div class="brand-name">OASA 构建控制台</div>
+      <div class="brand-sub">ONMYOJI AUTO SCRIPT · LOCAL</div>
     </div>
-    <div class="card">
-      <h2>引擎仓库</h2>
-      <div class="kv" id="engineRepo">加载中...</div>
-    </div>
-    <div class="card">
-      <h2>内置 Runtime</h2>
-      <div class="kv" id="rtInfo">加载中...</div>
-    </div>
-    <div class="card">
-      <h2>ADB 设备</h2>
-      <div class="kv" id="adbBox">加载中...</div>
-      <div class="inline" style="margin-top:8px">
-        <input type="text" id="adbAddr" placeholder="无线连接如 192.168.3.8:44929" />
-        <button class="btn-ghost btn-sm" onclick="adbConnect()">连接</button>
-      </div>
-    </div>
+    <span class="pill idle" id="statusPill"><i class="dot"></i><span id="statusText">空闲</span></span>
   </div>
 
-  <div class="main">
-    <div class="card">
-      <h2>构建配置</h2>
-      <div class="row">
-        <label class="lbl">构建类型</label>
-        <select id="variant">
-          <option value="release" selected>Release 正式签名（可无损覆盖手机）</option>
-          <option value="debug">Debug 调试包</option>
-        </select>
-      </div>
-      <div class="row">
-        <label class="lbl">目标架构（ABI）</label>
-        <select id="abi">
-          <option value="arm64" selected>仅 arm64-v8a（真机推荐，快约 2 倍）</option>
-          <option value="all">全架构 arm64-v8a + x86_64（含模拟器）</option>
-        </select>
-      </div>
-      <div class="row">
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="build"><svg class="ico"><use href="#i-terminal"/></svg>构建台</button>
+    <button class="tab-btn" data-tab="artifacts"><svg class="ico"><use href="#i-package"/></svg>产物与历史<span class="tab-badge" id="badgeArtifacts">0</span></button>
+    <button class="tab-btn" data-tab="phone"><svg class="ico"><use href="#i-phone"/></svg>手机日志<span class="tab-badge" id="badgePhone">0</span></button>
+  </nav>
+
+  <div class="top-actions">
+    <span class="dev-chip" id="devCount"><svg class="ico"><use href="#i-phone"/></svg>检测中</span>
+    <select id="serial" title="全局 ADB 设备（所有 Tab 共用）"><option value="">（未检测到设备）</option></select>
+    <div class="conn-box">
+      <input type="text" id="adbAddr" placeholder="无线 ADB 地址，回车连接" title="上次地址会自动记住" />
+      <button class="btn btn-sm btn-ghost" id="btnAdbConnect" title="连接无线 ADB"><svg class="ico"><use href="#i-wifi"/></svg>连接</button>
+    </div>
+    <button class="lan-btn" id="lanBtn" title="点击复制局域网地址"><svg class="ico"><use href="#i-copy"/></svg><span id="lanUrl">局域网地址加载中…</span></button>
+    <button class="btn btn-sm btn-ghost btn-icon" id="btnRefresh" title="刷新状态"><svg class="ico"><use href="#i-refresh"/></svg></button>
+    <button class="btn btn-sm btn-ghost btn-icon" id="btnTheme" title="切换深色 / 浅色主题"><svg class="ico"><use href="#i-sun"/></svg></button>
+  </div>
+ </div>
+</header>
+
+<div class="page">
+
+  <!-- ============ 构建台 ============ -->
+  <section class="tab-panel active" data-tab="build">
+    <div class="status-strip">
+      <div class="strip-seg" id="appStrip"><span class="strip-lbl"><svg class="ico"><use href="#i-git"/></svg>App</span><span class="hint">加载中…</span></div>
+      <div class="strip-div"></div>
+      <div class="strip-seg" id="engineStrip"><span class="strip-lbl"><svg class="ico"><use href="#i-git"/></svg>引擎</span><span class="hint">加载中…</span></div>
+      <div class="strip-div"></div>
+      <div class="strip-seg rt-seg" id="rtStrip"><span class="strip-lbl"><svg class="ico"><use href="#i-package"/></svg>Runtime</span><span class="hint">加载中…</span></div>
+    </div>
+
+    <div class="console-grid">
+      <div class="card config-card">
+        <div class="card-hd"><h2 class="card-title"><svg class="ico"><use href="#i-zap"/></svg>一键预设</h2><span class="card-sub">点击即填</span></div>
+        <div class="presets">
+          <button class="preset" data-preset="fast" data-name="真机快编装机"><div class="p-top"><span class="p-ico"><svg class="ico"><use href="#i-phone"/></svg></span><b>真机快编</b></div><small>arm64 · 装机</small></button>
+          <button class="preset" data-preset="hot" data-name="热更脚本包"><div class="p-top"><span class="p-ico"><svg class="ico"><use href="#i-zap"/></svg></span><b>热更脚本</b></div><small>仅导 runtime</small></button>
+          <button class="preset" data-preset="full" data-name="全架构正式包"><div class="p-top"><span class="p-ico"><svg class="ico"><use href="#i-package"/></svg></span><b>全架构包</b></div><small>arm64+x86_64</small></button>
+        </div>
+        <div class="divider"></div>
+        <div class="card-hd"><h2 class="card-title"><svg class="ico"><use href="#i-terminal"/></svg>构建配置</h2></div>
+        <div class="field"><label>构建类型</label><select id="variant"><option value="release">Release 正式签名（可无损覆盖手机）</option><option value="debug">Debug 调试包</option></select></div>
+        <div class="field"><label>目标架构（ABI）</label><select id="abi"><option value="arm64">仅 arm64-v8a（真机推荐，快约 2 倍）</option><option value="all">全架构 arm64-v8a + x86_64（含模拟器）</option></select></div>
         <label class="chk"><input type="checkbox" id="exportRuntime" /> 构建前先从引擎仓重导 oas-runtime.zip</label>
         <label class="chk"><input type="checkbox" id="runTests" /> 运行单元测试 (:app:testDebugUnitTest)</label>
         <label class="chk"><input type="checkbox" id="copyDist" checked /> 归档到 dist/ 并生成 .sha256</label>
         <label class="chk"><input type="checkbox" id="installDevice" /> 编完自动 adb install -r 到选中设备</label>
+        <div class="divider"></div>
+        <div class="target-line"><span>当前目标设备</span><b id="targetDevice">未选择</b></div>
+        <div class="btns">
+          <button class="btn btn-primary" id="btnStart" style="flex:1"><svg class="ico"><use href="#i-play"/></svg>开始构建</button>
+          <button class="btn btn-ghost" id="btnExportOnly"><svg class="ico"><use href="#i-zap"/></svg>仅导脚本包</button>
+          <button class="btn btn-danger" id="btnCancel" style="display:none"><svg class="ico"><use href="#i-stop"/></svg>停止</button>
+        </div>
       </div>
-      <div class="row">
-        <label class="lbl">目标安装设备</label>
-        <select id="serial"><option value="">（未检测到设备）</option></select>
-      </div>
-      <div class="btns">
-        <button class="btn-primary" id="btnStart" onclick="startBuild(false)">开始构建</button>
-        <button class="btn-ghost" id="btnExportOnly" onclick="startBuild(true)">仅导出脚本包</button>
-        <button class="btn-danger" id="btnCancel" onclick="cancelBuild()" style="display:none">停止构建</button>
-      </div>
-    </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h2 style="margin:0">实时进度与日志</h2>
-        <div style="font-size:12px;color:var(--muted)" id="buildMeta">空闲</div>
+      <div class="card log-card">
+        <div class="card-hd" style="margin-bottom:12px"><h2 class="card-title"><svg class="ico"><use href="#i-terminal"/></svg>实时进度与日志</h2><span class="card-sub" id="buildMeta">空闲</span></div>
+        <div class="hist-banner" id="histBanner"><span id="histBannerText">正在查看历史日志</span><button class="btn btn-sm btn-ghost" id="btnBackLive2"><svg class="ico"><use href="#i-refresh"/></svg>切回实时日志</button></div>
+        <div class="progress-shell"><div class="progress-wrap"><div class="progress-bar" id="pbar"></div></div><span class="mono card-sub" id="pctText">0%</span></div>
+        <div class="steps" id="steps"><span class="step-hint">暂无步骤</span></div>
+        <div class="log-shell">
+          <div class="log-tools">
+            <input type="text" class="input" id="logSearch" placeholder="搜索日志…" />
+            <label class="chk"><input type="checkbox" id="onlyErrors" />仅看错误</label>
+            <label class="chk"><input type="checkbox" id="autoScroll" checked />自动滚底</label>
+            <div class="log-sep"></div>
+            <button class="btn btn-sm btn-ghost" id="btnCopyLog"><svg class="ico"><use href="#i-copy"/></svg>复制日志</button>
+            <button class="btn btn-sm btn-ghost" id="btnBackLive" style="display:none;color:#fbbf24;border-color:rgba(245,158,11,.4)"><svg class="ico"><use href="#i-refresh"/></svg>返回实时日志</button>
+            <span class="log-count" id="logCount">0/0 行</span>
+          </div>
+          <pre class="log" id="logBox"><span class="log-empty">等待日志输出…</span></pre>
+        </div>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" id="pbar"></div></div>
-      <div class="steps" id="steps"></div>
-      <pre class="log" id="logBox">等待构建任务...</pre>
     </div>
-  </div>
+  </section>
 
-  <div class="grid" style="margin-top:16px; grid-template-columns: 1fr 1fr;">
-    <div class="card">
-      <h2>APK 产物（局域网可直接下载 / 一键装机）</h2>
-      <table>
-        <thead><tr><th>文件</th><th>大小</th><th>时间</th><th>操作</th></tr></thead>
-        <tbody id="artBody"></tbody>
-      </table>
+  <!-- ============ 产物与历史 ============ -->
+  <section class="tab-panel" data-tab="artifacts">
+    <div class="stack">
+      <div class="card">
+        <div class="card-hd"><h2 class="card-title"><svg class="ico"><use href="#i-package"/></svg>APK 产物</h2><span class="card-sub">局域网下载 / 一键装到当前设备 · <b id="artBadge">0</b> 个</span></div>
+        <div class="table-scroll"><table class="data-table">
+          <thead><tr><th>文件</th><th>大小</th><th>时间</th><th>SHA-256</th><th>操作</th></tr></thead>
+          <tbody id="artBody"><tr><td colspan="5" class="empty-row">加载中…</td></tr></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h2 class="card-title"><svg class="ico"><use href="#i-clock"/></svg>最近构建历史</h2><span class="card-sub">点击「查看日志」切到构建台锁定历史日志</span></div>
+        <div class="table-scroll"><table class="data-table">
+          <thead><tr><th>时间</th><th>状态</th><th>耗时</th><th>步骤摘要</th><th>操作</th></tr></thead>
+          <tbody id="histBody"><tr><td colspan="5" class="empty-row">加载中…</td></tr></tbody>
+        </table></div>
+      </div>
     </div>
-    <div class="card">
-      <h2>最近构建历史</h2>
-      <table>
-        <thead><tr><th>时间</th><th>状态</th><th>耗时</th><th>内容</th></tr></thead>
-        <tbody id="histBody"></tbody>
-      </table>
-    </div>
-  </div>
+  </section>
 
-  <div class="card" style="margin-top:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <h2 style="margin:0">手机报错日志（ADB 拉取与图文查看）</h2>
-      <div class="inline">
-        <label class="chk" style="margin:0 6px 0 0;font-size:12px"><input type="checkbox" id="autoSyncLogs" checked /> 自动同步(10s)</label>
-        <button class="btn-primary btn-sm" onclick="syncPhoneLogs(false)">立即同步</button>
-        <button class="btn-ghost btn-sm" onclick="grabLogcat()">抓实时 logcat</button>
+  <!-- ============ 手机日志 ============ -->
+  <section class="tab-panel" data-tab="phone">
+    <div class="card">
+      <div class="card-hd">
+        <h2 class="card-title"><svg class="ico"><use href="#i-file-text"/></svg>手机报错日志</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <label class="chk" style="margin:0"><input type="checkbox" id="autoSyncLogs" checked />自动同步(10s)</label>
+          <button class="btn btn-sm btn-primary" id="btnSyncNow"><svg class="ico"><use href="#i-refresh"/></svg>立即同步</button>
+          <button class="btn btn-sm btn-ghost" id="btnLogcat"><svg class="ico"><use href="#i-terminal"/></svg>抓实时 logcat</button>
+          <span class="sync-status" id="phoneSyncStatus">尚未同步</span>
+        </div>
+      </div>
+      <div class="phone-grid">
+        <div>
+          <input type="text" id="phoneSearch" placeholder="搜索报错标题 / 摘要…" style="width:100%;margin-bottom:9px" />
+          <div class="hint" style="margin-bottom:7px"><span id="phoneListCount">0/0</span> 份日志 · 点击查看详情</div>
+          <div class="phone-list" id="phoneList"><div class="empty-row">加载中…</div></div>
+        </div>
+        <div style="min-width:0">
+          <div id="phoneLogMeta" class="hint" style="margin-bottom:4px">点击左侧日志查看详情与现场截图</div>
+          <div id="phoneLogImgs" class="img-grid"></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin:6px 0">
+            <a class="btn btn-sm btn-ghost" id="btnDownloadPhone" href="#" style="display:none"><svg class="ico"><use href="#i-download"/></svg>下载原文件</a>
+            <button class="btn btn-sm btn-ghost" id="btnCopyPhone" disabled><svg class="ico"><use href="#i-copy"/></svg>复制报错文本</button>
+          </div>
+          <pre class="log phone-log-pre" id="phoneLogText"><span class="log-empty">暂未选择手机日志…</span></pre>
+        </div>
       </div>
     </div>
-    <div class="main" style="grid-template-columns: 380px 1fr;">
-      <div style="max-height:460px;overflow:auto">
-        <table>
-          <thead><tr><th>报错标题 / 摘要</th><th>发生时间</th><th>操作</th></tr></thead>
-          <tbody id="phoneLogBody"></tbody>
-        </table>
-      </div>
-      <div>
-        <div id="phoneLogMeta" style="font-size:12px;color:var(--muted);margin-bottom:8px">点击左侧日志查看详情与现场截图</div>
-        <div id="phoneLogImgs" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
-        <pre class="log" id="phoneLogText" style="height:360px">暂未选择手机日志...</pre>
-      </div>
-    </div>
+  </section>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="mask" id="modalMask">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="mTitle">确认操作</h3>
+    <p id="mBody"></p>
+    <div class="modal-foot"><button class="btn btn-sm btn-ghost" id="mCancel">取消</button><button class="btn btn-sm btn-primary" id="mOk">确认</button></div>
   </div>
 </div>
 
-<script>
-let logOffset = 0;
-let lastBuildId = "";
+<div class="lightbox" id="lightbox"><button class="lb-close" id="lbClose" title="关闭（Esc）"><svg class="ico"><use href="#i-x"/></svg></button><img id="lightboxImg" alt="截图预览" /></div>
 
-function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+<script>
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var LS_KEY = 'oasa.console.v1';
+var prefs = (function(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; }catch(e){ return {}; } })();
+var CHECKS = ['exportRuntime','runTests','copyDist','installDevice'];
+var STATUS = {idle:'空闲',running:'构建中',success:'构建成功',failed:'构建失败',cancelled:'已取消'};
+
+var state = {
+  logMode:'live', historyId:'', logLines:[],
+  phoneLogs:[], phoneFilter:'', currentPhone:null, currentImages:[],
+  meta:null
+};
+var logOffset = 0, lastBuildId = '', pollBusy = false, confirmCb = null;
+
+function icon(n, cls){ return '<svg class="ico '+(cls||'')+'"><use href="#i-'+n+'"/></svg>'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function fmtLine(line){
-  const e = esc(line);
-  if (/FATAL|ERROR|FAILURE|Exception|FAILED/i.test(line)) return `<span class="ln-err">${e}</span>`;
-  if (/BUILD SUCCESSFUL|Success|已归档/i.test(line)) return `<span class="ln-ok">${e}</span>`;
-  if (/^\[.*?\]\s*> Task /.test(line)) return `<span class="ln-task">${e}</span>`;
-  if (/==========/.test(line)) return `<span class="ln-sec">${e}</span>`;
+  var e = esc(line);
+  if (/FATAL|ERROR|FAILURE|Exception|FAILED/i.test(line)) return '<span class="ln-err">'+e+'</span>';
+  if (/BUILD SUCCESSFUL|Success|已归档/i.test(line)) return '<span class="ln-ok">'+e+'</span>';
+  if (/^\[.*?\]\s*> Task /.test(line)) return '<span class="ln-task">'+e+'</span>';
+  if (/==========/.test(line)) return '<span class="ln-sec">'+e+'</span>';
   return e;
 }
+function fmtDur(s){ s = Number(s)||0; if(s < 60) return s.toFixed(1)+'s'; return Math.floor(s/60)+'m'+Math.round(s%60)+'s'; }
 
-async function refreshMeta(){
-  const r = await fetch('/api/meta');
-  const d = await r.json();
-  document.getElementById('lanUrl').textContent = `局域网访问: ${d.lanUrl}`;
-  document.getElementById('appRepo').innerHTML = `分支: <b>${esc(d.app.branch)}</b> (改动 ${d.app.dirty})<br/>提交: ${esc(d.app.commit)}`;
-  document.getElementById('engineRepo').innerHTML = d.engine.exists
-    ? `分支: <b>${esc(d.engine.branch)}</b> (改动 ${d.engine.dirty})<br/>提交: ${esc(d.engine.commit)}`
-    : `未找到: ${esc(d.engine.path)}`;
-  document.getElementById('rtInfo').innerHTML = d.runtime.exists
-    ? `任务: <b>${d.runtime.taskCount}</b> / 文件: <b>${d.runtime.fileCount}</b> / ${d.runtime.zipSizeMb} MB<br/>SHA: ${esc(d.runtime.archiveSha256.slice(0,16))}...<br/>局域网热更地址: <a href="/update/update.json" target="_blank">${esc(d.lanUrl)}/update/update.json</a>`
-    : `未找到 manifest.json`;
-
-  const sel = document.getElementById('serial');
-  const prev = sel.value;
-  sel.innerHTML = d.devices.length
-    ? d.devices.map(x => `<option value="${esc(x.serial)}">${esc(x.model)} (${esc(x.serial)}) [${esc(x.state)}]</option>`).join('')
-    : '<option value="">（未检测到设备）</option>';
-  if (prev && d.devices.some(x => x.serial === prev)) sel.value = prev;
-  document.getElementById('adbBox').innerHTML = d.devices.length
-    ? d.devices.map(x => `<b>${esc(x.model)}</b> · ${esc(x.serial)} (${esc(x.state)})`).join('<br/>')
-    : '未连接设备';
-
-  document.getElementById('artBody').innerHTML = d.artifacts.map(a => `
-    <tr>
-      <td><b>${esc(a.name)}</b><div style="color:var(--muted);font-size:11px">${esc(a.rel)}</div></td>
-      <td>${a.sizeMb} MB</td>
-      <td>${esc(a.mtime)}</td>
-      <td style="white-space:nowrap">
-        <a href="/download?path=${encodeURIComponent(a.rel)}">下载</a>
-        · <a href="javascript:void(0)" onclick="installApk('${esc(a.rel)}')">装到手机</a>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">暂无产物</td></tr>';
-
-  document.getElementById('phoneLogBody').innerHTML = (d.phoneLogs || []).map(l => `
-    <tr>
-      <td>
-        <b>${esc(l.title || l.name)}</b>
-        ${l.summary ? `<div style="color:#f87171;font-size:11px">${esc(l.summary)}</div>` : ''}
-        <div style="color:var(--muted);font-size:10px">${esc(l.name)}</div>
-      </td>
-      <td style="white-space:nowrap">${esc(l.mtime.slice(5))}</td>
-      <td style="white-space:nowrap">
-        <a href="javascript:void(0)" onclick="openPhoneLog('${esc(l.name)}')">查看</a>
-        · <a href="/api/phone-logs/raw?name=${encodeURIComponent(l.name)}">下载</a>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">暂无日志，请点击上方「立即同步」</td></tr>';
+/* ---------- Toast 通知队列 ---------- */
+function toast(type, msg, ms){
+  var el = document.createElement('div');
+  el.className = 'toast '+(type||'info');
+  var ic = type==='success' ? 'check' : type==='error' ? 'alert' : 'info';
+  el.innerHTML = icon(ic,'t-ico')+'<div class="t-body">'+esc(msg)+'</div><button class="t-close" title="关闭">'+icon('x')+'</button>';
+  el.querySelector('.t-close').onclick = function(){ el.remove(); };
+  $('toastWrap').appendChild(el);
+  while($('toastWrap').children.length > 5) $('toastWrap').firstChild.remove();
+  setTimeout(function(){ el.classList.add('out'); setTimeout(function(){ el.remove(); }, 230); }, ms||4000);
 }
 
-async function pollBuild(){
-  try {
-    const r = await fetch(`/api/build?offset=${logOffset}`);
-    const b = await r.json();
-    if (b.buildId !== lastBuildId) {
-      lastBuildId = b.buildId;
-      logOffset = 0;
-      document.getElementById('logBox').innerHTML = '';
-      if (b.logTotal > 0) {
-        const r2 = await fetch('/api/build?offset=0');
-        const b2 = await r2.json();
-        appendLogs(b2.logs);
-        logOffset = b2.logTotal;
-      }
-    } else if (b.logs.length > 0) {
-      appendLogs(b.logs);
-      logOffset = b.logTotal;
+/* ---------- 自定义确认弹窗 ---------- */
+function showConfirm(opt){
+  $('mTitle').textContent = opt.title || '确认操作';
+  $('mBody').textContent = opt.message || '';
+  $('mOk').className = 'btn btn-sm '+(opt.danger ? 'btn-danger' : 'btn-primary');
+  $('mOk').innerHTML = icon(opt.danger?'alert':'check')+'<span>'+esc(opt.okText||'确认')+'</span>';
+  confirmCb = opt.onOk || null;
+  $('modalMask').classList.add('show');
+}
+function closeConfirm(){ $('modalMask').classList.remove('show'); confirmCb = null; }
+
+/* ---------- 复制（兼容非 HTTPS 局域网） ---------- */
+function copyText(text, label){
+  if(!text){ toast('error','没有可复制的内容'); return Promise.resolve(false); }
+  return new Promise(function(resolve){
+    var ok = false;
+    function done(){
+      toast(ok?'success':'error', ok ? ((label||'内容')+'已复制到剪贴板') : '复制失败，请手动选择文本');
+      resolve(ok);
     }
-
-    const pbar = document.getElementById('pbar');
-    pbar.style.width = `${b.progress}%`;
-    pbar.className = 'progress-bar' + (b.status === 'success' ? ' ok' : b.status === 'failed' ? ' err' : '');
-
-    document.getElementById('steps').innerHTML = b.steps.map(s =>
-      `<span class="step ${s.state}">${s.state==='done'?'✓ ':s.state==='running'?'⟳ ':s.state==='failed'?'✗ ':'· '}${esc(s.title)}</span>`
-    ).join('');
-
-    const statusMap = {idle:'空闲', running:'构建中...', success:'构建成功', failed:'构建失败', cancelled:'已取消'};
-    document.getElementById('buildMeta').textContent = `${statusMap[b.status]||b.status} · ${b.progress}% · 耗时 ${b.elapsedSec}s`;
-
-    document.getElementById('btnStart').disabled = b.running;
-    document.getElementById('btnExportOnly').disabled = b.running;
-    document.getElementById('btnCancel').style.display = b.running ? '' : 'none';
-
-    document.getElementById('histBody').innerHTML = b.history.map(h => `
-      <tr>
-        <td>${esc(h.time)}</td>
-        <td><span class="badge b-${h.status}">${esc(statusMap[h.status]||h.status)}</span></td>
-        <td>${h.elapsedSec}s</td>
-        <td><a href="javascript:void(0)" onclick="viewLog('${esc(h.buildId)}')">${esc(h.summary)}</a></td>
-      </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">暂无记录</td></tr>';
-  } catch(e) {}
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(function(){ ok=true; done(); }, function(){ fallback(); });
+    } else fallback();
+    function fallback(){
+      try{
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly','');
+        ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0';
+        document.body.appendChild(ta); ta.select();
+        ok = document.execCommand('copy'); ta.remove();
+      }catch(e){ ok = false; }
+      done();
+    }
+  });
 }
 
-function appendLogs(lines){
-  const box = document.getElementById('logBox');
-  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-  box.innerHTML += lines.map(fmtLine).join('\n') + '\n';
-  if (nearBottom) box.scrollTop = box.scrollHeight;
-}
-
-async function startBuild(runtimeOnly){
-  const body = {
-    runtimeOnly,
-    exportRuntime: runtimeOnly ? true : document.getElementById('exportRuntime').checked,
-    variant: document.getElementById('variant').value,
-    abi: document.getElementById('abi').value,
-    runTests: document.getElementById('runTests').checked,
-    copyDist: document.getElementById('copyDist').checked,
-    installDevice: document.getElementById('installDevice').checked,
-    serial: document.getElementById('serial').value,
-  };
-  const r = await fetch('/api/build/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  const d = await r.json();
-  if (!d.ok) alert(d.error || '启动失败');
-  pollBuild();
-}
-
-async function cancelBuild(){
-  await fetch('/api/build/cancel', {method:'POST'});
-  pollBuild();
-}
-
-async function adbConnect(){
-  const addr = document.getElementById('adbAddr').value.trim();
-  if (!addr) return;
-  const r = await fetch('/api/adb/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({addr})});
-  const d = await r.json();
-  alert(d.output || (d.ok ? '已连接' : '连接失败'));
-  refreshMeta();
-}
-
-async function installApk(rel){
-  const serial = document.getElementById('serial').value;
-  if (!serial) { alert('请先连接并选择一台 ADB 设备'); return; }
-  if (!confirm(`确认安装 ${rel} 到 ${serial}？`)) return;
-  const r = await fetch('/api/adb/install', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({rel, serial})});
-  const d = await r.json();
-  alert(d.output || (d.ok ? '安装成功' : '安装失败'));
-}
-
-async function viewLog(buildId){
-  const r = await fetch(`/api/history/log?id=${encodeURIComponent(buildId)}`);
-  const text = await r.text();
-  const box = document.getElementById('logBox');
-  box.innerHTML = text.split('\n').map(fmtLine).join('\n');
-  document.getElementById('buildMeta').textContent = `历史日志: ${buildId}`;
-}
-
-async function syncPhoneLogs(silent){
-  const serial = document.getElementById('serial').value;
-  if (!serial) {
-    if (!silent) alert('请先连接并选择一台 ADB 设备');
-    return;
+/* ---------- 按钮 Loading ---------- */
+function setLoading(btn, on, label){
+  if(!btn) return;
+  if(on){
+    if(btn.dataset.html === undefined) btn.dataset.html = btn.innerHTML;
+    btn.disabled = true; btn.classList.add('loading');
+    btn.innerHTML = btn.classList.contains('btn-icon')
+      ? icon('spinner','spin')
+      : icon('spinner','spin')+'<span>'+esc(label||'处理中…')+'</span>';
+  }else{
+    btn.disabled = false; btn.classList.remove('loading');
+    if(btn.dataset.html !== undefined){ btn.innerHTML = btn.dataset.html; delete btn.dataset.html; }
   }
-  if (!silent) document.getElementById('phoneLogMeta').textContent = '正在从手机同步报错日志...';
-  const r = await fetch('/api/phone-logs/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({serial})});
-  const d = await r.json();
-  if (!silent || d.newCount > 0) {
-    document.getElementById('phoneLogMeta').textContent = d.message || (d.ok ? '同步完成' : '同步失败');
+}
+function setDisabled(id, d){ var el = $(id); if(el && !el.classList.contains('loading')) el.disabled = !!d; }
+
+/* ---------- 偏好持久化 ---------- */
+function savePrefs(){
+  try{
+    prefs.variant = $('variant').value;
+    prefs.abi = $('abi').value;
+    CHECKS.forEach(function(k){ prefs[k] = $(k).checked; });
+    prefs.adbAddr = $('adbAddr').value.trim();
+    prefs.serial = $('serial').value;
+    prefs.autoSync = $('autoSyncLogs').checked;
+    localStorage.setItem(LS_KEY, JSON.stringify(prefs));
+  }catch(e){}
+  refreshPresetHighlight();
+}
+function applyPrefs(){
+  if(prefs.variant) $('variant').value = prefs.variant;
+  if(prefs.abi) $('abi').value = prefs.abi;
+  CHECKS.forEach(function(k){ if(typeof prefs[k] === 'boolean') $(k).checked = prefs[k]; });
+  if(prefs.adbAddr) $('adbAddr').value = prefs.adbAddr;
+  if(typeof prefs.autoSync === 'boolean') $('autoSyncLogs').checked = prefs.autoSync;
+}
+
+/* ---------- Tab ---------- */
+function switchTab(name){
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.toggle('active', p.dataset.tab===name); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===name); });
+  prefs.tab = name;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(prefs)); }catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- 主题切换 ---------- */
+function applyTheme(t){
+  var mode = t === 'light' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', mode);
+  var btn = $('btnTheme');
+  if(btn){
+    btn.innerHTML = icon(mode === 'light' ? 'moon' : 'sun');
+    btn.title = mode === 'light' ? '切换到暗色主题' : '切换到浅色主题';
+  }
+}
+function toggleTheme(){
+  var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  prefs.theme = next;
+  applyTheme(next);
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(prefs)); }catch(e){}
+}
+
+/* ---------- 元信息 ---------- */
+function stripRepoHtml(label, x){
+  if(!x || !x.exists) return '<span class="strip-lbl">'+icon('git')+esc(label)+'</span><span class="hint">未找到</span>';
+  var dirtyCls = x.dirty > 0 ? 'strip-dirty has-dirty' : 'strip-dirty';
+  return '<span class="strip-lbl">'+icon('git')+esc(label)+'</span>'
+    + '<span class="strip-branch" title="分支">'+esc(x.branch)+'</span>'
+    + '<span class="'+dirtyCls+'">改动 '+x.dirty+'</span>'
+    + '<span class="strip-commit mono" title="'+esc(x.commit)+'">'+esc(x.commit)+'</span>';
+}
+function renderOverview(d){
+  $('appStrip').innerHTML = stripRepoHtml('App', d.app);
+  $('engineStrip').innerHTML = stripRepoHtml('引擎', d.engine);
+  var rt = d.runtime || {};
+  if(rt.exists){
+    var hotUrl = (d.lanUrl||'')+'/update/update.json';
+    var sha = rt.archiveSha256||'';
+    $('rtStrip').innerHTML = '<span class="strip-lbl">'+icon('package')+'Runtime</span>'
+      + '<span class="strip-kv num">'+rt.taskCount+' 任务 · '+rt.zipSizeMb+' MB</span>'
+      + (sha ? '<span class="sha-chip mono" data-copy="'+esc(sha)+'" data-copy-label="Runtime SHA-256" title="点击复制完整 SHA-256">'+esc(sha.slice(0,10))+'…</span>' : '')
+      + '<span class="strip-actions"><button class="btn btn-sm btn-ghost" data-copy="'+esc(hotUrl)+'" data-copy-label="局域网热更地址" title="'+esc(hotUrl)+'">'+icon('copy')+'热更地址</button></span>';
+  }else{
+    $('rtStrip').innerHTML = '<span class="strip-lbl">'+icon('package')+'Runtime</span><span class="hint">未找到 manifest.json</span>';
+  }
+}
+function renderArtifacts(arts){
+  $('artBadge').textContent = arts.length;
+  $('artBody').innerHTML = arts.map(function(a){
+    var sha = a.sha256||'';
+    return '<tr>'
+      + '<td><div class="file-name">'+icon('package')+esc(a.name)+'</div><div class="file-rel" title="'+esc(a.rel)+'">'+esc(a.rel)+'</div></td>'
+      + '<td class="num">'+a.sizeMb+' MB</td>'
+      + '<td class="num" style="color:var(--muted)">'+esc(a.mtime)+'</td>'
+      + '<td>'+(sha ? '<span class="sha-chip mono" data-copy="'+esc(sha)+'" data-copy-label="SHA-256" title="点击复制完整 SHA-256">'+esc(sha.slice(0,12))+'…</span>' : '<span class="hint">—</span>')+'</td>'
+      + '<td><div class="ops"><a class="btn btn-sm btn-ghost" href="/download?path='+encodeURIComponent(a.rel)+'">'+icon('download')+'下载</a>'
+      + '<button class="btn btn-sm btn-primary" data-act="install" data-rel="'+esc(a.rel)+'">'+icon('install')+'装机</button></div></td></tr>';
+  }).join('') || '<tr><td colspan="5" class="empty-row">暂无产物，构建并归档后会出现在这里</td></tr>';
+}
+var lastHistorySig = null;
+function renderHistory(hist){
+  var sig = hist.map(function(h){ return (h.buildId||'')+':'+(h.status||'')+':'+(h.elapsedSec||''); }).join('|');
+  if(sig === lastHistorySig) return;
+  lastHistorySig = sig;
+  $('histBody').innerHTML = hist.map(function(h){
+    return '<tr><td class="num">'+esc(h.time)+'</td>'
+      + '<td><span class="badge b-'+esc(h.status)+'">'+esc(STATUS[h.status]||h.status)+'</span></td>'
+      + '<td class="num">'+fmtDur(h.elapsedSec)+'</td>'
+      + '<td class="hint" style="max-width:340px">'+esc(h.summary)+'</td>'
+      + '<td><button class="btn btn-sm btn-ghost" data-act="viewlog" data-id="'+esc(h.buildId)+'">'+icon('file-text')+'查看日志</button></td></tr>';
+  }).join('') || '<tr><td colspan="5" class="empty-row">暂无构建记录</td></tr>';
+}
+function renderPhoneList(){
+  var q = state.phoneFilter.trim().toLowerCase();
+  var list = state.phoneLogs.filter(function(l){
+    return !q || ((l.title||'')+' '+(l.name||'')+' '+(l.summary||'')).toLowerCase().indexOf(q) >= 0;
+  });
+  $('phoneListCount').textContent = list.length+'/'+state.phoneLogs.length;
+  $('phoneList').innerHTML = list.map(function(l){
+    var active = state.currentPhone && state.currentPhone.name===l.name;
+    return '<button class="log-item'+(active?' active':'')+'" data-name="'+esc(l.name)+'">'
+      + '<span class="li-title">'+esc(l.title||l.name)+'</span>'
+      + (l.summary?'<span class="li-sum">'+esc(l.summary)+'</span>':'')
+      + '<span class="li-foot"><span>'+esc(l.mtime)+'</span><span>'+l.sizeKb+' KB</span></span></button>';
+  }).join('') || '<div class="empty-row">暂无日志，点击「立即同步」拉取</div>';
+}
+function setSyncStatus(text, ok){
+  $('phoneSyncStatus').textContent = text;
+  $('phoneSyncStatus').className = 'sync-status '+(ok===undefined?'':ok?'ok':'err');
+}
+
+async function refreshMeta(btn){
+  setLoading(btn, true, '刷新中');
+  try{
+    var r = await fetch('/api/meta');
+    var d = await r.json();
+    state.meta = d;
+    $('lanUrl').textContent = d.lanUrl || '';
+    $('lanBtn').title = '点击复制：'+(d.lanUrl||'');
+    renderOverview(d);
+
+    var sel = $('serial');
+    var prev = sel.value || prefs.serial || '';
+    sel.innerHTML = d.devices.length
+      ? d.devices.map(function(x){ return '<option value="'+esc(x.serial)+'">'+esc(x.model)+' · '+esc(x.serial)+' ['+esc(x.state)+']</option>'; }).join('')
+      : '<option value="">（未检测到设备）</option>';
+    if(prev && d.devices.some(function(x){ return x.serial===prev; })) sel.value = prev;
+    else if(d.devices.length) sel.value = d.devices[0].serial;
+    else sel.value = '';
+    $('targetDevice').textContent = sel.value || '未选择';
+    $('devCount').className = 'dev-chip '+(d.devices.length?'ok':'');
+    $('devCount').innerHTML = icon('phone')+(d.devices.length ? d.devices.length+' 台在线' : '未连接');
+
+    renderArtifacts(d.artifacts||[]);
+    renderHistory((state.meta && state.meta.history) || lastHistory);
+    state.phoneLogs = d.phoneLogs||[];
+    $('badgeArtifacts').textContent = (d.artifacts||[]).length;
+    $('badgePhone').textContent = state.phoneLogs.length;
+    renderPhoneList();
+    savePrefs();
+  }catch(e){ toast('error','刷新状态失败：'+e.message); }
+  finally{ setLoading(btn, false); }
+}
+
+/* ---------- 构建轮询（历史日志模式绝不被覆盖） ---------- */
+var lastHistory = [], wasRunning = false;
+async function pollBuild(){
+  if(pollBusy) return;
+  pollBusy = true;
+  try{
+    var r = await fetch('/api/build?offset='+logOffset);
+    var b = await r.json();
+    if(wasRunning && !b.running) refreshMeta();
+    wasRunning = !!b.running;
+    lastHistory = b.history||[];
+
+    var pill = $('statusPill');
+    pill.className = 'pill '+(b.status||'idle');
+    $('statusText').textContent = STATUS[b.status]||b.status;
+    var pbar = $('pbar');
+    pbar.style.width = (b.progress||0)+'%';
+    pbar.className = 'progress-bar '+(b.status==='success'?'ok':b.status==='failed'?'err':b.status==='cancelled'?'warn':'');
+    $('pctText').textContent = (b.progress||0)+'%';
+    $('buildMeta').textContent = b.status==='idle' ? '空闲' : (STATUS[b.status]+' · 耗时 '+fmtDur(b.elapsedSec));
+    $('steps').innerHTML = (b.steps||[]).length
+      ? b.steps.map(function(s){ var mk = s.state==='done'?'✓ ':s.state==='running'?'⟳ ':s.state==='failed'?'✗ ':'· '; return '<span class="step '+s.state+'">'+mk+esc(s.title)+'</span>'; }).join('')
+      : '<span class="step-hint">暂无步骤</span>';
+    setDisabled('btnStart', b.running);
+    setDisabled('btnExportOnly', b.running);
+    $('btnCancel').style.display = b.running ? '' : 'none';
+    renderHistory(lastHistory);
+
+    // 历史日志查看模式：只同步偏移量，绝不写入日志框
+    if(state.logMode === 'history'){ lastBuildId = b.buildId; logOffset = b.logTotal; return; }
+
+    if(b.buildId !== lastBuildId){
+      lastBuildId = b.buildId; logOffset = 0; state.logLines = [];
+      if(b.logTotal > 0){
+        var r2 = await fetch('/api/build?offset=0');
+        var b2 = await r2.json();
+        state.logLines = b2.logs||[]; logOffset = b2.logTotal;
+      }
+      renderLog();
+    }else if(b.logs.length){
+      state.logLines = state.logLines.concat(b.logs);
+      logOffset = b.logTotal;
+      renderLog();
+    }
+  }catch(e){}
+  finally{ pollBusy = false; }
+}
+function renderLog(){
+  var q = $('logSearch').value.trim().toLowerCase();
+  var onlyErr = $('onlyErrors').checked;
+  var lines = state.logLines.filter(function(l){ return !q || l.toLowerCase().indexOf(q) >= 0; });
+  if(onlyErr) lines = lines.filter(function(l){ return /FATAL|ERROR|FAILURE|Exception|FAILED|错误|失败/i.test(l); });
+  var box = $('logBox');
+  box.innerHTML = lines.length ? lines.map(fmtLine).join('\n') : '<span class="log-empty">'+(state.logLines.length?'没有匹配的日志行':'等待日志输出…')+'</span>';
+  if($('autoScroll').checked) box.scrollTop = box.scrollHeight;
+  $('logCount').textContent = lines.length+'/'+state.logLines.length+' 行';
+}
+function backToLive(silent){
+  state.logMode = 'live'; state.historyId = '';
+  state.logLines = []; logOffset = 0; lastBuildId = '';
+  $('histBanner').classList.remove('show');
+  $('btnBackLive').style.display = 'none';
+  renderLog();
+  if(!silent){ toast('info','已切回实时日志'); pollBuild(); }
+}
+async function viewLog(buildId, btn){
+  setLoading(btn, true, '读取中');
+  try{
+    var r = await fetch('/api/history/log?id='+encodeURIComponent(buildId));
+    var text = await r.text();
+    state.logMode = 'history'; state.historyId = buildId;
+    state.logLines = text.split('\n');
+    $('histBannerText').textContent = '正在查看历史日志 #'+buildId;
+    $('histBanner').classList.add('show');
+    $('btnBackLive').style.display = '';
+    switchTab('build');
+    renderLog();
+    $('logBox').scrollTop = 0;
+    toast('info','已锁定历史日志 #'+buildId+'，实时轮询不会覆盖');
+  }catch(e){ toast('error','读取历史日志失败：'+e.message); }
+  finally{ setLoading(btn, false); }
+}
+
+/* ---------- 操作 ---------- */
+async function adbConnect(btn){
+  var addr = $('adbAddr').value.trim();
+  if(!addr){ toast('error','请输入无线 ADB 地址，如 192.168.3.8:44929'); return; }
+  prefs.adbAddr = addr; savePrefs();
+  setLoading(btn, true, '连接中');
+  try{
+    var r = await fetch('/api/adb/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({addr:addr})});
+    var d = await r.json();
+    var out = (d.output||'').trim();
+    toast(d.ok?'success':'error', out || (d.ok?'已连接':'连接失败'));
     await refreshMeta();
-    if (d.latest && (!silent || d.newCount > 0)) openPhoneLog(d.latest);
+  }catch(e){ toast('error','连接请求失败：'+e.message); }
+  finally{ setLoading(btn, false); }
+}
+async function installApk(rel, btn){
+  var serial = $('serial').value;
+  if(!serial){ toast('error','请先在顶部选择一台 ADB 设备'); return; }
+  showConfirm({
+    title:'安装 APK 到手机',
+    message:'将 '+rel+' 安装到设备 '+serial+'，会覆盖手机上的同版本应用（配置数据保留）。确认继续？',
+    okText:'确认安装', danger:true,
+    onOk: async function(){
+      setLoading(btn, true, '安装中');
+      try{
+        var r = await fetch('/api/adb/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rel:rel,serial:serial})});
+        var d = await r.json();
+        toast(d.ok?'success':'error', d.ok?('安装成功 → '+serial):('安装失败：'+((d.output||'').trim()||'未知错误')), d.ok?4200:7000);
+      }catch(e){ toast('error','安装请求失败：'+e.message); }
+      finally{ setLoading(btn, false); }
+    }
+  });
+}
+async function startBuild(runtimeOnly, btn){
+  var body = {
+    runtimeOnly: runtimeOnly,
+    exportRuntime: runtimeOnly ? true : $('exportRuntime').checked,
+    variant: $('variant').value,
+    abi: $('abi').value,
+    runTests: $('runTests').checked,
+    copyDist: $('copyDist').checked,
+    installDevice: $('installDevice').checked,
+    serial: $('serial').value
+  };
+  savePrefs();
+  if(!runtimeOnly && body.installDevice && !body.serial){ toast('error','已勾选自动安装，但尚未选择 ADB 设备'); return; }
+  setLoading(btn, true, runtimeOnly?'导出中…':'启动中…');
+  try{
+    var r = await fetch('/api/build/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d = await r.json();
+    if(d.ok){ toast('success','构建已启动 #'+d.buildId); backToLive(true); }
+    else toast('error', d.error||'启动失败');
+  }catch(e){ toast('error','启动请求失败：'+e.message); }
+  finally{ setLoading(btn, false); }
+}
+async function cancelBuild(btn){
+  showConfirm({
+    title:'停止当前构建',
+    message:'将终止正在运行的构建进程，已产生的日志会保留。确认停止？',
+    okText:'停止构建', danger:true,
+    onOk: async function(){
+      setLoading(btn, true, '停止中');
+      try{
+        var r = await fetch('/api/build/cancel',{method:'POST'});
+        var d = await r.json();
+        toast(d.ok?'info':'error', d.ok?'已发送停止请求':'当前没有运行中的构建');
+      }catch(e){ toast('error','停止请求失败：'+e.message); }
+      finally{ setLoading(btn, false); }
+    }
+  });
+}
+async function syncPhoneLogs(silent, btn){
+  var serial = $('serial').value;
+  if(!serial){ if(!silent) toast('error','请先选择一台 ADB 设备'); return; }
+  setLoading(btn, true, '同步中');
+  try{
+    var r = await fetch('/api/phone-logs/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serial:serial})});
+    var d = await r.json();
+    setSyncStatus((d.message||(d.ok?'同步完成':'同步失败'))+' · '+new Date().toLocaleTimeString('zh-CN',{hour12:false}), d.ok);
+    if(!silent || d.newCount>0) toast(d.ok?'success':'error', d.message||'同步完成');
+    await refreshMeta();
+    if(d.latest && (!silent || d.newCount>0)) await openPhoneLog(d.latest);
+  }catch(e){ setSyncStatus('同步失败：'+e.message, false); if(!silent) toast('error','同步失败：'+e.message); }
+  finally{ setLoading(btn, false); }
+}
+async function grabLogcat(btn){
+  var serial = $('serial').value;
+  if(!serial){ toast('error','请先选择一台 ADB 设备'); return; }
+  setLoading(btn, true, '抓取中');
+  try{
+    var r = await fetch('/api/phone-logs/logcat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serial:serial})});
+    var d = await r.json();
+    setSyncStatus(d.message||(d.ok?'抓取完成':'抓取失败'), d.ok);
+    toast(d.ok?'success':'error', d.message||'抓取完成');
+    await refreshMeta();
+    if(d.name) await openPhoneLog(d.name);
+  }catch(e){ toast('error','抓取失败：'+e.message); }
+  finally{ setLoading(btn, false); }
+}
+async function openPhoneLog(name){
+  try{
+    var r = await fetch('/api/phone-logs/view?name='+encodeURIComponent(name));
+    if(!r.ok){ toast('error','日志不存在'); return; }
+    var d = await r.json();
+    state.currentPhone = d; state.currentImages = d.images||[];
+    document.querySelectorAll('.log-item').forEach(function(el){ el.classList.toggle('active', el.dataset.name===name); });
+    $('phoneLogMeta').innerHTML = icon('file-text')+' <b class="phone-title">'+esc(d.name)+'</b>'
+      + (d.meta.length ? '<div class="meta-tags">'+d.meta.map(function(m){ return '<span class="tag">'+esc(m)+'</span>'; }).join('')+'</div>' : '');
+    $('phoneLogImgs').innerHTML = state.currentImages.length
+      ? state.currentImages.map(function(src,i){ return '<button class="thumb" data-idx="'+i+'" title="点击放大"><img src="'+esc(src)+'" alt="现场截图" />'+icon('image')+'</button>'; }).join('')
+      : '<div class="thumb-empty">该日志暂无现场截图</div>';
+    $('phoneLogText').innerHTML = d.text.split('\n').map(fmtLine).join('\n');
+    $('btnCopyPhone').disabled = false;
+    var dl = $('btnDownloadPhone');
+    dl.href = '/api/phone-logs/raw?name='+encodeURIComponent(d.name);
+    dl.style.display = '';
+  }catch(e){ toast('error','读取日志失败：'+e.message); }
+}
+function openLightbox(idx){
+  var src = state.currentImages[idx]; if(!src) return;
+  $('lightboxImg').src = src;
+  $('lightbox').classList.add('show');
+}
+function closeLightbox(){ $('lightbox').classList.remove('show'); $('lightboxImg').src=''; }
+
+/* ---------- 预设 ---------- */
+var PRESETS = {
+  fast:{variant:'release',abi:'arm64',exportRuntime:false,runTests:false,copyDist:true,installDevice:true},
+  hot:{variant:'release',abi:'arm64',exportRuntime:true,runTests:false,copyDist:false,installDevice:false},
+  full:{variant:'release',abi:'all',exportRuntime:false,runTests:false,copyDist:true,installDevice:false}
+};
+function refreshPresetHighlight(){
+  document.querySelectorAll('.preset').forEach(function(b){
+    var p = PRESETS[b.dataset.preset];
+    var match = p && $('variant').value===p.variant && $('abi').value===p.abi
+      && CHECKS.every(function(k){ return $(k).checked===p[k]; });
+    b.classList.toggle('active', !!match);
+  });
+}
+function applyPreset(key){
+  var p = PRESETS[key]; if(!p) return;
+  $('variant').value = p.variant; $('abi').value = p.abi;
+  CHECKS.forEach(function(k){ $(k).checked = p[k]; });
+  savePrefs();
+  if(key==='hot'){
+    var eb = $('btnExportOnly'); eb.classList.add('hl'); setTimeout(function(){ eb.classList.remove('hl'); }, 3200);
+    toast('info','已配置为「热更脚本包」，点击高亮的「仅导出脚本包」即可');
+  }else{
+    var name = document.querySelector('.preset[data-preset="'+key+'"]').dataset.name;
+    toast('success','已应用预设：'+name);
   }
 }
 
-async function grabLogcat(){
-  const serial = document.getElementById('serial').value;
-  if (!serial) { alert('请先连接并选择一台 ADB 设备'); return; }
-  document.getElementById('phoneLogMeta').textContent = '正在抓取手机实时 logcat...';
-  const r = await fetch('/api/phone-logs/logcat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({serial})});
-  const d = await r.json();
-  document.getElementById('phoneLogMeta').textContent = d.message || (d.ok ? '抓取完成' : '抓取失败');
-  await refreshMeta();
-  if (d.name) openPhoneLog(d.name);
+/* ---------- 事件绑定 ---------- */
+function bindEvents(){
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.onclick = function(){ switchTab(b.dataset.tab); }; });
+  document.querySelectorAll('.preset').forEach(function(b){ b.onclick = function(){ applyPreset(b.dataset.preset); }; });
+  $('btnRefresh').onclick = function(){ refreshMeta($('btnRefresh')); };
+  $('btnTheme').onclick = toggleTheme;
+  $('lanBtn').onclick = function(){ copyText((state.meta&&state.meta.lanUrl)||'', '局域网地址'); };
+  $('btnAdbConnect').onclick = function(){ adbConnect($('btnAdbConnect')); };
+  $('adbAddr').onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); adbConnect($('btnAdbConnect')); } };
+  $('adbAddr').oninput = function(){ prefs.adbAddr = $('adbAddr').value.trim(); savePrefs(); };
+  $('serial').onchange = function(){ prefs.serial = $('serial').value; $('targetDevice').textContent = $('serial').value||'未选择'; savePrefs(); };
+  $('variant').onchange = savePrefs; $('abi').onchange = savePrefs;
+  CHECKS.forEach(function(k){ $(k).onchange = savePrefs; });
+
+  $('btnStart').onclick = function(){ startBuild(false, $('btnStart')); };
+  $('btnExportOnly').onclick = function(){ startBuild(true, $('btnExportOnly')); };
+  $('btnCancel').onclick = function(){ cancelBuild($('btnCancel')); };
+  $('logSearch').oninput = renderLog;
+  $('onlyErrors').onchange = renderLog;
+  $('autoScroll').onchange = function(){ if($('autoScroll').checked){ var b=$('logBox'); b.scrollTop=b.scrollHeight; } };
+  $('btnCopyLog').onclick = function(){ copyText(state.logLines.join('\n'), '全部日志'); };
+  $('btnBackLive').onclick = function(){ backToLive(false); };
+  $('btnBackLive2').onclick = function(){ backToLive(false); };
+
+  $('btnSyncNow').onclick = function(){ syncPhoneLogs(false, $('btnSyncNow')); };
+  $('btnLogcat').onclick = function(){ grabLogcat($('btnLogcat')); };
+  $('autoSyncLogs').onchange = savePrefs;
+  $('phoneSearch').oninput = function(){ state.phoneFilter = $('phoneSearch').value; renderPhoneList(); };
+  $('btnCopyPhone').onclick = function(){ copyText(state.currentPhone?state.currentPhone.text:'', '报错文本'); };
+
+  $('mCancel').onclick = closeConfirm;
+  $('mOk').onclick = async function(){ var cb = confirmCb; closeConfirm(); if(cb) await cb(); };
+  $('modalMask').onclick = function(e){ if(e.target===$('modalMask')) closeConfirm(); };
+  $('lbClose').onclick = closeLightbox;
+  $('lightbox').onclick = function(e){ if(e.target===$('lightbox')) closeLightbox(); };
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){
+      if($('lightbox').classList.contains('show')) closeLightbox();
+      else if($('modalMask').classList.contains('show')) closeConfirm();
+    }
+  });
+
+  document.addEventListener('click', function(e){
+    var cp = e.target.closest('[data-copy]');
+    if(cp){ copyText(cp.getAttribute('data-copy'), cp.dataset.copyLabel||'内容'); return; }
+    var ins = e.target.closest('[data-act="install"]');
+    if(ins){ installApk(ins.dataset.rel, ins); return; }
+    var vh = e.target.closest('[data-act="viewlog"]');
+    if(vh){ viewLog(vh.dataset.id, vh); return; }
+    var li = e.target.closest('.log-item');
+    if(li){ openPhoneLog(li.dataset.name); return; }
+    var th = e.target.closest('.thumb');
+    if(th){ openLightbox(Number(th.dataset.idx)); return; }
+  });
 }
 
-async function openPhoneLog(name){
-  const r = await fetch(`/api/phone-logs/view?name=${encodeURIComponent(name)}`);
-  if (!r.ok) return;
-  const d = await r.json();
-  document.getElementById('phoneLogMeta').innerHTML = `<b>${esc(d.name)}</b>` + (d.meta.length ? '<br/>' + d.meta.map(esc).join(' · ') : '');
-  document.getElementById('phoneLogImgs').innerHTML = d.images.map(src =>
-    `<a href="${src}" target="_blank"><img src="${src}" style="max-height:200px;border-radius:8px;border:1px solid var(--border)" /></a>`
-  ).join('');
-  document.getElementById('phoneLogText').innerHTML = d.text.split('\n').map(fmtLine).join('\n');
-}
-
+applyTheme(prefs.theme||'dark');
+applyPrefs();
+bindEvents();
+refreshPresetHighlight();
+switchTab(prefs.tab||'build');
 refreshMeta();
 pollBuild();
 setInterval(pollBuild, 1000);
-setInterval(refreshMeta, 12000);
-setInterval(() => {
-  const cb = document.getElementById('autoSyncLogs');
-  if (cb && cb.checked && document.getElementById('serial').value) syncPhoneLogs(true);
+setInterval(function(){ refreshMeta(); }, 12000);
+setInterval(function(){
+  var cb = $('autoSyncLogs');
+  if(cb && cb.checked && $('serial').value) syncPhoneLogs(true);
 }, 10000);
 </script>
 </body>
@@ -1016,9 +1619,17 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             gradle_txt = (ROOT / "app" / "build.gradle.kts").read_text(encoding="utf-8")
             m_ver = re.search(r'versionName\s*=\s*"([^"]+)"', gradle_txt)
             m_code = re.search(r'versionCode\s*=\s*(\d+)', gradle_txt)
-            mtime = datetime.fromtimestamp(zip_path.stat().st_mtime)
+            manifest_path = ROOT / "app" / "src" / "main" / "assets" / "runtime" / "manifest.json"
+            rt_ver = ""
+            if manifest_path.is_file():
+                try:
+                    rt_ver = str(json.loads(manifest_path.read_text(encoding="utf-8")).get("runtimeVersion", "") or "").strip()
+                except Exception:
+                    rt_ver = ""
+            if not rt_ver:
+                rt_ver = m_ver.group(1) if m_ver else datetime.fromtimestamp(zip_path.stat().st_mtime).strftime("%Y.%m.%d.%H%M")
             self._send_json({
-                "runtimeVersion": mtime.strftime("%Y.%m.%d.%H%M"),
+                "runtimeVersion": rt_ver,
                 "runtimeArchiveUrl": f"{base}/oas-runtime.zip",
                 "runtimeSha256": h.hexdigest(),
                 "runtimeManifestUrl": f"{base}/manifest.json",

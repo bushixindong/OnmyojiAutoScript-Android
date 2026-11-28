@@ -1,4 +1,5 @@
 {
+  "runtimeVersion": "1.0.5.3",
   "tasks": [
     "AbyssShadows",
     "ActivityShikigami",
@@ -65,12 +66,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75743537,
+  "unpackedBytes": 75746335,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "c4868dcde1158d3749b40da639fae3a56d728b4c1e407365d6406e55271f7f10",
+  "archiveSha256": "83ed987c41293074427c5012033f5bd41431426ad3ef7397b2ba425179d3dfc9",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -10209,8 +10210,8 @@
     },
     {
       "path": "tasks/Component/GeneralBattle/general_battle.py",
-      "size": 50630,
-      "sha256": "214a76f461a599459f4353293fe093c29ec000865880022685c4146504de378e"
+      "size": 50804,
+      "sha256": "7110e97342fbe26c587ca3944b78e3bf6f860466841d54d0d008807412d3a7d7"
     },
     {
       "path": "tasks/Component/GeneralBuff/assets.py",
@@ -10315,7 +10316,7 @@
     {
       "path": "tasks/Component/GeneralInvite/assets.py",
       "size": 12653,
-      "sha256": "768c55e1049190795c07f241bd48411a5dc4167087bb4f73e79bb9acf228ce39"
+      "sha256": "7310bd55a67ee9eddcce52ab1e1bb3beabefb36061c987df5d0388a1a4d2bf68"
     },
     {
       "path": "tasks/Component/GeneralInvite/config_invite.py",
@@ -10565,7 +10566,7 @@
     {
       "path": "tasks/Component/GeneralInvite/gi/image.json",
       "size": 11613,
-      "sha256": "79cdb36611effb63898b230c8d202d18a325f1e0b7e3786b27f9ea49a11f80e5"
+      "sha256": "1ecb77bc8a0f4ca70171a512decd71baa175171678918047f52ddb148ec467d5"
     },
     {
       "path": "tasks/Component/GeneralInvite/gi/member.json",
@@ -17459,8 +17460,8 @@
     },
     {
       "path": "tasks/Orochi/script_task.py",
-      "size": 17347,
-      "sha256": "9daeba0f097d067f0d8f199a97244a18d8b23e906b2ce24a243a49b3349495df"
+      "size": 18753,
+      "sha256": "b4ebefa78e8c35d3e7cd9ae95804b9ff558ee0bf72b9531533acd153e31ee010"
     },
     {
       "path": "tasks/OrochiMoans/assets.py",
@@ -17804,8 +17805,8 @@
     },
     {
       "path": "tasks/RealmRaid/script_task.py",
-      "size": 20691,
-      "sha256": "6b87c1c3de4d188164ad06c4582bf6f49fa9fc5ae658cf4881ead34aa9705c4e"
+      "size": 21909,
+      "sha256": "bbb4ca80453be3f6f199b06abf3aae672533ef3aa3bd1a177e27046420442525"
     },
     {
       "path": "tasks/Restart/assets.py",
