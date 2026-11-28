@@ -1658,11 +1658,11 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 "runtimeArchiveUrl": f"{base}/oas-runtime.zip",
                 "runtimeSha256": h.hexdigest(),
                 "runtimeManifestUrl": f"{base}/manifest.json",
-                "runtimeNotes": read_changelog_section("脚本包更新日志") or "最新脚本包更新",
+                "runtimeNotes": read_changelog_section("更新日志") or read_changelog_section("脚本包更新日志") or "最新脚本包更新",
                 "appVersion": m_ver.group(1) if m_ver else "1.0.4",
                 "appVersionCode": int(m_code.group(1)) if m_code else 14,
                 "appDownloadUrl": f"http://{host_hdr}/",
-                "appNotes": read_changelog_section("客户端更新日志"),
+                "appNotes": "",
             })
             return
 
