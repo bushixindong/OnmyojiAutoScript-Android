@@ -40,7 +40,8 @@ PHONE_LOG_ROOT.mkdir(parents=True, exist_ok=True)
 DEFAULT_JAVA_HOME = os.environ.get("JAVA_HOME") or r"E:\toolchains\jdk21"
 DEFAULT_ANDROID_HOME = os.environ.get("ANDROID_HOME") or r"E:\toolchains\android-sdk"
 DEFAULT_PYTHON = r"E:\toolchains\python310\python.exe" if Path(r"E:\toolchains\python310\python.exe").is_file() else sys.executable
-DEFAULT_ENGINE_DIR = r"E:\OnmyojiAutoScript"
+_SIBLING_ENGINE_DIR = ROOT.parent / "OnmyojiAutoScript"
+DEFAULT_ENGINE_DIR = str(_SIBLING_ENGINE_DIR) if _SIBLING_ENGINE_DIR.is_dir() else r"E:\OnmyojiAutoScript"
 
 
 def detect_lan_ip() -> str:

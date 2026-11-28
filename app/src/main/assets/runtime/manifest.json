@@ -65,12 +65,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75742299,
+  "unpackedBytes": 75742798,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "5d630ef6da5f956df2bd352e0d37866ed8e6526651869509e145464460718963",
+  "archiveSha256": "3255a2c05dd22fc93861361d3ab0fcb43c9a96d708aa2a246e042c5e0d2d99bc",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -19429,8 +19429,8 @@
     },
     {
       "path": "tasks/SixRealms/page.py",
-      "size": 5103,
-      "sha256": "e0ce36659f0233fdf8b76961a4ad2a075393cadb519724afeda2d51b9ab12fcf"
+      "size": 5584,
+      "sha256": "597feb30c16512e5340e6260d47f19f065342779abd06839d8a2b1073ae00edb"
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/base_peacock_kingdom.py",
@@ -19439,8 +19439,8 @@
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/page.py",
-      "size": 4878,
-      "sha256": "7f2bc3f3f89a85cbb111d7d5de86341beb528be2a6615e3297758167a27c79e3"
+      "size": 4892,
+      "sha256": "ca10a8e7feb31970d2b6f36e5cc200552dc9cae82065688c1527feaedf6869f5"
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/peacock_kingdom.py",
@@ -20544,8 +20544,8 @@
     },
     {
       "path": "tasks/WeeklyTrifles/assets.py",
-      "size": 8838,
-      "sha256": "7a65a9ce0bfabd787f62c12c7555dc399fba121b6592a6132648de81a6ee935d"
+      "size": 8840,
+      "sha256": "4fd838910ebe48313dc057f7148cff4514316a8d6f8ff8a0b29316a13447ef06"
     },
     {
       "path": "tasks/WeeklyTrifles/broken_amulet/broken_amulet_bm_again.png",
@@ -20569,8 +20569,8 @@
     },
     {
       "path": "tasks/WeeklyTrifles/broken_amulet/image.json",
-      "size": 997,
-      "sha256": "851408c9065365f90044709421297b952651dda19e4aae48a783cbf96dc515f8"
+      "size": 999,
+      "sha256": "1e333086dbea3f5058a83a9cbb72b719f97a031f2e490fca5f5855f0a6b19b85"
     },
     {
       "path": "tasks/WeeklyTrifles/broken_amulet/ocr.json",
