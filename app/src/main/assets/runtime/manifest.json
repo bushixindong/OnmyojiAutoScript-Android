@@ -65,12 +65,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75742798,
+  "unpackedBytes": 75743537,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "3255a2c05dd22fc93861361d3ab0fcb43c9a96d708aa2a246e042c5e0d2d99bc",
+  "archiveSha256": "c4868dcde1158d3749b40da639fae3a56d728b4c1e407365d6406e55271f7f10",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -17459,8 +17459,8 @@
     },
     {
       "path": "tasks/Orochi/script_task.py",
-      "size": 16608,
-      "sha256": "6db6381ae82e69b33b2c335df0596722633a2829e64679ece0207e80f874fc60"
+      "size": 17347,
+      "sha256": "9daeba0f097d067f0d8f199a97244a18d8b23e906b2ce24a243a49b3349495df"
     },
     {
       "path": "tasks/OrochiMoans/assets.py",

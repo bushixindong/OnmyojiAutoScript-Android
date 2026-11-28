@@ -13,7 +13,7 @@ import java.util.concurrent.Executor;
 
 @RequiresApi(34)
 final class VirtualDeviceDisplay implements AutoCloseable {
-    private static final String PACKAGE="com.android.shell",ADDRESS="02:4F:41:53:41:01",PROFILE="android.app.role.COMPANION_DEVICE_APP_STREAMING";
+    private static final String PACKAGE="com.android.shell",ADDRESS="02:1A:2B:3C:4D:5E",PROFILE="android.app.role.COMPANION_DEVICE_APP_STREAMING";
     private Object companions,device;
     private boolean associated;
     VirtualDisplay display;
@@ -57,7 +57,7 @@ final class VirtualDeviceDisplay implements AutoCloseable {
                 device=ShellApis.invoke(managerClass.getMethod("createVirtualDevice",int.class,params),manager,associationId,built);
                 int flags=(1<<6)|(1<<8)|(1<<13);
                 if(tiers[i][1])flags|=(1<<10)|(1<<14)|(1<<16);
-                VirtualDisplayConfig displayConfig=new VirtualDisplayConfig.Builder("OASA_720P",width,height,dpi).setSurface(surface).setFlags(flags).build();
+                VirtualDisplayConfig displayConfig=new VirtualDisplayConfig.Builder("DisplayMirror",width,height,dpi).setSurface(surface).setFlags(flags).build();
                 display=(VirtualDisplay)ShellApis.invoke(deviceClass.getMethod("createVirtualDisplay",VirtualDisplayConfig.class,Executor.class,VirtualDisplay.Callback.class),device,displayConfig,null,null);
                 long deadline=SystemClock.elapsedRealtime()+1000;
                 while(SystemClock.elapsedRealtime()<deadline) {

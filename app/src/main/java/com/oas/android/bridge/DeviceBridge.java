@@ -77,6 +77,7 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
     private String flagsDescription = "";
     private String gamePackage;
     private boolean primaryMode;
+    private final java.util.Random touchRng = new java.util.Random();
 
     public DeviceBridge() {
         controlThread.start(); frameThread.start();
@@ -174,7 +175,7 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
                     : Build.VERSION.SDK_INT >= 31 ? new int[]{base | (1 << 10), base} : new int[]{base};
             for (int i = 0; i < tiers.length; i++) {
                 try {
-                    display = manager.createVirtualDisplay("OAS_720P", WIDTH, HEIGHT, densityDpi, renderer.input(), tiers[i]);
+                    display = manager.createVirtualDisplay("DisplayMirror", WIDTH, HEIGHT, densityDpi, renderer.input(), tiers[i]);
                     flagsDescription = "tier=" + i + ", flags=0x" + Integer.toHexString(tiers[i]);
                     break;
                 } catch (SecurityException e) { if (i == tiers.length - 1) throw e; }
@@ -463,7 +464,7 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
         power.target(displayId,display.getDisplay());updateDisplayKeepAlive();
         if(display.getDisplay().getRotation()!=Surface.ROTATION_0)try {
             Object window=ShellApis.service("window","android.view.IWindowManager");
-            try{ShellApis.invoke(window.getClass().getMethod("freezeDisplayRotation",int.class,int.class,String.class),window,displayId,0,"OASA");}
+            try{ShellApis.invoke(window.getClass().getMethod("freezeDisplayRotation",int.class,int.class,String.class),window,displayId,0,"DisplayMirror");}
             catch(NoSuchMethodException older){ShellApis.invoke(window.getClass().getMethod("freezeDisplayRotation",int.class,int.class),window,displayId,0);}
         }catch(Exception error){android.util.Log.w("OAS","Virtual-display rotation",error);}
     }
@@ -647,7 +648,12 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
         return result;
     }
 
-    @Override public void tap(int x, int y) { swipe(x, y, x, y, 70); }
+    @Override public void tap(int x, int y) {
+        int duration = 45 + touchRng.nextInt(51);
+        int endX = Math.max(0, Math.min(frameWidth - 1, x + touchRng.nextInt(3) - 1));
+        int endY = Math.max(0, Math.min(frameHeight - 1, y + touchRng.nextInt(3) - 1));
+        swipe(x, y, endX, endY, duration);
+    }
 
     @Override public void swipe(int x1, int y1, int x2, int y2, int durationMs) {
         pressAndDrag(x1,y1,x2,y2,0,durationMs);
@@ -666,20 +672,38 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
             Method setDisplay = InputEvent.class.getMethod("setDisplayId", int.class);
             long down = SystemClock.uptimeMillis();
             int steps = Math.max(1, duration / 16);
+            float dx = x2 - x1, dy = y2 - y1;
+            float dist = (float) Math.hypot(dx, dy);
+            float ctrlX = (x1 + x2) * 0.5f, ctrlY = (y1 + y2) * 0.5f;
+            if (dist >= 12f) {
+                float arc = Math.min(16f, dist * (0.02f + touchRng.nextFloat() * 0.03f)) * (touchRng.nextBoolean() ? 1f : -1f);
+                ctrlX = clampX(ctrlX + (-dy / dist) * arc);
+                ctrlY = clampY(ctrlY + (dx / dist) * arc);
+            }
+            float basePressure = 0.50f + touchRng.nextFloat() * 0.30f;
+            float baseMajor = 20f + touchRng.nextFloat() * 14f;
             boolean pressed = false;
             try {
-                send(input, inject, setDisplay, down, MotionEvent.ACTION_DOWN, x1, y1); pressed = true;
+                send(input, inject, setDisplay, down, MotionEvent.ACTION_DOWN, x1, y1, basePressure, baseMajor); pressed = true;
                 if(hold>0)SystemClock.sleep(hold);
                 long move=down+hold;
                 for (int i = 1; i < steps; i++) {
                     SystemClock.sleep(Math.max(1, move + (long) duration * i / steps - SystemClock.uptimeMillis()));
-                    send(input, inject, setDisplay, down, MotionEvent.ACTION_MOVE,
-                         x1 + (x2 - x1) * i / (float) steps, y1 + (y2 - y1) * i / (float) steps);
+                    float u = i / (float) steps;
+                    float t = dist >= 12f ? (u * u * (3f - 2f * u)) : u;
+                    float inv = 1f - t;
+                    float px = inv * inv * x1 + 2f * inv * t * ctrlX + t * t * x2;
+                    float py = inv * inv * y1 + 2f * inv * t * ctrlY + t * t * y2;
+                    float jitter = dist >= 12f ? 0.6f : 0.4f;
+                    px = clampX(px + (touchRng.nextFloat() * 2f - 1f) * jitter);
+                    py = clampY(py + (touchRng.nextFloat() * 2f - 1f) * jitter);
+                    float stepPressure = Math.max(0.25f, Math.min(0.95f, basePressure + (touchRng.nextFloat() - 0.5f) * 0.08f));
+                    send(input, inject, setDisplay, down, MotionEvent.ACTION_MOVE, px, py, stepPressure, baseMajor);
                 }
                 SystemClock.sleep(Math.max(1, move + duration - SystemClock.uptimeMillis()));
-                send(input, inject, setDisplay, down, MotionEvent.ACTION_UP, x2, y2); pressed = false;
+                send(input, inject, setDisplay, down, MotionEvent.ACTION_UP, x2, y2, 0f, baseMajor); pressed = false;
             } finally {
-                if (pressed) send(input, inject, setDisplay, down, MotionEvent.ACTION_CANCEL, x2, y2);
+                if (pressed) send(input, inject, setDisplay, down, MotionEvent.ACTION_CANCEL, x2, y2, 0f, baseMajor);
             }
             return null;
         });
@@ -839,10 +863,37 @@ public final class DeviceBridge extends IDeviceBridge.Stub {
         });
     }
 
+    private float clampX(float x) {
+        return Math.max(0f, Math.min(frameWidth - 1f, x));
+    }
+
+    private float clampY(float y) {
+        return Math.max(0f, Math.min(frameHeight - 1f, y));
+    }
+
     private void send(Object input, Method inject, Method setDisplay, long down, int action, float x, float y) throws Exception {
-        MotionEvent event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0);
+        float pressure = (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) ? 0f : (0.50f + touchRng.nextFloat() * 0.30f);
+        float major = 20f + touchRng.nextFloat() * 14f;
+        send(input, inject, setDisplay, down, action, x, y, pressure, major);
+    }
+
+    private void send(Object input, Method inject, Method setDisplay, long down, int action, float x, float y, float pressure, float major) throws Exception {
+        MotionEvent.PointerProperties props = new MotionEvent.PointerProperties();
+        props.id = 0;
+        props.toolType = MotionEvent.TOOL_TYPE_FINGER;
+        MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
+        coords.x = clampX(x);
+        coords.y = clampY(y);
+        coords.pressure = pressure;
+        coords.size = 0.05f + touchRng.nextFloat() * 0.06f;
+        coords.touchMajor = major;
+        coords.touchMinor = major * (0.72f + touchRng.nextFloat() * 0.16f);
+        MotionEvent event = MotionEvent.obtain(
+            down, SystemClock.uptimeMillis(), action,
+            1, new MotionEvent.PointerProperties[]{props}, new MotionEvent.PointerCoords[]{coords},
+            0, 0, 1.0f, 1.0f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0
+        );
         try {
-            event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
             setDisplay.invoke(event, displayId);
             if (!Boolean.TRUE.equals(inject.invoke(input, event, 2))) throw new IllegalStateException("系统拒绝触控，请检查 USB 调试安全设置");
         } finally { event.recycle(); }
