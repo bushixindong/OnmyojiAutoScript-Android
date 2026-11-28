@@ -31,6 +31,9 @@ _stop_event=threading.Event()
 _wakeup_event=threading.Event()
 _recent_logs=deque(maxlen=200)
 _RESERVED_PRESETS={'template','android-audit','Home','home'}
+_IDLE_POLL_SECONDS=30.0
+_labels_cache=None
+_catalog_cache=None
 
 class Cancelled(BaseException):
     pass
@@ -79,7 +82,9 @@ def _wait_idle(host, seconds):
         finally:
             host.endIdleWait()
     else:
-        _wait_schedule(min(1.0, duration))
+        # Config edits and stop requests already set _wakeup_event, so there is no
+        # need to re-plan (config reload + catalog) every second while waiting.
+        _wait_schedule(min(_IDLE_POLL_SECONDS, duration))
 
 def _module(name,**values):
     module=types.ModuleType(name);module.__dict__.update(values);sys.modules[name]=module;return module
@@ -435,17 +440,38 @@ def export_task_json(name,preset=None):
     data=json.loads(task_config(name,preset))['value']
     return json.dumps(data,ensure_ascii=False,indent=2)
 
+def _file_signature(*filenames):
+    signature=[str(_root)]
+    for filename in filenames:
+        try:
+            stat=(_root/filename).stat();signature.append((filename,stat.st_mtime_ns,stat.st_size))
+        except OSError:
+            signature.append((filename,None,None))
+    return tuple(signature)
+
 def catalog(settings=None):
+    global _catalog_cache
     if settings is None:settings=config()
+    # Called by every scheduler pass and UI refresh; rebuild only when the hot-updated
+    # manifest/i18n files or the config model class change.
+    signature=(_file_signature('runtime-manifest.json'),_labels_signature(),type(settings.model))
+    if _catalog_cache is not None and _catalog_cache[0]==signature:return _catalog_cache[1]
     names=json.loads((_root/'runtime-manifest.json').read_text())['tasks']
-    translations=json.loads(labels())
+    translations=_label_map()
+    model_type=type(settings.model)
+    keys={}
+    for key in model_type.model_fields:
+        try:kind=model_type.type(key)
+        except Exception:continue
+        keys.setdefault(kind,key)
     result=[]
     for name in names:
-        key=next((key for key in type(settings.model).model_fields if type(settings.model).type(key)==name),None)
-        result.append(dict(id=name,label=translations.get(name,name),configKey=key,runnable=True,deferred=False))
+        result.append(dict(id=name,label=translations.get(name,name),configKey=keys.get(name),runnable=True,deferred=False))
     for name,key in (('GlobalGame','global_game'),('Script','script')):
         result.append(dict(id=name,label=translations.get(name,name),configKey=key,runnable=False))
-    return json.dumps(result,ensure_ascii=False)
+    text=json.dumps(result,ensure_ascii=False)
+    _catalog_cache=(signature,text)
+    return text
 
 def _entry(name):
     allowed={item['id'] for item in json.loads(catalog()) if item['runnable']}
@@ -551,15 +577,30 @@ def form_cases():
     definition=json.loads(task_config('CustomTask'));definition['value']=model.model_dump(mode='json')
     return json.dumps([dict(task='CustomTask',label='CustomTask-six-entry-types',definition=definition)],ensure_ascii=False)
 
-def labels():
+_LABEL_FILES=('module/config/i18n/zh-CN.json','assets/i18n/zh-CN.json')
+
+def _labels_signature():
+    return _file_signature(*_LABEL_FILES)
+
+def _load_labels():
+    global _labels_cache
+    signature=_labels_signature()
+    if _labels_cache is not None and _labels_cache[0]==signature:return _labels_cache
     from android_oas.task_titles import TITLES
     result=dict(TITLES)
     from android_oas.oasx_labels import TRANSLATIONS
     result.update(TRANSLATIONS)
-    for filename in ('module/config/i18n/zh-CN.json','assets/i18n/zh-CN.json'):
+    for filename in _LABEL_FILES:
         path=_root/filename
         if path.is_file():result.update(json.loads(path.read_text(encoding='utf-8-sig')))
-    return json.dumps(result,ensure_ascii=False)
+    _labels_cache=(signature,result,json.dumps(result,ensure_ascii=False))
+    return _labels_cache
+
+def _label_map():
+    return _load_labels()[1]
+
+def labels():
+    return _load_labels()[2]
 
 def _task_is_running(preset,name):
     return preset==_config_name and _active and _running_task==name
@@ -967,10 +1008,15 @@ def run(name,host=None,preset=None):
         check()
         status='failed' if _last_outcome is False or result is False else 'finished'
         return json.dumps(dict(task=name,status=status,detail='任务流程已结束，真实效果请核对游戏',runtimeOutcome=getattr(settings,'task_runtime_outcome',None)),ensure_ascii=False,default=str)
-    except Cancelled as error:return json.dumps(dict(task=name,status='cancelled',detail=str(error)),ensure_ascii=False)
+    except Cancelled as error:
+        try: logger.info(f'{name} cancelled')
+        except Exception: pass
+        return json.dumps(dict(task=name,status='cancelled',detail=str(error)),ensure_ascii=False)
     except GameNotRunningError as error:
         return json.dumps(dict(task=name,status='game_not_running',detail=str(error)),ensure_ascii=False)
     except Exception as error:
+        try: logger.error(f'{name} failed: {error}')
+        except Exception: pass
         tb=traceback.format_exc()
         error_id=_save_error_snapshot(name,str(error),tb,device=device,settings=settings)
         return json.dumps(dict(task=name,status='failed',detail=str(error),traceback=tb,errorId=error_id),ensure_ascii=False)

@@ -124,6 +124,7 @@ fun StatisticsPanel(controller: OasController) {
     var metricMenu by remember { mutableStateOf(false) }
     var sortMenu by remember { mutableStateOf(false) }
     var focusedTask by remember { mutableStateOf("") }
+    var sixRealmsDialogTask by remember { mutableStateOf<StatsTaskSummary?>(null) }
 
     LaunchedEffect(controller.activePreset) {
         focusedTask = ""
@@ -307,7 +308,12 @@ fun StatisticsPanel(controller: OasController) {
                                     .fillMaxWidth()
                                     .height(40.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .clickable { focusedTask = entry.taskName },
+                                    .clickable {
+                                        focusedTask = entry.taskName
+                                        if(entry.sixRealms != null) {
+                                            sixRealmsDialogTask = entry
+                                        }
+                                    },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
@@ -409,5 +415,57 @@ fun StatisticsPanel(controller: OasController) {
                 }
             }
         }
+    }
+
+    val dialogTask = sixRealmsDialogTask
+    val sr = dialogTask?.sixRealms
+    if(dialogTask != null && sr != null) {
+        val winRate = if(sr.total > 0) String.format("%.1f%%", sr.win * 100.0 / sr.total) else "-"
+        AlertDialog(
+            onDismissRequest = { sixRealmsDialogTask = null },
+            title = { Text("六道之门 · ${labelOf(dialogTask.taskName)}", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "日期：${controller.statsSelectedDate.ifBlank { "今日" }}   ·   胜率：$winRate",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            Triple("总次数", "${sr.total}", MaterialTheme.colorScheme.primary),
+                            Triple("成功", "${sr.win}", Color(0xFF2E7D32)),
+                            Triple("失败", "${sr.lose}", MaterialTheme.colorScheme.error)
+                        ).forEach { (label, value, tint) ->
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                color = tint.copy(alpha = 0.10f),
+                                border = BorderStroke(1.dp, tint.copy(alpha = 0.25f))
+                            ) {
+                                Column(
+                                    Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = tint)
+                                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                    if(sr.lose > 0) {
+                        Text(
+                            "失败构成：BOSS 战败 ${sr.bossLose} 次  ·  识别/异常报错 ${sr.errorLose} 次",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { sixRealmsDialogTask = null }) { Text("确定") }
+            }
+        )
     }
 }

@@ -1,10 +1,12 @@
 // OASX settings_view.dart, setting_card.dart & setting_item.dart adapted for native Android.
 package com.oas.android.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -13,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.oas.android.BuildConfig
 import com.oas.android.RuntimeUpdater
 
@@ -124,9 +128,11 @@ fun SettingsScreen(controller: OasController, onDevice: () -> Unit, onEdit: (Str
 @Composable
 private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
     var showSourceConfig by remember { mutableStateOf(false) }
+    var showNotesDialog by remember { mutableStateOf(false) }
     var manifestInput by remember(controller.updateManifestUrl) { mutableStateOf(controller.updateManifestUrl) }
     var mirrorInput by remember(controller.updateMirrorPrefix) { mutableStateOf(controller.updateMirrorPrefix) }
     val info = controller.remoteUpdate
+    val hasAnyNotes = info != null && (info.runtimeNotes.isNotBlank() || info.appNotes.isNotBlank())
 
     AlertDialog(
         onDismissRequest = { if(!controller.updateBusy) onDismiss() },
@@ -146,8 +152,40 @@ private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
                 if(controller.updateBusy && controller.updateProgress > 0f) {
                     LinearProgressIndicator(progress = { controller.updateProgress }, modifier = Modifier.fillMaxWidth())
                 }
-                if(info != null && info.runtimeNotes.isNotBlank()) {
-                    Text("脚本更新说明：${info.runtimeNotes}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if(hasAnyNotes && info != null) {
+                    val previewText = info.runtimeNotes.ifBlank { info.appNotes }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().clickable { showNotesDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "更新日志",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.weight(1f))
+                                Text("查看完整内容", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Text(
+                                previewText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
                 if(info != null && info.hasAppUpdate) {
                     OutlinedButton(
@@ -203,6 +241,59 @@ private fun UpdateDialog(controller: OasController, onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss, enabled = !controller.updateBusy) { Text("关闭") }
         }
     )
+
+    if(showNotesDialog && info != null) {
+        AlertDialog(
+            onDismissRequest = { showNotesDialog = false },
+            title = { Text("完整更新日志", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 160.dp, max = 460.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if(info.runtimeNotes.isNotBlank()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "脚本包 ${info.runtimeVersion.ifBlank { "" }}".trim(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                info.runtimeNotes,
+                                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 21.sp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                    if(info.runtimeNotes.isNotBlank() && info.appNotes.isNotBlank()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    if(info.appNotes.isNotBlank()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "客户端 OASA ${info.appVersion.ifBlank { "" }}".trim(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                info.appNotes,
+                                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 21.sp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNotesDialog = false }) { Text("关闭") }
+            }
+        )
+    }
 }
 
 @Composable

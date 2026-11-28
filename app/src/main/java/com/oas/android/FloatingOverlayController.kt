@@ -19,12 +19,6 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -804,26 +798,15 @@ private fun OasFloatBall(
     onDragEnd: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    val infiniteTransition = rememberInfiniteTransition(label = "float_ball_breath")
-    val breathingAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.70f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "breath_alpha"
-    )
+    // No infinite "breathing" animation: it ticked Choreographer every vsync even when idle and,
+    // while running, redrew this always-on-top window at full refresh rate for hours. The ring
+    // color and status dot already show the running state, so the ball stays fully static.
     val ringColor = when {
         active -> OasDesignTokens.StatusColors.Running
         connected -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outline
     }
-    val visualAlpha = when {
-        halfHidden -> 0.58f
-        active -> breathingAlpha
-        else -> 1f
-    }
+    val visualAlpha = if (halfHidden) 0.58f else 1f
 
     Box(
         modifier = Modifier

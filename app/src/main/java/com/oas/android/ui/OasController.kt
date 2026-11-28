@@ -33,7 +33,8 @@ data class ErrorLogItem(val id: String, val timeText: String, val config: String
 data class ErrorLogDetail(val item: ErrorLogItem, val logText: String, val imagePaths: List<String>)
 
 data class StatsTaskRun(val startTime: String, val endTime: String, val durationSeconds: Double, val battleCount: Int, val battleAvgDurationSeconds: Double)
-data class StatsTaskSummary(val taskName: String, val runCount: Int, val totalDurationSeconds: Double, val battleCount: Int, val battleAvgDurationSeconds: Double, val runs: List<StatsTaskRun>)
+data class StatsSixRealmsSummary(val total: Int, val win: Int, val lose: Int, val bossLose: Int, val errorLose: Int)
+data class StatsTaskSummary(val taskName: String, val runCount: Int, val totalDurationSeconds: Double, val battleCount: Int, val battleAvgDurationSeconds: Double, val runs: List<StatsTaskRun>, val sixRealms: StatsSixRealmsSummary? = null)
 data class StatsDayData(val scriptName: String, val date: String, val totalRuntimeSeconds: Double, val totalTaskRunCount: Int, val totalBattleCount: Int, val tasks: List<StatsTaskSummary>)
 
 data class IncomeItemData(val name: String, val value: Int, val delta: Int?)
@@ -537,6 +538,16 @@ class OasController(private val activity: Activity) {
                             battleAvgDurationSeconds = rb?.optDouble("avg_duration_seconds", 0.0) ?: 0.0
                         )
                     }
+                    val srObj = t.optJSONObject("six_realms")
+                    val srSummary = srObj?.let {
+                        StatsSixRealmsSummary(
+                            total = it.optInt("total", 0),
+                            win = it.optInt("win", 0),
+                            lose = it.optInt("lose", 0),
+                            bossLose = it.optInt("boss_lose", 0),
+                            errorLose = it.optInt("error_lose", 0)
+                        )
+                    }
                     taskList.add(
                         StatsTaskSummary(
                             taskName = key,
@@ -544,7 +555,8 @@ class OasController(private val activity: Activity) {
                             totalDurationSeconds = t.optDouble("total_duration_seconds", 0.0),
                             battleCount = tb?.optInt("count", 0) ?: 0,
                             battleAvgDurationSeconds = tb?.optDouble("avg_duration_seconds", 0.0) ?: 0.0,
-                            runs = runs
+                            runs = runs,
+                            sixRealms = srSummary
                         )
                     )
                 }

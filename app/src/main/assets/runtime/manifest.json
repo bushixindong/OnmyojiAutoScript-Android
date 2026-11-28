@@ -1,5 +1,5 @@
 {
-  "runtimeVersion": "1.0.5.8",
+  "runtimeVersion": "1.0.5.10",
   "tasks": [
     "AbyssShadows",
     "ActivityShikigami",
@@ -66,12 +66,12 @@
   ],
   "taskCount": 62,
   "fileCount": 4192,
-  "unpackedBytes": 75750395,
+  "unpackedBytes": 75757087,
   "portabilityEdits": {
     "tasks/Component/SwitchAccount/switch_account.py": "from adbutils import device",
     "tasks/Quiz/script_task.py": "from module.device.screenshot import Screenshot"
   },
-  "archiveSha256": "0a4d6bd4e03ce6ecb36ca6f0ee10427dee168ed5c837ade883fe76bdb90634d1",
+  "archiveSha256": "39ce94d79a84ee817581f032cd8a9a8b8f9d55b13c923793714806566afdffc6",
   "thirdPartyImports": [
     "Crypto",
     "PIL",
@@ -950,8 +950,8 @@
     },
     {
       "path": "module/server/log_stats.py",
-      "size": 25430,
-      "sha256": "3a0c6f58f6d27ddd70076fb7be76a10a216b432718969c7df11f79f6a3ab3b62"
+      "size": 29335,
+      "sha256": "f956165b9dcdea7d266c44633a0a4561b1ebce1681f7b5214e3cae53e7f2492d"
     },
     {
       "path": "module/server/main_manager.py",
@@ -1000,8 +1000,8 @@
     },
     {
       "path": "module/server/tool.py",
-      "size": 69645,
-      "sha256": "e31f1f5ff971900b29cfaad2bcbdc9761645fc3ec7cda59a8475c51dd67c1c71"
+      "size": 74143,
+      "sha256": "f2a2d233958abca7a9a2468d24e2b9c0e9e0f608dff340dfa82ad545c9c6fe10"
     },
     {
       "path": "module/server/tool_capture_worker.py",
@@ -1010,8 +1010,8 @@
     },
     {
       "path": "module/server/tool_router.py",
-      "size": 18783,
-      "sha256": "b19cadefb12a369a010b326c872811fe88e4aaf7ffac50581af10f55461c326d"
+      "size": 19321,
+      "sha256": "a36b01176efa0daeace3236e1644ad4bd87d514ff07b42ca2d0696f71e7a0d57"
     },
     {
       "path": "module/server/updater.py",
@@ -19050,8 +19050,8 @@
     },
     {
       "path": "tasks/SixRealms/assets.py",
-      "size": 26518,
-      "sha256": "cdfad8b3c6542004a0288c56280d33d05fbf36f25cb15561421d0bc144c7b0f6"
+      "size": 26439,
+      "sha256": "d5c5308226d157aff18c512c07d92336cfd801495f36d1f88fa5e9565ef54edb"
     },
     {
       "path": "tasks/SixRealms/common.py",
@@ -19065,13 +19065,13 @@
     },
     {
       "path": "tasks/SixRealms/moon_sea/base_moon_sea.py",
-      "size": 6048,
-      "sha256": "3fd4ebeaa02d09d691af2182a65164a0105438ae0d16f55429cc907bf084ac84"
+      "size": 6115,
+      "sha256": "e021cfa29773df300b723a2c36678b2f8672e08bbd49a09801da4c21566df6a2"
     },
     {
       "path": "tasks/SixRealms/moon_sea/moon_sea.py",
-      "size": 10182,
-      "sha256": "7c193499be61da9ef29829a2dd88cb2fc62ff0339a37dc6b07ced1e4378dec4e"
+      "size": 10271,
+      "sha256": "db2f92b02bbc87c2c8f4447cdca2f23494f4f9555150a5f3728fc84131615536"
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/animate.json",
@@ -19090,8 +19090,8 @@
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/image_boss.json",
-      "size": 2427,
-      "sha256": "4db7b72c57956fcf2022f2ed08e028c7c841c1b04fe985efbe00fd70b8d71ebb"
+      "size": 2518,
+      "sha256": "d6d1917f23e4b665ae5add596c71ea8a270161554c3419eda56d84e68b401cfe"
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/image_land.json",
@@ -19150,13 +19150,13 @@
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/ms_boss_battle_again.png",
-      "size": 13252,
-      "sha256": "78b032b75842261dc3aa7ed7173e8fe567735460209a7f42c682e9f1c477d125"
+      "size": 11796,
+      "sha256": "dbd9a2285aea095e06ea023e8fd0b75567d47387b8c9dcc56d532263537b84be"
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/ms_boss_battle_giveup.png",
-      "size": 13333,
-      "sha256": "76b8c54965b253b8841d3bb040a76ef3947eaad5d73f4b0f2a56b681c2ab7398"
+      "size": 12014,
+      "sha256": "bd29894062a0166960c818db29babdcc3a160bbe7a299941413381685a8b6e4c"
     },
     {
       "path": "tasks/SixRealms/moon_sea/ms/ms_boss_fire.png",
@@ -19435,8 +19435,8 @@
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/base_peacock_kingdom.py",
-      "size": 5616,
-      "sha256": "cea23bcab9845227244c7d0be6eb32065d970f47e787f2e4b4222c4b1207b445"
+      "size": 5885,
+      "sha256": "cd2ba0da324ab80efdd1848da1926cf1fe6f6d19143d82eb91ec3d69219a3e06"
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/page.py",
@@ -19445,8 +19445,8 @@
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/peacock_kingdom.py",
-      "size": 6584,
-      "sha256": "342602977a57ffe5092522301fc1df9ffc32bd13b4ea6e49876965dd84d7bdc0"
+      "size": 6673,
+      "sha256": "dc2583e2dece25d848159e10c763073eb2093bf3588b8af8fbfb30a44bf20d13"
     },
     {
       "path": "tasks/SixRealms/peacock_kingdom/pk/image.json",

@@ -33,11 +33,15 @@ fun OasAppScreen(controller: OasController) {
     OasTheme(controller.appearance) {
         val dark = controller.appearance == "dark" || controller.appearance == "system" && isSystemInDarkTheme()
         SideEffect { controller.updateSystemBars(dark) }
+        val lifecycle = (androidx.activity.compose.LocalActivity.current as androidx.activity.ComponentActivity).lifecycle
         LaunchedEffect(controller) {
             var tick = 0
             while(true) {
                 controller.sync()
-                if(controller.active && tick % 4 == 0) controller.refresh()
+                // The periodic task-list refresh enters Python (config load + JSON) and contends
+                // with the running engine for the GIL; only do it while the UI is actually visible.
+                if(controller.active && tick % 4 == 0 &&
+                    lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) controller.refresh()
                 tick++
                 delay(500)
             }

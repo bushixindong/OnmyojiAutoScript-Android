@@ -110,6 +110,31 @@ def git_info(repo: Path) -> dict:
     }
 
 
+def read_changelog_section(section_title: str) -> str:
+    cl_path = ROOT / "CHANGELOG.md"
+    if not cl_path.is_file():
+        return ""
+    try:
+        text = cl_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    lines = text.splitlines()
+    collecting = False
+    out: list[str] = []
+    target_hdr = f"## {section_title}"
+    for ln in lines:
+        s = ln.strip()
+        if s.startswith("## "):
+            if collecting:
+                break
+            if s == target_hdr:
+                collecting = True
+            continue
+        if collecting and s:
+            out.append(s)
+    return "\n".join(out)
+
+
 def runtime_info() -> dict:
     man_path = ROOT / "app" / "src" / "main" / "assets" / "runtime" / "manifest.json"
     zip_path = ROOT / "app" / "src" / "main" / "assets" / "runtime" / "oas-runtime.zip"
@@ -618,7 +643,7 @@ HTML_PAGE = r"""<!doctype html>
   /* ---------- 构建台 ---------- */
   .console-grid{flex:1;display:grid;grid-template-columns:400px minmax(0,1fr);gap:16px;align-items:stretch}
   .config-card{display:flex;flex-direction:column}
-  .log-card{display:flex;flex-direction:column;min-height:calc(100vh - 160px)}
+  .log-card{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:540px;max-height:calc(100vh - 160px);overflow:hidden}
   .field{margin-bottom:13px}
   .field>label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);font-weight:700;margin-bottom:6px}
   .field select{width:100%}
@@ -668,15 +693,15 @@ HTML_PAGE = r"""<!doctype html>
   .step-hint{font-size:12.5px;color:var(--dim)}
   .hist-banner{display:none;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid rgba(245,158,11,.34);background:rgba(245,158,11,.10);color:var(--warn);border-radius:9px;margin-bottom:10px;font-size:12.5px;flex-wrap:wrap}
   .hist-banner.show{display:flex}
-  .log-shell{flex:1;display:flex;flex-direction:column;min-height:420px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--log-bg)}
-  .log-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;background:var(--surface);border-bottom:1px solid var(--border)}
+  .log-shell{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--log-bg)}
+  .log-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex:none}
   .log-tools .input{width:210px;padding:6px 10px;font-size:12.5px}
   .log-tools .chk{font-size:12.5px;margin:0;color:var(--muted)}
   .log-tools .chk input{width:15px;height:15px;margin:0}
   .log-tools .chk input:checked::after{left:4.5px;top:1.5px;width:4px;height:7px}
   .log-sep{width:1px;height:18px;background:var(--border-2)}
   .log-count{margin-left:auto;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
-  pre.log{margin:0;flex:1;min-height:360px;overflow:auto;padding:14px 16px;background:var(--log-bg);color:var(--log-text);font-family:Consolas,'Cascadia Mono',Menlo,monospace;font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;scrollbar-color:#334155 transparent}
+  pre.log{margin:0;flex:1;height:0;min-height:0;overflow:auto;padding:14px 16px;background:var(--log-bg);color:var(--log-text);font-family:Consolas,'Cascadia Mono',Menlo,monospace;font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;scrollbar-color:#334155 transparent}
   .phone-log-pre{height:calc(100vh - 340px);min-height:360px;flex:none}
   .ln-err{color:#f87171}
   .ln-ok{color:#4ade80;font-weight:600}
@@ -761,7 +786,7 @@ HTML_PAGE = r"""<!doctype html>
   @media(max-width:1180px){
     .strip-div{display:none}
     .console-grid{grid-template-columns:1fr}
-    .log-card{min-height:520px}
+    .log-card{height:560px;max-height:560px;min-height:460px}
     .phone-grid{grid-template-columns:1fr}
     .phone-list{max-height:280px;min-height:140px}
     .phone-log-pre{height:380px}
@@ -1633,11 +1658,11 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 "runtimeArchiveUrl": f"{base}/oas-runtime.zip",
                 "runtimeSha256": h.hexdigest(),
                 "runtimeManifestUrl": f"{base}/manifest.json",
-                "runtimeNotes": "局域网本地实时热更新包",
+                "runtimeNotes": read_changelog_section("脚本包更新日志") or "最新脚本包更新",
                 "appVersion": m_ver.group(1) if m_ver else "1.0.4",
                 "appVersionCode": int(m_code.group(1)) if m_code else 14,
                 "appDownloadUrl": f"http://{host_hdr}/",
-                "appNotes": "",
+                "appNotes": read_changelog_section("客户端更新日志"),
             })
             return
 
